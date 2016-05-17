@@ -245,7 +245,7 @@ public extension NSCocoaError {
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux)
+#elseif os(Linux) || os(Cygwin)
     import Glibc
 #endif
 

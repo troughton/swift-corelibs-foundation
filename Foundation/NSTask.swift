@@ -11,7 +11,7 @@ import CoreFoundation
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux)
+#elseif os(Linux) || os(Cygwin)
     import Glibc
 #endif
 
@@ -26,7 +26,7 @@ private func WEXITSTATUS(_ status: CInt) -> CInt {
 
 private var managerThreadSetupOnceToken = pthread_once_t()
 // these are different sadly...
-#if os(OSX) || os(iOS)
+#if os(OSX) || os(iOS) || os(Cygwin)
 private var threadID: pthread_t? = nil
 #elseif os(Linux)
 private var threadID = pthread_t()
@@ -254,10 +254,26 @@ public class NSTask : NSObject {
             task.processLaunchedCondition.unlock()
             
             var exitCode : Int32 = 0
+#if os(Cygwin)
+            final class Box<T> {
+                let value: T
+                 
+                init(_ value: T) {
+                    self.value = value
+                }
+            }
+
+            let unmanaged = Unmanaged.passRetained(Box<Int32>(exitCode))
+            let exitCodePtr = __wait_status_ptr_t(__int_ptr: UnsafeMutablePointer<Int32>(OpaquePointer(bitPattern: unmanaged)))
+#endif
             var waitResult : Int32 = 0
             
             repeat {
+#if os(Cygwin)
+                waitResult = waitpid( task.processIdentifier, exitCodePtr, 0)
+#else
                 waitResult = waitpid( task.processIdentifier, &exitCode, 0)
+#endif
             } while ( (waitResult == -1) && (errno == EINTR) )
             
             task.terminationStatus = WEXITSTATUS( exitCode )
@@ -265,7 +281,7 @@ public class NSTask : NSObject {
             // If a termination handler has been set, invoke it on a background thread
             
             if task.terminationHandler != nil {
-                #if os(OSX) || os(iOS)
+                #if os(OSX) || os(iOS) || os(Cygwin)
                 var threadID: pthread_t? = nil
                 #elseif os(Linux)
                 var threadID = pthread_t()
@@ -302,7 +318,7 @@ public class NSTask : NSObject {
         CFRunLoopAddSource(managerThreadRunLoop?._cfRunLoop, source, kCFRunLoopDefaultMode)
 
         // file_actions
-        #if os(OSX) || os(iOS)
+        #if os(OSX) || os(iOS) || os(Cygwin)
             var fileActions: posix_spawn_file_actions_t? = nil
         #else
             var fileActions: posix_spawn_file_actions_t = posix_spawn_file_actions_t()

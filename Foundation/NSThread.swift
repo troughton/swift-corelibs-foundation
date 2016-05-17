@@ -10,7 +10,7 @@
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux)
+#elseif os(Linux) || os(Cygwin)
 import Glibc
 #endif
 
@@ -24,7 +24,11 @@ internal class NSThreadSpecific<T: AnyObject> {
 
     private var NSThreadSpecificKeySet = false
     private var NSThreadSpecificKeyLock = NSLock()
+#if os(Cygwin)
+    private var NSThreadSpecificKey : pthread_key_t? = nil
+#else
     private var NSThreadSpecificKey = pthread_key_t()
+#endif
 
     private var key: pthread_key_t {
         NSThreadSpecificKeyLock.lock()
@@ -34,7 +38,11 @@ internal class NSThreadSpecific<T: AnyObject> {
             }
         }
         NSThreadSpecificKeyLock.unlock()
+#if os(Cygwin)
+        return NSThreadSpecificKey!
+#else
         return NSThreadSpecificKey
+#endif
     }
     
     internal func get(_ generator: (Void) -> T) -> T {
@@ -154,12 +162,16 @@ public class NSThread : NSObject {
     }
     
     internal var _main: (Void) -> Void = {}
-#if os(OSX) || os(iOS)
+#if os(OSX) || os(iOS) || os(Cygwin)
     private var _thread: pthread_t? = nil
 #elseif os(Linux)
     private var _thread = pthread_t()
 #endif
+#if os(Cygwin)
+    internal var _attr : pthread_attr_t? = nil
+#else
     internal var _attr = pthread_attr_t()
+#endif
     internal var _status = _NSThreadStatus.Initialized
     internal var _cancelled = false
     /// - Note: this differs from the Darwin implementation in that the keys must be Strings

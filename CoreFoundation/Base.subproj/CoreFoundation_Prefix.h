@@ -157,7 +157,7 @@ typedef int		boolean_t;
 #endif
 #endif
 
-#if DEPLOYMENT_TARGET_FREEBSD
+#if DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
 #include <string.h>
 #include <sys/stat.h> // mode_t
 #endif
@@ -237,7 +237,7 @@ CF_INLINE uint64_t mach_absolute_time() {
 
 #endif
 
-#if DEPLOYMENT_TARGET_FREEBSD
+#if DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
 #define HAVE_STRUCT_TIMESPEC 1
 
 #define CF_PRIVATE __attribute__((visibility("hidden")))
@@ -261,6 +261,13 @@ bool OSAtomicCompareAndSwap32Barrier( int32_t oldValue, int32_t newValue, volati
 
 void OSMemoryBarrier();
 
+#endif
+
+#if DEPLOYMENT_TARGET_CYGWIN
+#define strncasecmp_l(a, b, c, d) strncasecmp(a, b, c)
+#define _NO_BOOL_TYPEDEF
+#include <windows.h>
+#undef interface
 #endif
 
 #if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX    

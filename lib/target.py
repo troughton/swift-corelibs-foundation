@@ -352,6 +352,8 @@ class Target:
         elif platform.system() == "FreeBSD":
             # Make this work on 10 as well.
             triple += "-freebsd11.0"
+        elif platform.system() == "CYGWIN_NT-10.0":
+            triple += "-windows-cygnus"
         else:
             # TODO: This should be a bit more exhaustive
             print("unknown host os")
@@ -371,6 +373,8 @@ class Target:
                 triple += "-unknown-linux"
         elif self.sdk == OSType.FreeBSD:
             triple += "-unknown-freebsd"
+        elif self.sdk == OSType.Win32:
+            triple += "-unknown-windows-cygnus"
         else:
             print("unknown sdk for swift")
             return None
@@ -385,6 +389,8 @@ class Target:
             return "linux"
         elif self.sdk == OSType.FreeBSD:
             return "freebsd"
+        elif self.sdk == OSType.Win32:
+            return "cygwin"
         else:
             print("unknown sdk for swift")
             return None

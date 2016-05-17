@@ -97,8 +97,10 @@ CF_EXTERN_C_BEGIN
 #include <CoreFoundation/CFLogUtilities.h>
 #include <CoreFoundation/CFRuntime.h>
 #include <limits.h>
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
+#if !DEPLOYMENT_TARGET_CYGWIN
 #include <xlocale.h>
+#endif
 #include <unistd.h>
 #include <sys/time.h>
 #include <signal.h>
@@ -503,7 +505,7 @@ CF_INLINE Boolean __CFLockTry(volatile CFLock_t *lock) {
     return (InterlockedCompareExchange((LONG volatile *)lock, ~0, 0) == 0);
 }
 
-#elif DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#elif DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
 
 typedef int32_t CFLock_t;
 #define CFLockInit 0
@@ -833,6 +835,8 @@ CF_PRIVATE const wchar_t *_CFDLLPath(void);
 #define PATH_SEP '/'
 #define PATH_SEP_STR CFSTR("/")
 #endif
+
+#include <stdio.h>
 
 CF_INLINE const char *CFPathRelativeToAppleFrameworksRoot(const char *path, Boolean *allocated) {
     if (!__CFProcessIsRestricted() && path) {

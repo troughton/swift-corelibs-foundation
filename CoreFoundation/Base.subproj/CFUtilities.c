@@ -56,7 +56,7 @@
 #include <sys/errno.h>
 #include <mach/mach_time.h>
 #endif
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
 #include <string.h>
 #include <pthread.h>
 #include <sys/mman.h>
@@ -1087,7 +1087,7 @@ CF_PRIVATE Boolean _CFReadMappedFromFile(CFStringRef path, Boolean map, Boolean 
     if (0LL == statBuf.st_size) {
         bytes = malloc(8); // don't return constant string -- it's freed!
 	length = 0;
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
     } else if (map) {
         if((void *)-1 == (bytes = mmap(0, (size_t)statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
 	    int32_t savederrno = errno;
@@ -1261,7 +1261,7 @@ CFDictionaryRef __CFGetEnvironment() {
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED
         extern char ***_NSGetEnviron();
         char **envp = *_NSGetEnviron();
-#elif DEPLOYMENT_TARGET_FREEBSD
+#elif DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
         extern char **environ;
         char **envp = environ;
 #elif DEPLOYMENT_TARGET_LINUX

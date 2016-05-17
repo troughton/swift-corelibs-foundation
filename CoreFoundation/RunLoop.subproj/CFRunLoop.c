@@ -58,8 +58,9 @@ extern pthread_t pthread_main_thread_np(void);
 typedef struct voucher_s *voucher_t;
 extern mach_port_t _dispatch_get_main_queue_port_4CF(void);
 extern void _dispatch_main_queue_callback_4CF(mach_msg_header_t *msg);
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
 #include <process.h>
+#define DISPATCH_EXPORT extern
 DISPATCH_EXPORT HANDLE _dispatch_get_main_queue_handle_4CF(void);
 DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void);
 
@@ -69,7 +70,7 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void);
 #define _dispatch_get_main_queue_port_4CF _dispatch_get_main_queue_handle_4CF
 #define _dispatch_main_queue_callback_4CF(x) _dispatch_main_queue_callback_4CF()
 
-#define AbsoluteTime LARGE_INTEGER 
+//#define AbsoluteTime LARGE_INTEGER 
 
 #elif DEPLOYMENT_TARGET_LINUX
 #include <dlfcn.h>
@@ -126,7 +127,7 @@ static pthread_t kNilPthreadT = { nil, nil };
 typedef	int kern_return_t;
 #define KERN_SUCCESS 0
 
-#elif DEPLOYMENT_TARGET_LINUX
+#elif DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
 
 static pthread_t kNilPthreadT = (pthread_t)0;
 #define pthreadPointer(a) ((void*)a)
@@ -349,7 +350,7 @@ CF_INLINE void __CFPortSetFree(__CFPortSet portSet) {
     }
 }
 
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
 
 typedef HANDLE __CFPort;
 #define CFPORT_NULL NULL
@@ -375,6 +376,8 @@ static __CFPortSet __CFPortSetAllocate(void) {
     result->used = 0;
     result->size = 4;
     result->handles = (HANDLE *)CFAllocatorAllocate(kCFAllocatorSystemDefault, result->size * sizeof(HANDLE), 0);
+
+#define CF_SPINLOCK_INIT_FOR_STRUCTS(X) InitializeCriticalSection(&X)
     CF_SPINLOCK_INIT_FOR_STRUCTS(result->lock);
     return result;
 }
@@ -2446,7 +2449,7 @@ static Boolean __CFRunLoopServiceFileDescriptors(__CFPortSet portSet, __CFPort o
     return true;
 }
 
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
 
 #define TIMEOUT_INFINITY INFINITE
 
@@ -2596,7 +2599,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
         mach_msg_header_t *msg = NULL;
         mach_port_t livePort = MACH_PORT_NULL;
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
         HANDLE livePort = NULL;
         Boolean windowsMessageReceived = false;
 #elif DEPLOYMENT_TARGET_LINUX
