@@ -862,7 +862,7 @@ extern void __CFStringInitialize(void);
 extern void __CFCharacterSetInitialize(void);
 extern void __CFPFactoryInitialize(void);
 extern void __CFPlugInInitialize(void);
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_CYGWIN
 CF_PRIVATE void __CFTSDInitialize();
 #endif
 #if DEPLOYMENT_TARGET_WINDOWS
@@ -986,7 +986,7 @@ CF_PRIVATE Boolean __CFInitialized = 0;
 // move the next 2 lines down into the #if below, and make it static, after Foundation gets off this symbol on other platforms
 CF_EXPORT pthread_t _CFMainPThread;
 pthread_t _CFMainPThread = kNilPthreadT;
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
 
 CF_EXPORT pthread_t _CF_pthread_main_thread_np(void);
 pthread_t _CF_pthread_main_thread_np(void) {
@@ -1016,7 +1016,7 @@ void __CFInitialize(void) {
 #if DEPLOYMENT_TARGET_WINDOWS
         // Must not call any CF functions
         __CFTSDWindowsInitialize();
-#elif DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX
+#elif DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_CYGWIN
         __CFTSDInitialize();
 #endif
         
@@ -1048,7 +1048,7 @@ void __CFInitialize(void) {
 #if DEPLOYMENT_RUNTIME_SWIFT
 
         #ifndef __CFSwiftGetBaseClass
-        #if TARGET_OS_LINUX
+        #if TARGET_OS_LINUX || DEPLOYMENT_TARGET_CYGWIN
         #define __CFSwiftGetBaseClass _TF10Foundation21__CFSwiftGetBaseClassFT_PMPs9AnyObject_
         #elif TARGET_OS_MAC
         #define __CFSwiftGetBaseClass _TF15SwiftFoundation21__CFSwiftGetBaseClassFT_PMPs9AnyObject_
@@ -1161,7 +1161,7 @@ void __CFInitialize(void) {
 #if DEPLOYMENT_RUNTIME_SWIFT
         _CFKeyedArchiverUIDGetTypeID();
         #ifndef __CFInitializeSwift
-        #if TARGET_OS_LINUX
+        #if TARGET_OS_LINUX || DEPLOYMENT_TARGET_CYGWIN
         #define __CFInitializeSwift _TF10Foundation19__CFInitializeSwiftFT_T_
         #elif TARGET_OS_MAC
         #define __CFInitializeSwift _TF15SwiftFoundation19__CFInitializeSwiftFT_T_

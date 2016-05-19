@@ -157,12 +157,12 @@ typedef int		boolean_t;
 #endif
 #endif
 
-#if DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_FREEBSD
 #include <string.h>
 #include <sys/stat.h> // mode_t
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
     
 #define CF_PRIVATE __attribute__((visibility("hidden")))
 #define __strong
@@ -178,6 +178,7 @@ typedef int		boolean_t;
 
 #include <pthread.h>
 
+#if !DEPLOYMENT_TARGET_CYGWIN
 CF_INLINE size_t
 strlcpy(char * dst, const char * src, size_t maxlen) {
     const size_t srclen = strlen(src);
@@ -205,6 +206,7 @@ strlcat(char * dst, const char * src, size_t maxlen) {
 }
 
 #define issetugid() 0
+#endif
     
 // Implemented in CFPlatform.c 
 bool OSAtomicCompareAndSwapPtr(void *oldp, void *newp, void *volatile *dst);
@@ -237,7 +239,7 @@ CF_INLINE uint64_t mach_absolute_time() {
 
 #endif
 
-#if DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_FREEBSD
 #define HAVE_STRUCT_TIMESPEC 1
 
 #define CF_PRIVATE __attribute__((visibility("hidden")))
@@ -264,13 +266,14 @@ void OSMemoryBarrier();
 #endif
 
 #if DEPLOYMENT_TARGET_CYGWIN
+#define HAVE_STRUCT_TIMESPEC 1
 #define strncasecmp_l(a, b, c, d) strncasecmp(a, b, c)
 #define _NO_BOOL_TYPEDEF
 #include <windows.h>
 #undef interface
 #endif
 
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX    
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN 
 #if !defined(MIN)
 #define MIN(A,B)	((A) < (B) ? (A) : (B))
 #endif
@@ -470,7 +473,7 @@ CF_EXPORT int64_t OSAtomicAdd64Barrier( int64_t __theAmount, volatile int64_t *_
 #define CF_PRIVATE __attribute__((__visibility__("hidden")))
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
 
 #include <stdarg.h>
 

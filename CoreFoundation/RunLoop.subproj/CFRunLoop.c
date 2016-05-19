@@ -71,6 +71,7 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void);
 #define _dispatch_main_queue_callback_4CF(x) _dispatch_main_queue_callback_4CF()
 
 //#define AbsoluteTime LARGE_INTEGER 
+#define LARGE_INTEGER uint64_t
 
 #elif DEPLOYMENT_TARGET_LINUX
 #include <dlfcn.h>
@@ -83,7 +84,7 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void);
 #define _dispatch_main_queue_callback_4CF(x) dispatch_main_queue_drain_4CF()
 #endif
 
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
 CF_EXPORT pthread_t _CF_pthread_main_thread_np(void);
 #define pthread_main_thread_np() _CF_pthread_main_thread_np()
 #endif
@@ -557,7 +558,7 @@ CF_INLINE int64_t __CFUInt64ToAbsoluteTime(int64_t x) {
     return x;
 }
 
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
 
 static HANDLE mk_timer_create(void) {
     return CreateWaitableTimer(NULL, FALSE, NULL);
@@ -577,13 +578,13 @@ static kern_return_t mk_timer_arm(HANDLE name, LARGE_INTEGER expire_time) {
     // There is a race we know about here, (timer fire time calculated -> thread suspended -> timer armed == late timer fire), but we don't have a way to avoid it at this time, since the only way to specify an absolute value to the timer is to calculate the relative time first. Fixing that would probably require not using the TSR for timers on Windows.
     uint64_t now = mach_absolute_time();
     if (now > expire_time) {
-        result.QuadPart = 0;
+        result = 0;
     } else {
         uint64_t timeDiff = expire_time - now;
         CFTimeInterval amountOfTimeToWait = __CFTSRToTimeInterval(timeDiff);
         // Result is in 100 ns (10**-7 sec) units to be consistent with a FILETIME.
         // CFTimeInterval is in seconds.
-        result.QuadPart = -(amountOfTimeToWait * 10000000);
+        result = -(amountOfTimeToWait * 10000000);
     }
 
     BOOL res = SetWaitableTimer(name, &result, 0, NULL, NULL, FALSE);

@@ -155,13 +155,15 @@ const char *_CFProcessPath(void) {
 }
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
 #include <unistd.h>
+#if !DEPLOYMENT_TARGET_CYGWIN
 #include <syscall.h>
 
 Boolean _CFIsMainThread(void) {
     return syscall(SYS_gettid) == getpid();
 }
+#endif
 
 const char *_CFProcessPath(void) {
     if (__CFProcessPath) return __CFProcessPath;
@@ -1067,7 +1069,7 @@ CF_PRIVATE int _NS_gettimeofday(struct timeval *tv, struct timezone *tz) {
 #pragma mark -
 #pragma mark Linux OSAtomic
 
-#if defined(DEPLOYMENT_TARGET_LINUX) || defined(DEPLOYMENT_TARGET_FREEBSD)
+#if defined(DEPLOYMENT_TARGET_LINUX) || defined(DEPLOYMENT_TARGET_FREEBSD) || defined(DEPLOYMENT_TARGET_CYGWIN)
 
 bool OSAtomicCompareAndSwapPtr(void *oldp, void *newp, void *volatile *dst) 
 { 
