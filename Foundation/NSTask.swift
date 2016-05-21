@@ -11,7 +11,7 @@ import CoreFoundation
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux) || os(Cygwin)
+#elseif os(Linux) || IS_CYGWIN
     import Glibc
 #endif
 
@@ -26,7 +26,7 @@ private func WEXITSTATUS(_ status: CInt) -> CInt {
 
 private var managerThreadSetupOnceToken = pthread_once_t()
 // these are different sadly...
-#if os(OSX) || os(iOS) || os(Cygwin)
+#if os(OSX) || os(iOS) || IS_CYGWIN
 private var threadID: pthread_t? = nil
 #elseif os(Linux)
 private var threadID = pthread_t()
@@ -254,7 +254,7 @@ public class NSTask : NSObject {
             task.processLaunchedCondition.unlock()
             
             var exitCode : Int32 = 0
-#if os(Cygwin)
+#if IS_CYGWIN
             final class Box<T> {
                 let value: T
                  
@@ -269,7 +269,7 @@ public class NSTask : NSObject {
             var waitResult : Int32 = 0
             
             repeat {
-#if os(Cygwin)
+#if IS_CYGWIN
                 waitResult = waitpid( task.processIdentifier, exitCodePtr, 0)
 #else
                 waitResult = waitpid( task.processIdentifier, &exitCode, 0)
@@ -281,7 +281,7 @@ public class NSTask : NSObject {
             // If a termination handler has been set, invoke it on a background thread
             
             if task.terminationHandler != nil {
-                #if os(OSX) || os(iOS) || os(Cygwin)
+                #if os(OSX) || os(iOS) || IS_CYGWIN
                 var threadID: pthread_t? = nil
                 #elseif os(Linux)
                 var threadID = pthread_t()
@@ -318,7 +318,7 @@ public class NSTask : NSObject {
         CFRunLoopAddSource(managerThreadRunLoop?._cfRunLoop, source, kCFRunLoopDefaultMode)
 
         // file_actions
-        #if os(OSX) || os(iOS) || os(Cygwin)
+        #if os(OSX) || os(iOS) || IS_CYGWIN
             var fileActions: posix_spawn_file_actions_t? = nil
         #else
             var fileActions: posix_spawn_file_actions_t = posix_spawn_file_actions_t()

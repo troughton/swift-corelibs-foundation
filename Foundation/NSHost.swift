@@ -10,7 +10,7 @@
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || os(Cygwin)
+#elseif os(Linux) || IS_CYGWIN
 import Glibc
 #endif
 

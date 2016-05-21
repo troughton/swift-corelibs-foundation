@@ -10,7 +10,7 @@
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || os(Cygwin)
+#elseif os(Linux) || IS_CYGWIN
 import Glibc
 #endif
 
@@ -24,7 +24,7 @@ internal class NSThreadSpecific<T: AnyObject> {
 
     private var NSThreadSpecificKeySet = false
     private var NSThreadSpecificKeyLock = NSLock()
-#if os(Cygwin)
+#if IS_CYGWIN
     private var NSThreadSpecificKey : pthread_key_t? = nil
 #else
     private var NSThreadSpecificKey = pthread_key_t()
@@ -38,7 +38,7 @@ internal class NSThreadSpecific<T: AnyObject> {
             }
         }
         NSThreadSpecificKeyLock.unlock()
-#if os(Cygwin)
+#if IS_CYGWIN
         return NSThreadSpecificKey!
 #else
         return NSThreadSpecificKey
@@ -162,12 +162,12 @@ public class NSThread : NSObject {
     }
     
     internal var _main: (Void) -> Void = {}
-#if os(OSX) || os(iOS) || os(Cygwin)
+#if os(OSX) || os(iOS) || IS_CYGWIN
     private var _thread: pthread_t? = nil
 #elseif os(Linux)
     private var _thread = pthread_t()
 #endif
-#if os(Cygwin)
+#if IS_CYGWIN
     internal var _attr : pthread_attr_t? = nil
 #else
     internal var _attr = pthread_attr_t()
