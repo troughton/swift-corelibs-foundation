@@ -57,7 +57,6 @@ foundation.CFLAGS += " ".join([
 
 swift_cflags = [
 	'-I${BUILD_DIR}/Foundation/usr/lib/swift',
-	'-I/usr/include',
 	'-I/usr/include/libxml2'
 ]
 
