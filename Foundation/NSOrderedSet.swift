@@ -217,19 +217,17 @@ extension NSOrderedSet {
     }
     
     public func objectEnumerator() -> NSEnumerator {
-        if self.dynamicType === NSOrderedSet.self || self.dynamicType === NSMutableOrderedSet.self {
-            return NSGeneratorEnumerator(_orderedStorage.makeIterator())
-        } else {
+        guard self.dynamicType === NSOrderedSet.self || self.dynamicType === NSMutableOrderedSet.self else {
             NSRequiresConcreteImplementation()
         }
+        return NSGeneratorEnumerator(_orderedStorage.makeIterator())
     }
 
     public func reverseObjectEnumerator() -> NSEnumerator { 
-        if self.dynamicType === NSOrderedSet.self || self.dynamicType === NSMutableOrderedSet.self {
-            return NSGeneratorEnumerator(_orderedStorage.reversed().makeIterator())
-        } else {
+        guard self.dynamicType === NSOrderedSet.self || self.dynamicType === NSMutableOrderedSet.self else {
             NSRequiresConcreteImplementation()
         }
+        return NSGeneratorEnumerator(_orderedStorage.reversed().makeIterator())
     }
     
     /*@NSCopying*/ 
@@ -538,7 +536,7 @@ extension NSMutableOrderedSet {
 
         let swiftRange = range.toRange()!
         _orderedStorage[swiftRange].sort { lhs, rhs in
-            return cmptr(lhs, rhs) == .OrderedAscending
+            return cmptr(lhs, rhs) == .orderedAscending
         }
     }
 }

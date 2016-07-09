@@ -45,26 +45,26 @@ private func emptyRunLoopCallback(_ context : UnsafeMutablePointer<Void>?) -> Vo
 
 // Retain method for run loop source
 private func runLoopSourceRetain(_ pointer : UnsafePointer<Void>?) -> UnsafePointer<Void>? {
-    let ref = Unmanaged<AnyObject>.fromOpaque(OpaquePointer(pointer!)).takeUnretainedValue()
+    let ref = Unmanaged<AnyObject>.fromOpaque(pointer!).takeUnretainedValue()
     let retained = Unmanaged<AnyObject>.passRetained(ref)
     return unsafeBitCast(retained, to: UnsafePointer<Void>.self)
 }
 
 // Release method for run loop source
 private func runLoopSourceRelease(_ pointer : UnsafePointer<Void>?) -> Void {
-    Unmanaged<AnyObject>.fromOpaque(OpaquePointer(pointer!)).release()
+    Unmanaged<AnyObject>.fromOpaque(pointer!).release()
 }
 
 // Equal method for run loop source
 
 private func runloopIsEqual(_ a : UnsafePointer<Void>?, b : UnsafePointer<Void>?) -> _DarwinCompatibleBoolean {
     
-    let unmanagedrunLoopA = Unmanaged<AnyObject>.fromOpaque(OpaquePointer(a!))
+    let unmanagedrunLoopA = Unmanaged<AnyObject>.fromOpaque(a!)
     guard let runLoopA = unmanagedrunLoopA.takeUnretainedValue() as? NSRunLoop else {
         return false
     }
     
-    let unmanagedRunLoopB = Unmanaged<AnyObject>.fromOpaque(OpaquePointer(a!))
+    let unmanagedRunLoopB = Unmanaged<AnyObject>.fromOpaque(a!)
     guard let runLoopB = unmanagedRunLoopB.takeUnretainedValue() as? NSRunLoop else {
         return false
     }
@@ -79,7 +79,7 @@ private func runloopIsEqual(_ a : UnsafePointer<Void>?, b : UnsafePointer<Void>?
 @noreturn private func managerThread(_ x: UnsafeMutablePointer<Void>?) -> UnsafeMutablePointer<Void>? {
     
     managerThreadRunLoop = NSRunLoop.currentRunLoop()
-    var emptySourceContext = CFRunLoopSourceContext (version: 0, info: UnsafeMutablePointer<Void>(OpaquePointer(bitPattern: Unmanaged.passUnretained(managerThreadRunLoop!))),
+    var emptySourceContext = CFRunLoopSourceContext (version: 0, info: Unmanaged.passUnretained(managerThreadRunLoop!).toOpaque(),
                                                               retain: runLoopSourceRetain, release: runLoopSourceRelease, copyDescription: nil,
                                                                       equal: runloopIsEqual, hash: nil, schedule: nil, cancel: nil,
                                                                              perform: emptyRunLoopCallback)
@@ -113,12 +113,12 @@ private func managerThreadSetup() -> Void {
 // Equal method for task in run loop source
 private func nstaskIsEqual(_ a : UnsafePointer<Void>?, b : UnsafePointer<Void>?) -> _DarwinCompatibleBoolean {
     
-    let unmanagedTaskA = Unmanaged<AnyObject>.fromOpaque(OpaquePointer(a!))
+    let unmanagedTaskA = Unmanaged<AnyObject>.fromOpaque(a!)
     guard let taskA = unmanagedTaskA.takeUnretainedValue() as? NSTask else {
         return false
     }
     
-    let unmanagedTaskB = Unmanaged<AnyObject>.fromOpaque(OpaquePointer(a!))
+    let unmanagedTaskB = Unmanaged<AnyObject>.fromOpaque(a!)
     guard let taskB = unmanagedTaskB.takeUnretainedValue() as? NSTask else {
         return false
     }
@@ -194,7 +194,7 @@ public class NSTask : NSObject {
         
         // Convert the arguments array into a posix_spawn-friendly format
         
-        var args = [launchPath.lastPathComponent]
+        var args = [launchPath]
         if let arguments = self.arguments {
             args.append(contentsOf: arguments)
         }
@@ -238,13 +238,13 @@ public class NSTask : NSObject {
         var taskSocketPair : [Int32] = [0, 0]
         socketpair(AF_UNIX, _CF_SOCK_STREAM(), 0, &taskSocketPair)
         
-        var context = CFSocketContext(version: 0, info: UnsafeMutablePointer<Void>(OpaquePointer(bitPattern: Unmanaged.passUnretained(self))),
+        var context = CFSocketContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
                                                retain: runLoopSourceRetain, release: runLoopSourceRelease, copyDescription: nil)
         
         let socket = CFSocketCreateWithNative( nil, taskSocketPair[0], CFOptionFlags(kCFSocketDataCallBack), {
             (socket, type, address, data, info )  in
             
-            let task = Unmanaged<NSTask>.fromOpaque(OpaquePointer(info!)).takeUnretainedValue()
+            let task = Unmanaged<NSTask>.fromOpaque(info!).takeUnretainedValue()
             
             task.processLaunchedCondition.lock()
             while task.running == false {
@@ -294,7 +294,7 @@ public class NSTask : NSObject {
                     task.terminationHandler!( task )
                     return context
                     
-                    }, UnsafeMutablePointer<Void>(OpaquePointer(bitPattern: Unmanaged.passRetained(task))))
+                    }, Unmanaged.passRetained(task).toOpaque())
             }
             
             // Set the running flag to false
@@ -323,66 +323,57 @@ public class NSTask : NSObject {
         #else
             var fileActions: posix_spawn_file_actions_t = posix_spawn_file_actions_t()
         #endif
-        posix_spawn_file_actions_init(&fileActions)
+        posix(posix_spawn_file_actions_init(&fileActions))
+        defer { posix_spawn_file_actions_destroy(&fileActions) }
 
-        switch self.standardInput {
+        switch standardInput {
         case let pipe as NSPipe:
-            posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForReading.fileDescriptor, STDIN_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForWriting.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForReading.fileDescriptor, STDIN_FILENO))
+            posix(posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForWriting.fileDescriptor))
         case let handle as NSFileHandle:
-            posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDIN_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, handle.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDIN_FILENO))
         default: break
         }
 
-        switch self.standardOutput {
+        switch standardOutput {
         case let pipe as NSPipe:
-            posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForWriting.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO))
+            posix(posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForReading.fileDescriptor))
         case let handle as NSFileHandle:
-            posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDOUT_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, handle.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDOUT_FILENO))
         default: break
         }
 
-        switch self.standardError {
+        switch standardError {
         case let pipe as NSPipe:
-            posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForWriting.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, pipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO))
+            posix(posix_spawn_file_actions_addclose(&fileActions, pipe.fileHandleForReading.fileDescriptor))
         case let handle as NSFileHandle:
-            posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDERR_FILENO)
-            posix_spawn_file_actions_addclose(&fileActions, handle.fileDescriptor)
+            posix(posix_spawn_file_actions_adddup2(&fileActions, handle.fileDescriptor, STDERR_FILENO))
         default: break
         }
 
         // Launch
 
         var pid = pid_t()
-        let status = posix_spawn(&pid, launchPath, &fileActions, nil, argv, envp)
-
-        // cleanup file_actions
-        posix_spawn_file_actions_destroy(&fileActions)
+        posix(posix_spawn(&pid, launchPath, &fileActions, nil, argv, envp))
 
         // Close the write end of the input and output pipes.
-        if let pipe = self.standardInput as? NSPipe {
+        if let pipe = standardInput as? NSPipe {
             pipe.fileHandleForReading.closeFile()
         }
-        if let pipe = self.standardOutput as? NSPipe {
+        if let pipe = standardOutput as? NSPipe {
             pipe.fileHandleForWriting.closeFile()
         }
-        if let pipe = self.standardError as? NSPipe {
+        if let pipe = standardError as? NSPipe {
             pipe.fileHandleForWriting.closeFile()
-        }
-
-        guard status == 0 else {
-            fatalError()
         }
 
         close(taskSocketPair[1])
         
         self.runLoop = NSRunLoop.currentRunLoop()
         
-        self.runLoopSourceContext = CFRunLoopSourceContext (version: 0, info: UnsafeMutablePointer<Void>(OpaquePointer(bitPattern: Unmanaged.passUnretained(self))),
+        self.runLoopSourceContext = CFRunLoopSourceContext (version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
                                                                      retain: runLoopSourceRetain, release: runLoopSourceRelease, copyDescription: nil,
                                                                              equal: nstaskIsEqual, hash: nil, schedule: nil, cancel: nil,
                                                                                     perform: emptyRunLoopCallback)
@@ -415,7 +406,7 @@ public class NSTask : NSObject {
     A block to be invoked when the process underlying the NSTask terminates.  Setting the block to nil is valid, and stops the previous block from being invoked, as long as it hasn't started in any way.  The NSTask is passed as the argument to the block so the block does not have to capture, and thus retain, it.  The block is copied when set.  Only one termination handler block can be set at any time.  The execution context in which the block is invoked is undefined.  If the NSTask has already finished, the block is executed immediately/soon (not necessarily on the current thread).  If a terminationHandler is set on an NSTask, the NSTaskDidTerminateNotification notification is not posted for that task.  Also note that -waitUntilExit won't wait until the terminationHandler has been fully executed.  You cannot use this property in a concrete subclass of NSTask which hasn't been updated to include an implementation of the storage and use of it.  
     */
     public var terminationHandler: ((NSTask) -> Void)?
-    public var qualityOfService: NSQualityOfService = .Default  // read-only after the task is launched
+    public var qualityOfService: NSQualityOfService = .default  // read-only after the task is launched
 }
 
 extension NSTask {
@@ -443,4 +434,10 @@ extension NSTask {
 
 public let NSTaskDidTerminateNotification: String = "NSTaskDidTerminateNotification"
 
-
+private func posix(_ code: Int32) {
+    switch code {
+    case 0: return
+    case EBADF: fatalError("POSIX command failed with error: \(code) -- EBADF")
+    default: fatalError("POSIX command failed with error: \(code)")
+    }
+}

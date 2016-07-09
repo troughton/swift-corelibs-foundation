@@ -50,17 +50,17 @@ public class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
     public var timeIntervalSinceReferenceDate: NSTimeInterval {
         return _timeIntervalSinceReferenceDate
     }
-    
+
     public convenience override init() {
         var tv = timeval()
-        withUnsafeMutablePointer(&tv) { t in
+        let _ = withUnsafeMutablePointer(&tv) { t in
             gettimeofday(t, nil)
         }
         var timestamp = NSTimeInterval(tv.tv_sec) - NSTimeIntervalSince1970
         timestamp += NSTimeInterval(tv.tv_usec) / 1000000.0
         self.init(timeIntervalSinceReferenceDate: timestamp)
     }
-    
+
     public required init(timeIntervalSinceReferenceDate ti: NSTimeInterval) {
         _timeIntervalSinceReferenceDate = ti
     }
@@ -185,11 +185,11 @@ extension NSDate {
         let t1 = self.timeIntervalSinceReferenceDate
         let t2 = other.timeIntervalSinceReferenceDate
         if t1 < t2 {
-            return .OrderedAscending
+            return .orderedAscending
         } else if t1 > t2 {
-            return .OrderedDescending
+            return .orderedDescending
         } else {
-            return .OrderedSame
+            return .orderedSame
         }
     }
     

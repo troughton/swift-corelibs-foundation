@@ -39,19 +39,17 @@ public class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NS
     internal var _storage = [AnyObject]()
     
     public var count: Int {
-        if self.dynamicType === NSArray.self || self.dynamicType === NSMutableArray.self {
-            return _storage.count
-        } else {
+        guard self.dynamicType === NSArray.self || self.dynamicType === NSMutableArray.self else {
             NSRequiresConcreteImplementation()
         }
+        return _storage.count
     }
     
     public func objectAtIndex(_ index: Int) -> AnyObject {
-        if self.dynamicType === NSArray.self || self.dynamicType === NSMutableArray.self {
-           return _storage[index]
-        } else {
-            NSRequiresConcreteImplementation()
+        guard self.dynamicType === NSArray.self || self.dynamicType === NSMutableArray.self else {
+           NSRequiresConcreteImplementation()
         }
+        return _storage[index]
     }
     
     public convenience override init() {
@@ -406,7 +404,7 @@ public class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NS
         self.enumerateObjectsAtIndexes(NSIndexSet(indexesInRange: NSMakeRange(0, count)), options: opts, usingBlock: block)
     }
     public func enumerateObjectsAtIndexes(_ s: NSIndexSet, options opts: NSEnumerationOptions, usingBlock block: (AnyObject, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
-        guard !opts.contains(.Concurrent) else {
+        guard !opts.contains(.concurrent) else {
             NSUnimplemented()
         }
         
@@ -461,7 +459,7 @@ public class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NS
 
         let swiftRange = range.toRange()!
         return allObjects[swiftRange].sorted { lhs, rhs in
-            return cmptr(lhs, rhs) == .OrderedAscending
+            return cmptr(lhs, rhs) == .orderedAscending
         }
     }
     
@@ -494,12 +492,12 @@ public class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NS
         }
         
         let leastObj = objectAtIndex(r.location)
-        if cmp(obj, leastObj) == .OrderedAscending {
+        if cmp(obj, leastObj) == .orderedAscending {
             return searchForInsertionIndex ? r.location : NSNotFound
         }
         
         let greatestObj = objectAtIndex(lastIndex)
-        if cmp(obj, greatestObj) == .OrderedDescending {
+        if cmp(obj, greatestObj) == .orderedDescending {
             return searchForInsertionIndex ? lastIndex + 1 : NSNotFound
         }
         
@@ -519,22 +517,22 @@ public class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NS
             
             switch cmp(item, obj) {
                 
-            case .OrderedSame where anyEqual:
+            case .orderedSame where anyEqual:
                 result = middle
                 break loop
                 
-            case .OrderedSame where lastEqual:
+            case .orderedSame where lastEqual:
                 result = middle
                 fallthrough
                 
-            case .OrderedAscending:
+            case .orderedAscending:
                 start = middle + 1
                 
-            case .OrderedSame where firstEqual:
+            case .orderedSame where firstEqual:
                 result = middle
                 fallthrough
                 
-            case .OrderedDescending:
+            case .orderedDescending:
                 indexOfLeastGreaterThanObj = middle
                 end = middle - 1
                 
@@ -617,11 +615,10 @@ public class NSMutableArray : NSArray {
     }
     
     public func insertObject(_ anObject: AnyObject, atIndex index: Int) {
-        if self.dynamicType === NSMutableArray.self {
-            _storage.insert(anObject, at: index)
-        } else {
+        guard self.dynamicType === NSMutableArray.self else {
             NSRequiresConcreteImplementation()
         }
+        _storage.insert(anObject, at: index)
     }
     
     public func removeLastObject() {
@@ -631,21 +628,19 @@ public class NSMutableArray : NSArray {
     }
     
     public func removeObjectAtIndex(_ index: Int) {
-        if self.dynamicType === NSMutableArray.self {
-            _storage.remove(at: index)
-        } else {
+        guard self.dynamicType === NSMutableArray.self else {
             NSRequiresConcreteImplementation()
         }
+        _storage.remove(at: index)
     }
     
     public func replaceObjectAtIndex(_ index: Int, withObject anObject: AnyObject) {
-        if self.dynamicType === NSMutableArray.self {
-            let min = index
-            let max = index + 1
-            _storage.replaceSubrange(min..<max, with: [anObject])
-        } else {
+        guard self.dynamicType === NSMutableArray.self else {
             NSRequiresConcreteImplementation()
         }
+        let min = index
+        let max = index + 1
+        _storage.replaceSubrange(min..<max, with: [anObject])
     }
     
     public convenience init() {
@@ -793,7 +788,7 @@ public class NSMutableArray : NSArray {
     }
     
     public func removeObjectsAtIndexes(_ indexes: NSIndexSet) {
-        indexes.enumerateRangesWithOptions(.Reverse) { (range, _) in
+        indexes.enumerateRangesWithOptions(.reverse) { (range, _) in
             self.removeObjectsInRange(range)
         }
     }

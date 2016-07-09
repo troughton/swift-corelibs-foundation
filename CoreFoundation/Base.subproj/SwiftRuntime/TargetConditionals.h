@@ -118,6 +118,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __arm64__ || __aarch64__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        0
@@ -127,6 +128,7 @@
 #define TARGET_CPU_ARM64        1
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __mips64__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        0
@@ -136,6 +138,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       1
+#define TARGET_CPU_S390X        0
 #elif __powerpc64__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        1
@@ -145,6 +148,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __i386__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        0
@@ -154,6 +158,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __arm__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        0
@@ -163,6 +168,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __mips__
 #define TARGET_CPU_PPC          0
 #define TARGET_CPU_PPC64        0
@@ -172,6 +178,7 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         1
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
 #elif __powerpc__
 #define TARGET_CPU_PPC          1
 #define TARGET_CPU_PPC64        0
@@ -181,6 +188,17 @@
 #define TARGET_CPU_ARM64        0
 #define TARGET_CPU_MIPS         0
 #define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        0
+#elif __s390x__
+#define TARGET_CPU_PPC          0
+#define TARGET_CPU_PPC64        0
+#define TARGET_CPU_X86          0
+#define TARGET_CPU_X86_64       0
+#define TARGET_CPU_ARM          0
+#define TARGET_CPU_ARM64        0
+#define TARGET_CPU_MIPS         0
+#define TARGET_CPU_MIPS64       0
+#define TARGET_CPU_S390X        1
 #else
 #error unknown architecture
 #endif
