@@ -17,14 +17,14 @@ import CoreFoundation
 #endif
 
 public class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
-    internal var buffer = UnsafeMutablePointer<UInt8>(allocatingCapacity: 16)
+    internal var buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
     
     public override init() {
         _cf_uuid_generate_random(buffer)
     }
     
     public convenience init?(UUIDString string: String) {
-        let buffer = UnsafeMutablePointer<UInt8>(allocatingCapacity: 16)
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
         if _cf_uuid_parse(string, buffer) != 0 {
             return nil
         }
@@ -40,16 +40,16 @@ public class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public var UUIDString: String {
-        let strPtr = UnsafeMutablePointer<Int8>(allocatingCapacity: 37)
+        let strPtr = UnsafeMutablePointer<Int8>.allocate(capacity: 37)
         _cf_uuid_unparse_upper(buffer, strPtr)
         return String(cString: strPtr)
     }
     
     public override func copy() -> AnyObject {
-        return copyWithZone(nil)
+        return copy(with: nil)
     }
     
-    public func copyWithZone(_ zone: NSZone) -> AnyObject {
+    public func copy(with zone: NSZone? = nil) -> AnyObject {
         return self
     }
     
@@ -59,13 +59,16 @@ public class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     
     public convenience required init?(coder: NSCoder) {
         if coder.allowsKeyedCoding {
-            var length : Int = 0
-            let bytes = coder.decodeBytesForKey("NS.uuidbytes", returnedLength: &length)
-            if (length == 16) {
-                self.init(UUIDBytes: bytes!)
-            } else {
-                self.init() // failure to decode the entire uuid_t results in a new uuid
+            let decodedData : Data? = coder.withDecodedUnsafeBufferPointer(forKey: "NS.uuidbytes") {
+                guard let buffer = $0 else { return nil }
+                return Data(buffer: buffer)
             }
+
+            guard let data = decodedData else { return nil }
+            guard data.count == 16 else { return nil }
+            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
+            data.copyBytes(to: buffer, count: 16)
+            self.init(UUIDBytes: buffer)
         } else {
             // NSUUIDs cannot be decoded by non-keyed coders
             coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderReadCorruptError.rawValue, userInfo: [
@@ -75,7 +78,7 @@ public class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
         }
     }
     
-    public func encodeWithCoder(_ aCoder: NSCoder) {
+    public func encode(with aCoder: NSCoder) {
         aCoder.encodeBytes(buffer, length: 16, forKey: "NS.uuidbytes")
     }
     

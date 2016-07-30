@@ -35,7 +35,7 @@ internal class NSConcreteValue : NSValue {
             if type == .StructBegin {
                 fatalError("NSConcreteValue.TypeInfo: cannot encode structs")
             } else if type == .ArrayBegin {
-                let scanner = NSScanner(string: spec)
+                let scanner = Scanner(string: spec)
                 
                 scanner.scanLocation = 1
                 
@@ -68,7 +68,7 @@ internal class NSConcreteValue : NSValue {
     }
     
     private static var _cachedTypeInfo = Dictionary<String, TypeInfo>()
-    private static var _cachedTypeInfoLock = NSLock()
+    private static var _cachedTypeInfoLock = Lock()
     
     private var _typeInfo : TypeInfo
     private var _storage : UnsafeMutablePointer<UInt8>
@@ -91,17 +91,17 @@ internal class NSConcreteValue : NSValue {
 
         self._typeInfo = typeInfo!
 
-        self._storage = UnsafeMutablePointer<UInt8>(allocatingCapacity: self._typeInfo.size)
-        self._storage.initializeFrom(unsafeBitCast(value, to: UnsafeMutablePointer<UInt8>.self), count: self._typeInfo.size)
+        self._storage = UnsafeMutablePointer<UInt8>.allocate(capacity: self._typeInfo.size)
+        self._storage.initialize(from: unsafeBitCast(value, to: UnsafeMutablePointer<UInt8>.self), count: self._typeInfo.size)
     }
 
     deinit {
         self._storage.deinitialize(count: self._size)
-        self._storage.deallocateCapacity(self._size)
+        self._storage.deallocate(capacity: self._size)
     }
     
     override func getValue(_ value: UnsafeMutablePointer<Void>) {
-        UnsafeMutablePointer<UInt8>(value).moveInitializeFrom(unsafeBitCast(self._storage, to: UnsafeMutablePointer<UInt8>.self), count: self._size)
+        UnsafeMutablePointer<UInt8>(value).moveInitialize(from: unsafeBitCast(self._storage, to: UnsafeMutablePointer<UInt8>.self), count: self._size)
     }
     
     override var objCType : UnsafePointer<Int8> {
@@ -113,7 +113,7 @@ internal class NSConcreteValue : NSValue {
     }
     
     override var description : String {
-        return NSData.init(bytes: self.value, length: self._size).description
+        return Data(bytes: self.value, count: self._size).description
     }
     
     convenience required init?(coder aDecoder: NSCoder) {
@@ -128,16 +128,16 @@ internal class NSConcreteValue : NSValue {
 
             // FIXME: This will result in reading garbage memory.
             self.init(bytes: [], objCType: typep)
-            aDecoder.decodeValueOfObjCType(typep, at: self.value)
+            aDecoder.decodeValue(ofObjCType: typep, at: self.value)
         }
     }
     
-    override func encodeWithCoder(_ aCoder: NSCoder) {
+    override func encode(with aCoder: NSCoder) {
         if !aCoder.allowsKeyedCoding {
             NSUnimplemented()
         } else {
-            aCoder.encodeObject(String(cString: self.objCType).bridge())
-            aCoder.encodeValueOfObjCType(self.objCType, at: self.value)
+            aCoder.encode(String(cString: self.objCType).bridge())
+            aCoder.encodeValue(ofObjCType: self.objCType, at: self.value)
         }
     }
     

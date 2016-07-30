@@ -7,7 +7,7 @@
 // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 
-public struct NSCocoaError : RawRepresentable, ErrorProtocol, __BridgedNSError {
+public struct NSCocoaError : RawRepresentable, Swift.Error, __BridgedNSError {
     public let rawValue: Int
     public init(rawValue: Int) {
         self.rawValue = rawValue
@@ -249,7 +249,7 @@ public extension NSCocoaError {
     import Glibc
 #endif
 
-internal func _NSErrorWithErrno(_ posixErrno : Int32, reading : Bool, path : String? = nil, url : NSURL? = nil, extraUserInfo : [String : Any]? = nil) -> NSError {
+internal func _NSErrorWithErrno(_ posixErrno : Int32, reading : Bool, path : String? = nil, url : URL? = nil, extraUserInfo : [String : Any]? = nil) -> NSError {
     var cocoaError : NSCocoaError
     if reading {
         switch posixErrno {

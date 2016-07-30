@@ -17,33 +17,33 @@ private func pthread_main_np() -> Int32 {
 #endif
 #endif
 
-public class NSOperation : NSObject {
-    let lock = NSLock()
-    internal weak var _queue: NSOperationQueue?
+public class Operation: NSObject {
+    let lock = Lock()
+    internal weak var _queue: OperationQueue?
     internal var _cancelled = false
     internal var _executing = false
     internal var _finished = false
     internal var _ready = false
-    internal var _dependencies = Set<NSOperation>()
+    internal var _dependencies = Set<Operation>()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-    internal var _group = dispatch_group_create()
-    internal var _depGroup = dispatch_group_create()
-    internal var _groups = [dispatch_group_t]()
+    internal var _group = DispatchGroup()
+    internal var _depGroup = DispatchGroup()
+    internal var _groups = [DispatchGroup]()
 #endif
     
     public override init() {
         super.init()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        dispatch_group_enter(_group)
+        _group.enter()
 #endif
     }
     
     internal func _leaveGroups() {
         // assumes lock is taken
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        _groups.forEach() { dispatch_group_leave($0) }
+        _groups.forEach() { $0.leave() }
         _groups.removeAll()
-        dispatch_group_leave(_group)
+        _group.leave()
 #endif
     }
     
@@ -65,7 +65,7 @@ public class NSOperation : NSObject {
         // The completion block property is a bit cagey and can not be executed locally on the queue due to thread exhaust potentials.
         // This sets up for some strange behavior of finishing operations since the handler will be executed on a different queue
         if let completion = completionBlock {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)) { () -> Void in
+            DispatchQueue.global(attributes: .qosBackground).async { () -> Void in
                 completion()
             }
         }
@@ -74,7 +74,7 @@ public class NSOperation : NSObject {
     
     public func main() { }
     
-    public var cancelled: Bool {
+    public var isCancelled: Bool {
         return _cancelled
     }
     
@@ -85,36 +85,36 @@ public class NSOperation : NSObject {
         lock.unlock()
     }
     
-    public var executing: Bool {
+    public var isExecuting: Bool {
         return _executing
     }
     
-    public var finished: Bool {
+    public var isFinished: Bool {
         return _finished
     }
     
     // - Note: This property is NEVER used in the objective-c implementation!
-    public var asynchronous: Bool {
+    public var isAsynchronous: Bool {
         return false
     }
     
-    public var ready: Bool {
+    public var isReady: Bool {
         return _ready
     }
     
-    public func addDependency(_ op: NSOperation) {
+    public func addDependency(_ op: Operation) {
         lock.lock()
         _dependencies.insert(op)
         op.lock.lock()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        dispatch_group_enter(_depGroup)
+        _depGroup.enter()
         op._groups.append(_depGroup)
 #endif
         op.lock.unlock()
         lock.unlock()
     }
     
-    public func removeDependency(_ op: NSOperation) {
+    public func removeDependency(_ op: Operation) {
         lock.lock()
         _dependencies.remove(op)
         op.lock.lock()
@@ -122,25 +122,25 @@ public class NSOperation : NSObject {
         let groupIndex = op._groups.index(where: { $0 === self._depGroup })
         if let idx = groupIndex {
             let group = op._groups.remove(at: idx)
-            dispatch_group_leave(group)
+            group.leave()
         }
 #endif
         op.lock.unlock()
         lock.unlock()
     }
     
-    public var dependencies: [NSOperation] {
+    public var dependencies: [Operation] {
         lock.lock()
         let ops = _dependencies.map() { $0 }
         lock.unlock()
         return ops
     }
     
-    public var queuePriority: OperationQueuePriority = .Normal
+    public var queuePriority: QueuePriority = .normal
     public var completionBlock: (() -> Void)?
     public func waitUntilFinished() {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        dispatch_group_wait(_group, DISPATCH_TIME_FOREVER)
+        _group.wait()
 #endif
     }
     
@@ -153,21 +153,23 @@ public class NSOperation : NSObject {
     
     internal func _waitUntilReady() {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        dispatch_group_wait(_depGroup, DISPATCH_TIME_FOREVER)
+        _depGroup.wait()
 #endif
         _ready = true
     }
 }
 
-public enum OperationQueuePriority : Int {
-    case VeryLow
-    case Low
-    case Normal
-    case High
-    case VeryHigh
+extension Operation {
+    public enum QueuePriority : Int {
+        case veryLow
+        case low
+        case normal
+        case high
+        case veryHigh
+    }
 }
 
-public class NSBlockOperation : NSOperation {
+public class BlockOperation: Operation {
     typealias ExecutionBlock = () -> Void
     internal var _block: () -> Void
     internal var _executionBlocks = [ExecutionBlock]()
@@ -202,60 +204,60 @@ public class NSBlockOperation : NSOperation {
 public let NSOperationQueueDefaultMaxConcurrentOperationCount: Int = Int.max
 
 internal struct _OperationList {
-    var veryLow = [NSOperation]()
-    var low = [NSOperation]()
-    var normal = [NSOperation]()
-    var high = [NSOperation]()
-    var veryHigh = [NSOperation]()
-    var all = [NSOperation]()
+    var veryLow = [Operation]()
+    var low = [Operation]()
+    var normal = [Operation]()
+    var high = [Operation]()
+    var veryHigh = [Operation]()
+    var all = [Operation]()
     
-    mutating func insert(_ operation: NSOperation) {
+    mutating func insert(_ operation: Operation) {
         all.append(operation)
         switch operation.queuePriority {
-        case .VeryLow:
+        case .veryLow:
             veryLow.append(operation)
             break
-        case .Low:
+        case .low:
             low.append(operation)
             break
-        case .Normal:
+        case .normal:
             normal.append(operation)
             break
-        case .High:
+        case .high:
             high.append(operation)
             break
-        case .VeryHigh:
+        case .veryHigh:
             veryHigh.append(operation)
             break
         }
     }
     
-    mutating func remove(_ operation: NSOperation) {
+    mutating func remove(_ operation: Operation) {
         if let idx = all.index(of: operation) {
             all.remove(at: idx)
         }
         switch operation.queuePriority {
-        case .VeryLow:
+        case .veryLow:
             if let idx = veryLow.index(of: operation) {
                 veryLow.remove(at: idx)
             }
             break
-        case .Low:
+        case .low:
             if let idx = low.index(of: operation) {
                 low.remove(at: idx)
             }
             break
-        case .Normal:
+        case .normal:
             if let idx = normal.index(of: operation) {
                 normal.remove(at: idx)
             }
             break
-        case .High:
+        case .high:
             if let idx = high.index(of: operation) {
                 high.remove(at: idx)
             }
             break
-        case .VeryHigh:
+        case .veryHigh:
             if let idx = veryHigh.index(of: operation) {
                 veryHigh.remove(at: idx)
             }
@@ -263,7 +265,7 @@ internal struct _OperationList {
         }
     }
     
-    mutating func dequeue() -> NSOperation? {
+    mutating func dequeue() -> Operation? {
         if veryHigh.count > 0 {
             return veryHigh.remove(at: 0)
         }
@@ -286,22 +288,22 @@ internal struct _OperationList {
         return all.count
     }
     
-    func map<T>(_ transform: @noescape (NSOperation) throws -> T) rethrows -> [T] {
+    func map<T>(_ transform: @noescape (Operation) throws -> T) rethrows -> [T] {
         return try all.map(transform)
     }
 }
 
-public class NSOperationQueue : NSObject {
-    let lock = NSLock()
+public class OperationQueue: NSObject {
+    let lock = Lock()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-    var __concurrencyGate: dispatch_semaphore_t?
-    var __underlyingQueue: dispatch_queue_t?
-    let queueGroup = dispatch_group_create()
+    var __concurrencyGate: DispatchSemaphore?
+    var __underlyingQueue: DispatchQueue?
+    let queueGroup = DispatchGroup()
 #endif
     
     var _operations = _OperationList()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-    internal var _concurrencyGate: dispatch_semaphore_t? {
+    internal var _concurrencyGate: DispatchSemaphore? {
         get {
             lock.lock()
             let val = __concurrencyGate
@@ -312,7 +314,7 @@ public class NSOperationQueue : NSObject {
 
     // This is NOT the behavior of the objective-c variant; it will never re-use a queue and instead for every operation it will create a new one.
     // However this is considerably faster and probably more effecient.
-    internal var _underlyingQueue: dispatch_queue_t {
+    internal var _underlyingQueue: DispatchQueue {
         lock.lock()
         if let queue = __underlyingQueue {
             lock.unlock()
@@ -324,18 +326,18 @@ public class NSOperationQueue : NSObject {
             } else {
                 effectiveName = "NSOperationQueue::\(unsafeAddress(of: self))"
             }
-            let attr: dispatch_queue_attr_t?
+            let attr: DispatchQueueAttributes
             if maxConcurrentOperationCount == 1 {
-                attr = DISPATCH_QUEUE_SERIAL
+                attr = .serial
             } else {
-                attr = DISPATCH_QUEUE_CONCURRENT
+                attr = .concurrent
                 if maxConcurrentOperationCount != NSOperationQueueDefaultMaxConcurrentOperationCount {
-                    __concurrencyGate = dispatch_semaphore_create(maxConcurrentOperationCount)
+                    __concurrencyGate = DispatchSemaphore(value:maxConcurrentOperationCount)
                 }
             }
-            let queue = dispatch_queue_create(effectiveName, attr)
+            let queue = DispatchQueue(label: effectiveName, attributes: attr)
             if _suspended {
-                dispatch_suspend(queue)
+                queue.suspend()
             }
             __underlyingQueue = queue
             lock.unlock()
@@ -349,46 +351,45 @@ public class NSOperationQueue : NSObject {
     }
 
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-    internal init(_queue queue: dispatch_queue_t, maxConcurrentOperations: Int = NSOperationQueueDefaultMaxConcurrentOperationCount) {
+    internal init(_queue queue: DispatchQueue, maxConcurrentOperations: Int = NSOperationQueueDefaultMaxConcurrentOperationCount) {
         __underlyingQueue = queue
         maxConcurrentOperationCount = maxConcurrentOperations
         super.init()
-        dispatch_queue_set_specific(queue, NSOperationQueue.OperationQueueKey, unsafeBitCast(Unmanaged.passUnretained(self), to: UnsafeMutablePointer<Void>.self), nil)
-        
+        queue.setSpecific(key: OperationQueue.OperationQueueKey, value: Unmanaged.passUnretained(self))
     }
 #endif
 
-    internal func _dequeueOperation() -> NSOperation? {
+    internal func _dequeueOperation() -> Operation? {
         lock.lock()
         let op = _operations.dequeue()
         lock.unlock()
         return op
     }
     
-    public func addOperation(_ op: NSOperation) {
+    public func addOperation(_ op: Operation) {
         addOperations([op], waitUntilFinished: false)
     }
     
     internal func _runOperation() {
         if let op = _dequeueOperation() {
-            if !op.cancelled {
+            if !op.isCancelled {
                 op._waitUntilReady()
-                if !op.cancelled {
+                if !op.isCancelled {
                     op.start()
                 }
             }
         }
     }
     
-    public func addOperations(_ ops: [NSOperation], waitUntilFinished wait: Bool) {
+    public func addOperations(_ ops: [Operation], waitUntilFinished wait: Bool) {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        var waitGroup: dispatch_group_t?
+        var waitGroup: DispatchGroup?
         if wait {
-            waitGroup = dispatch_group_create()
+            waitGroup = DispatchGroup()
         }
 #endif
         /*
-         If OperationQueuePriority was not supported this could be much faster
+         If QueuePriority was not supported this could be much faster
          since it would not need to have the extra book-keeping for managing a priority
          queue. However this implementation attempts to be similar to the specification.
          As a concequence this means that the dequeue may NOT nessicarly be the same as
@@ -397,39 +398,39 @@ public class NSOperationQueue : NSObject {
          execution. The only differential is that the block enqueued to dispatch_async
          is balanced with the number of Operations enqueued to the NSOperationQueue.
          */
-        ops.forEach { (operation: NSOperation) -> Void in
+        ops.forEach { (operation: Operation) -> Void in
             lock.lock()
             operation._queue = self
             _operations.insert(operation)
             lock.unlock()
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
             if let group = waitGroup {
-                dispatch_group_enter(group)
+                group.enter()
             }
-            
-            let block = dispatch_block_create(DISPATCH_BLOCK_ENFORCE_QOS_CLASS) { () -> Void in
+
+            let block = DispatchWorkItem(group: queueGroup, flags: .enforceQoS) { () -> Void in
                 if let sema = self._concurrencyGate {
-                    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER)
+                    sema.wait()
                     self._runOperation()
-                    dispatch_semaphore_signal(sema)
+                    sema.signal()
                 } else {
                     self._runOperation()
                 }
                 if let group = waitGroup {
-                    dispatch_group_leave(group)
+                    group.leave()
                 }
             }
-            dispatch_group_async(queueGroup, _underlyingQueue, block)
+            _underlyingQueue.async(execute: block)
 #endif
         }
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
         if let group = waitGroup {
-            dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+            group.wait()
         }
 #endif
     }
     
-    internal func _operationFinished(_ operation: NSOperation) {
+    internal func _operationFinished(_ operation: Operation) {
         lock.lock()
         _operations.remove(operation)
         operation._queue = nil
@@ -437,13 +438,13 @@ public class NSOperationQueue : NSObject {
     }
     
     public func addOperationWithBlock(_ block: () -> Void) {
-        let op = NSBlockOperation(block: block)
+        let op = BlockOperation(block: block)
         op.qualityOfService = qualityOfService
         addOperation(op)
     }
     
     // WARNING: the return value of this property can never be used to reliably do anything sensible
-    public var operations: [NSOperation] {
+    public var operations: [Operation] {
         lock.lock()
         let ops = _operations.map() { $0 }
         lock.unlock()
@@ -472,9 +473,9 @@ public class NSOperationQueue : NSObject {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
                 if let queue = __underlyingQueue {
                     if newValue {
-                        dispatch_suspend(queue)
+                        queue.suspend()
                     } else {
-                        dispatch_resume(queue)
+                        queue.resume()
                     }
                 }
 #endif
@@ -505,7 +506,7 @@ public class NSOperationQueue : NSObject {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
     // Note: this will return non nil whereas the objective-c version will only return non nil when it has been set.
     // it uses a target queue assignment instead of returning the actual underlying queue.
-    public var underlyingQueue: dispatch_queue_t? {
+    public var underlyingQueue: DispatchQueue? {
         get {
             lock.lock()
             let queue = __underlyingQueue
@@ -529,36 +530,38 @@ public class NSOperationQueue : NSObject {
     
     public func waitUntilAllOperationsAreFinished() {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        dispatch_group_wait(queueGroup, DISPATCH_TIME_FOREVER)
+        queueGroup.wait()
 #endif
     }
     
-    static let OperationQueueKey = UnsafePointer<Void>(UnsafeMutablePointer<Void>(allocatingCapacity: 1))
-    
-    public class func currentQueue() -> NSOperationQueue? {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        let specific = dispatch_get_specific(NSOperationQueue.OperationQueueKey)
+    static let OperationQueueKey = DispatchSpecificKey<Unmanaged<OperationQueue>>()
+#endif
+
+    public class func currentQueue() -> OperationQueue? {
+#if DEPLOYMENT_ENABLE_LIBDISPATCH
+        let specific = DispatchQueue.getSpecific(key: OperationQueue.OperationQueueKey)
         if specific == nil {
             if pthread_main_np() == 1 {
-                return NSOperationQueue.mainQueue()
+                return OperationQueue.mainQueue()
             } else {
                 return nil
             }
         } else {
-            return Unmanaged<NSOperationQueue>.fromOpaque(unsafeBitCast(specific, to: UnsafePointer<Void>.self)).takeUnretainedValue()
+            return specific!.takeUnretainedValue()
         }
 #else
         return nil
 #endif
     }
     
-    public class func mainQueue() -> NSOperationQueue {
+    public class func mainQueue() -> OperationQueue {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
-        let specific = dispatch_queue_get_specific(dispatch_get_main_queue(), NSOperationQueue.OperationQueueKey)
+        let specific = DispatchQueue.main.getSpecific(key: OperationQueue.OperationQueueKey)
         if specific == nil {
-            return NSOperationQueue(_queue: dispatch_get_main_queue(), maxConcurrentOperations: 1)
+            return OperationQueue(_queue: DispatchQueue.main, maxConcurrentOperations: 1)
         } else {
-            return Unmanaged<NSOperationQueue>.fromOpaque(unsafeBitCast(specific, to: UnsafePointer<Void>.self)).takeUnretainedValue()
+            return specific!.takeUnretainedValue()
         }
 #else
         fatalError("NSOperationQueue requires libdispatch")
