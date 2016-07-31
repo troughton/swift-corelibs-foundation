@@ -9,7 +9,7 @@
 
 
 
-#if DEPLOYMENT_RUNTIME_OBJC || os(Linux)
+#if DEPLOYMENT_RUNTIME_OBJC || os(Linux) || IS_CYGWIN
     import Foundation
     import XCTest
 #else

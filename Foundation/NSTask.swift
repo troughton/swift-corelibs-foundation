@@ -247,15 +247,6 @@ public class Task: NSObject {
         context.release = runLoopSourceRelease
 	context.info = Unmanaged.passUnretained(self).toOpaque()
         
-#if IS_CYGWIN
-        final class Box<T> {
-            let value: T
-             
-            init(_ value: T) {
-                self.value = value
-            }
-        }
-#endif        
         let socket = CFSocketCreateWithNative( nil, taskSocketPair[0], CFOptionFlags(kCFSocketDataCallBack), {
             (socket, type, address, data, info )  in
             
@@ -270,14 +261,16 @@ public class Task: NSObject {
             
             var exitCode : Int32 = 0
 #if IS_CYGWIN
-            let unmanaged = Unmanaged.passRetained(Box<Int32>(exitCode))
-            let exitCodePtr = __wait_status_ptr_t(__int_ptr: UnsafeMutablePointer<Int32>(unmanaged.toOpaque()))
+            let exitCodePtrWrapper = withUnsafeMutablePointer(to: &exitCode) {
+                exitCodePtr in
+                __wait_status_ptr_t(__int_ptr: exitCodePtr)
+            }
 #endif
             var waitResult : Int32 = 0
             
             repeat {
 #if IS_CYGWIN
-                waitResult = waitpid( task.processIdentifier, exitCodePtr, 0)
+                waitResult = waitpid( task.processIdentifier, exitCodePtrWrapper, 0)
 #else
                 waitResult = waitpid( task.processIdentifier, &exitCode, 0)
 #endif
