@@ -145,11 +145,13 @@ CF_EXPORT CFStringRef _CFGetPlatformName(void) {
 #elif DEPLOYMENT_TARGET_HPUX
     return _CFBundleHPUXPlatformName;
 #elif DEPLOYMENT_TARGET_LINUX
+#if TARGET_OS_CYGWIN
+    return _CFBundleCygwinPlatformName;
+#else
     return _CFBundleLinuxPlatformName;
+#endif
 #elif DEPLOYMENT_TARGET_FREEBSD
     return _CFBundleFreeBSDPlatformName;
-#elif TARGET_OS_CYGWIN
-    return _CFBundleCygwinPlatformName;
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
 #endif
@@ -163,11 +165,13 @@ CF_EXPORT CFStringRef _CFGetAlternatePlatformName(void) {
 #elif DEPLOYMENT_TARGET_WINDOWS
     return CFSTR("");
 #elif DEPLOYMENT_TARGET_LINUX
+#if TARGET_OS_CYGWIN
+    return CFSTR("Cygwin");
+#else
     return CFSTR("Linux");
+#endif
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("FreeBSD");
-#elif TARGET_OS_CYGWIN
-    return CFSTR("Cygwin");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
 #endif

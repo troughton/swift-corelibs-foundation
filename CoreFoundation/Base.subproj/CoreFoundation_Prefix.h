@@ -162,7 +162,7 @@ typedef int		boolean_t;
 #include <sys/stat.h> // mode_t
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX
     
 #define CF_PRIVATE __attribute__((visibility("hidden")))
 #define __strong
@@ -273,7 +273,7 @@ void OSMemoryBarrier();
 #undef interface
 #endif
 
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN 
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX
 #if !defined(MIN)
 #define MIN(A,B)	((A) < (B) ? (A) : (B))
 #endif
@@ -473,7 +473,7 @@ CF_EXPORT int64_t OSAtomicAdd64Barrier( int64_t __theAmount, volatile int64_t *_
 #define CF_PRIVATE __attribute__((__visibility__("hidden")))
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS || TARGET_OS_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS
 
 #include <stdarg.h>
 

@@ -84,7 +84,7 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void*);
 #endif
 #endif
 
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_IPHONESIMULATOR || DEPLOYMENT_TARGET_LINUX
 CF_EXPORT pthread_t _CF_pthread_main_thread_np(void);
 #define pthread_main_thread_np() _CF_pthread_main_thread_np()
 #endif
@@ -128,7 +128,7 @@ static pthread_t kNilPthreadT = { nil, nil };
 typedef	int kern_return_t;
 #define KERN_SUCCESS 0
 
-#elif DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
+#elif DEPLOYMENT_TARGET_LINUX
 
 static pthread_t kNilPthreadT = (pthread_t)0;
 #define pthreadPointer(a) ((void*)a)
@@ -445,8 +445,6 @@ static kern_return_t __CFPortSetRemove(__CFPort port, __CFPortSet portSet) {
 }
 
 #elif DEPLOYMENT_TARGET_LINUX
-#if TARGET_OS_CYGWIN
-#else
 // eventfd/timerfd descriptor
 typedef int __CFPort;
 #define CFPORT_NULL -1
@@ -490,7 +488,6 @@ CF_INLINE kern_return_t __CFPortSetRemove(__CFPort port, __CFPortSet portSet) {
 CF_INLINE void __CFPortSetFree(__CFPortSet portSet) {
     close(portSet);
 }
-#endif
 #endif
 
 #if !defined(__MACTYPES__) && !defined(_OS_OSTYPES_H)
@@ -2636,7 +2633,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
             if (__CFRunLoopServiceFileDescriptors(CFPORTSET_NULL, dispatchPort, 0, &livePort)) {
                 goto handle_msg;
             }
-#elif DEPLOYMENT_TARGET_WINDOWS
+#elif DEPLOYMENT_TARGET_WINDOWS || TARGET_OS_CYGWIN
             if (__CFRunLoopWaitForMultipleObjects(NULL, &dispatchPort, 0, 0, &livePort, NULL)) {
                 goto handle_msg;
             }
