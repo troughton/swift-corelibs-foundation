@@ -120,7 +120,7 @@ internal class _NSRegularExpressionMatcher {
     }
 }
 
-internal func _NSRegularExpressionMatch(_ context: UnsafeMutablePointer<Void>?, ranges: UnsafeMutablePointer<CFRange>?, count: CFIndex, options: _CFRegularExpressionMatchingOptions, stop: UnsafeMutablePointer<_DarwinCompatibleBoolean>) -> Void {
+internal func _NSRegularExpressionMatch(_ context: UnsafeMutableRawPointer?, ranges: UnsafeMutablePointer<CFRange>?, count: CFIndex, options: _CFRegularExpressionMatchingOptions, stop: UnsafeMutablePointer<_DarwinCompatibleBoolean>) -> Void {
     let matcher = unsafeBitCast(context, to: _NSRegularExpressionMatcher.self)
     if ranges == nil {
 #if os(OSX) || os(iOS)
@@ -130,7 +130,9 @@ internal func _NSRegularExpressionMatch(_ context: UnsafeMutablePointer<Void>?, 
 #endif
         matcher.block(nil, NSMatchingFlags(rawValue: opts), UnsafeMutablePointer<ObjCBool>(stop))
     } else {
-        let result = TextCheckingResult.regularExpressionCheckingResultWithRanges(NSRangePointer(ranges!), count: count, regularExpression: matcher.regex)
+        let result = ranges!.withMemoryRebound(to: NSRange.self, capacity: count) { rangePtr in
+            TextCheckingResult.regularExpressionCheckingResultWithRanges(rangePtr, count: count, regularExpression: matcher.regex)
+        }
 #if os(OSX) || os(iOS)
         let flags = NSMatchingFlags(rawValue: options.rawValue)
 #else
@@ -153,7 +155,7 @@ extension RegularExpression {
 #else
         let opts = _CFRegularExpressionMatchingOptions(options.rawValue)
 #endif
-            _CFRegularExpressionEnumerateMatchesInString(_internal, string._cfObject, opts, CFRange(range), unsafeBitCast(matcher, to: UnsafeMutablePointer<Void>.self), _NSRegularExpressionMatch)
+            _CFRegularExpressionEnumerateMatchesInString(_internal, string._cfObject, opts, CFRange(range), unsafeBitCast(matcher, to: UnsafeMutableRawPointer.self), _NSRegularExpressionMatch)
         }
     }
     
@@ -225,7 +227,7 @@ extension RegularExpression {
             if currentRange.location > NSMaxRange(previousRange) {
                 let min = start.advanced(by: NSMaxRange(previousRange))
                 let max = start.advanced(by: currentRange.location)
-                str += String(string.utf16[min..<max])
+                str += String(string.utf16[min..<max])!
             }
             str += replacement
             previousRange = currentRange
@@ -234,7 +236,7 @@ extension RegularExpression {
         if length > NSMaxRange(previousRange) {
             let min = start.advanced(by: NSMaxRange(previousRange))
             let max = start.advanced(by: length)
-            str += String(string.utf16[min..<max])
+            str += String(string.utf16[min..<max])!
         }
         
         return str
@@ -311,7 +313,7 @@ extension RegularExpression {
                             let start = string.utf16.startIndex
                             let min = start.advanced(by: substringRange.location)
                             let max = start.advanced(by: substringRange.location + substringRange.length)
-                            substring = String(string.utf16[min..<max])
+                            substring = String(string.utf16[min..<max])!
                         }
                         str.replaceCharacters(in: rangeToReplace, with: substring)
                         

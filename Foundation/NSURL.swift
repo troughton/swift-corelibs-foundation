@@ -343,10 +343,10 @@ public class NSURL: NSObject, NSSecureCoding, NSCopying {
         let bytesNeeded = CFURLGetBytes(_cfObject, nil, 0)
         assert(bytesNeeded > 0)
         
-        let buffer = malloc(bytesNeeded)!
-        let bytesFilled = CFURLGetBytes(_cfObject, UnsafeMutablePointer<UInt8>(buffer), bytesNeeded)
+        let buffer = malloc(bytesNeeded)!.bindMemory(to: UInt8.self, capacity: bytesNeeded)
+        let bytesFilled = CFURLGetBytes(_cfObject, buffer, bytesNeeded)
         if bytesFilled == bytesNeeded {
-            return Data(bytesNoCopy: UnsafeMutablePointer<UInt8>(buffer), count: bytesNeeded, deallocator: .none)
+            return Data(bytesNoCopy: buffer, count: bytesNeeded, deallocator: .none)
         } else {
             fatalError()
         }
@@ -488,7 +488,9 @@ public class NSURL: NSObject, NSSecureCoding, NSCopying {
     /* Returns the URL's path in file system representation. File system representation is a null-terminated C string with canonical UTF-8 encoding.
     */
     public func getFileSystemRepresentation(_ buffer: UnsafeMutablePointer<Int8>, maxLength maxBufferLength: Int) -> Bool {
-        return CFURLGetFileSystemRepresentation(_cfObject, true, UnsafeMutablePointer<UInt8>(buffer), maxBufferLength)
+        return buffer.withMemoryRebound(to: UInt8.self, capacity: maxBufferLength) {
+            CFURLGetFileSystemRepresentation(_cfObject, true, $0, maxBufferLength)
+        }
     }
     
     /* Returns the URL's path in file system representation. File system representation is a null-terminated C string with canonical UTF-8 encoding. The returned C string will be automatically freed just as a returned object would be released; your code should copy the representation or use getFileSystemRepresentation:maxLength: if it needs to store the representation outside of the autorelease context in which the representation is created.
@@ -788,7 +790,7 @@ extension NSURL {
         return URL(fileURLWithPath: resolvedPath)
     }
 
-    private func _pathByRemovingDots(_ comps: [String]) -> String {
+    fileprivate func _pathByRemovingDots(_ comps: [String]) -> String {
         var components = comps
         
         if(components.last == "/") {

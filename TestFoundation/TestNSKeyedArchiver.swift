@@ -151,7 +151,7 @@ class TestNSKeyedArchiver : XCTestCase {
         decode: {unarchiver -> Bool in
             var expected: Array<Int32> = [0, 0, 0, 0]
             expected.withUnsafeMutableBufferPointer {(p: inout UnsafeMutableBufferPointer<Int32>) in
-                unarchiver.decodeValue(ofObjCType: "[4i]", at: UnsafeMutablePointer<Void>(p.baseAddress!))
+                unarchiver.decodeValue(ofObjCType: "[4i]", at: UnsafeMutableRawPointer(p.baseAddress!))
             }
             XCTAssertEqual(expected, array)
             return true
@@ -216,8 +216,8 @@ class TestNSKeyedArchiver : XCTestCase {
     }
     
     func test_archive_charptr() {
-        let charArray = [UInt8]("Hello world, we are testing!\0".utf8)
-        var charPtr = UnsafeMutablePointer<CChar>(charArray)
+        let charArray = [CChar]("Hello world, we are testing!\0".utf8CString)
+        var charPtr = UnsafeMutablePointer(mutating: charArray)
 
         test_archive({ archiver -> Bool in
                 let value = NSValue(bytes: &charPtr, objCType: "*")

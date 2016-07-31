@@ -22,7 +22,7 @@ public struct URLRequest : ReferenceConvertible, CustomStringConvertible, Equata
     internal var _handle: _MutableHandle<NSMutableURLRequest>
     
     internal mutating func _applyMutation<ReturnType>(_ whatToDo : @noescape (NSMutableURLRequest) -> ReturnType) -> ReturnType {
-        if !isUniquelyReferencedNonObjC(&_handle) {
+        if !isKnownUniquelyReferenced(&_handle) {
             let ref = _handle._uncopiedReference()
             _handle = _MutableHandle(reference: ref)
         }
@@ -37,7 +37,7 @@ public struct URLRequest : ReferenceConvertible, CustomStringConvertible, Equata
         _handle = _MutableHandle(adoptingReference: NSMutableURLRequest(url: url, cachePolicy: cachePolicy, timeoutInterval: timeoutInterval))
     }
     
-    private init(_bridged request: NSURLRequest) {
+    fileprivate init(_bridged request: NSURLRequest) {
         _handle = _MutableHandle(reference: request.mutableCopy() as! NSMutableURLRequest)
     }
     

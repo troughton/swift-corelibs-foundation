@@ -111,7 +111,8 @@ public class JSONSerialization : NSObject {
             pretty: opt.contains(.prettyPrinted),
             writer: { (str: String?) in
                 if let str = str {
-                    result.append(UnsafePointer<UInt8>(str.cString(using: .utf8)!), count: str.lengthOfBytes(using: .utf8))
+                    let count = str.lengthOfBytes(using: .utf8)
+                    result.append(UnsafeRawPointer(str.cString(using: .utf8)!).bindMemory(to: UInt8.self, capacity: count), count: count)
                 }
             }
         )
@@ -159,7 +160,10 @@ public class JSONSerialization : NSObject {
     /* Write JSON data into a stream. The stream should be opened and configured. The return value is the number of bytes written to the stream, or 0 on error. All other behavior of this method is the same as the dataWithJSONObject:options:error: method.
      */
     public class func writeJSONObject(_ obj: AnyObject, toStream stream: NSOutputStream, options opt: WritingOptions) throws -> Int {
-        NSUnimplemented()
+            let jsonData = try data(withJSONObject: obj, options: opt)
+            let jsonNSData = jsonData.bridge()
+            let bytePtr = jsonNSData.bytes.bindMemory(to: UInt8.self, capacity: jsonNSData.length)
+            return stream.write(bytePtr, maxLength: jsonNSData.length)
     }
     
     /* Create a JSON object from JSON data stream. The stream should be opened and configured. All other behavior of this method is the same as the JSONObjectWithData:options:error: method.
@@ -481,7 +485,7 @@ private struct JSONReader {
 
     func consumeWhitespace(_ input: Index) -> Index? {
         var index = input
-        while let (char, nextIndex) = source.takeASCII(index) where JSONReader.whitespaceASCII.contains(char) {
+        while let (char, nextIndex) = source.takeASCII(index), JSONReader.whitespaceASCII.contains(char) {
             index = nextIndex
         }
         return index
@@ -519,7 +523,7 @@ private struct JSONReader {
 
     func takeMatching(_ match: (UInt8) -> Bool) -> ([Character], Index) -> ([Character], Index)? {
         return { input, index in
-            guard let (byte, index) = self.source.takeASCII(index) where match(byte) else {
+            guard let (byte, index) = self.source.takeASCII(index), match(byte) else {
                 return nil
             }
             return (input + [Character(UnicodeScalar(byte))], index)
@@ -596,10 +600,10 @@ private struct JSONReader {
         }
 
         if !UTF16.isLeadSurrogate(codeUnit) {
-            return (String(UnicodeScalar(codeUnit)), index)
+            return (String(UnicodeScalar(codeUnit)!), index)
         }
 
-        guard let (trailCodeUnit, finalIndex) = try consumeASCIISequence("\\u", input: index).flatMap(parseCodeUnit) where UTF16.isTrailSurrogate(trailCodeUnit) else {
+        guard let (trailCodeUnit, finalIndex) = try consumeASCIISequence("\\u", input: index).flatMap(parseCodeUnit) , UTF16.isTrailSurrogate(trailCodeUnit) else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to convert unicode escape sequence (no low-surrogate code point) to UTF8-encoded character at position \(source.distanceFromStart(input))"
             ])
@@ -607,7 +611,7 @@ private struct JSONReader {
 
         let highValue = (UInt32(codeUnit  - 0xD800) << 10)
         let lowValue  =  UInt32(trailCodeUnit - 0xDC00)
-        return (String(UnicodeScalar(highValue + lowValue + 0x10000)), finalIndex)
+        return (String(UnicodeScalar(highValue + lowValue + 0x10000)!), finalIndex)
     }
 
     func isHexChr(_ byte: UInt8) -> Bool {
@@ -632,11 +636,11 @@ private struct JSONReader {
     func parseNumber(_ input: Index) throws -> (Any, Index)? {
         func parseTypedNumber(_ address: UnsafePointer<UInt8>, count: Int) -> (Any, IndexDistance)? {
             let temp_buffer_size = 64
-            var temp_buffer = [UInt8](repeating: 0, count: temp_buffer_size)
-            return temp_buffer.withUnsafeMutableBufferPointer { (buffer: inout UnsafeMutableBufferPointer<UInt8>) -> (Any, IndexDistance)? in
+            var temp_buffer = [Int8](repeating: 0, count: temp_buffer_size)
+            return temp_buffer.withUnsafeMutableBufferPointer { (buffer: inout UnsafeMutableBufferPointer<Int8>) -> (Any, IndexDistance)? in
                 memcpy(buffer.baseAddress!, address, min(count, temp_buffer_size - 1)) // ensure null termination
                 
-                let startPointer = UnsafePointer<Int8>(buffer.baseAddress!)
+                let startPointer = buffer.baseAddress!
                 let intEndPointer = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: 1)
                 defer { intEndPointer.deallocate(capacity: 1) }
                 let doubleEndPointer = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: 1)
@@ -668,7 +672,7 @@ private struct JSONReader {
         else {
             var numberCharacters = [UInt8]()
             var index = input
-            while let (ascii, nextIndex) = source.takeASCII(index) where JSONReader.numberCodePoints.contains(ascii) {
+            while let (ascii, nextIndex) = source.takeASCII(index), JSONReader.numberCodePoints.contains(ascii) {
                 numberCharacters.append(ascii)
                 index = nextIndex
             }

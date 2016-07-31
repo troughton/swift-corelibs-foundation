@@ -75,9 +75,9 @@ extension String {
   /// representation.
   func _index(_ utf16Index: Int) -> Index {
     return Index(
-      _base: String.UnicodeScalarView.Index(_position: utf16Index),
-      in: characters
-    )
+      String.UTF16View.Index(utf16Index),
+      within: self
+    )!
   }
 
   /// Return a `Range<Index>` corresponding to the given `NSRange` of
@@ -653,7 +653,7 @@ extension String {
   /// in a given encoding, and optionally frees the buffer.  WARNING:
   /// this initializer is not memory-safe!
   public init?(
-    bytesNoCopy bytes: UnsafeMutablePointer<Void>, length: Int,
+    bytesNoCopy bytes: UnsafeMutableRawPointer, length: Int,
     encoding: Encoding, freeWhenDone flag: Bool
   ) {
     if let ns = NSString(
@@ -694,7 +694,7 @@ extension String {
     freeWhenDone flag: Bool
   ) {
     self = NSString(
-      charactersNoCopy: UnsafeMutablePointer(utf16CodeUnitsNoCopy),
+      charactersNoCopy: UnsafeMutablePointer(mutating: utf16CodeUnitsNoCopy),
       length: count,
       freeWhenDone: flag)._swiftObject
   }

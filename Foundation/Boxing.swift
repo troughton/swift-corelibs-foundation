@@ -14,7 +14,7 @@
 ///
 /// Note: This assumes that the result of calling copy() is mutable. The documentation says that classes which do not have a mutable/immutable distinction should just adopt NSCopying instead of NSMutableCopying.
 internal final class _MutableHandle<MutableType : NSObject where MutableType : NSCopying> {
-    private var _pointer : MutableType
+    fileprivate var _pointer : MutableType
     
     init(reference : MutableType) {
         _pointer = reference.copy() as! MutableType
@@ -52,7 +52,7 @@ extension _MutableBoxing {
     @inline(__always)
     mutating func _applyMutation<ReturnType>(_ whatToDo : @noescape(ReferenceType) -> ReturnType) -> ReturnType {
         // Only create a new box if we are not uniquely referenced
-        if !isUniquelyReferencedNonObjC(&_handle) {
+        if !isKnownUniquelyReferenced(&_handle) {
             let ref = _handle._pointer
             _handle = _MutableHandle(reference: ref)
         }
@@ -185,7 +185,7 @@ extension _MutablePairBoxing {
         case .Immutable(_):
             break
         case .Mutable(_):
-            unique = isUniquelyReferencedNonObjC(&_wrapped)
+            unique = isKnownUniquelyReferenced(&_wrapped)
         }
         
         switch (wrapper) {

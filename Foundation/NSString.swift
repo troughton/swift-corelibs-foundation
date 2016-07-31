@@ -187,14 +187,14 @@ internal func _bytesInEncoding(_ str: NSString, _ encoding: String.Encoding, _ f
         return nil
     }
     
-    let buffer = malloc(cLength + 1)!
+    let buffer = malloc(cLength + 1)!.bindMemory(to: Int8.self, capacity: cLength + 1)
     if !str.getBytes(buffer, maxLength: cLength, usedLength: &used, encoding: encoding.rawValue, options: options, range: theRange, remaining: nil) {
         fatalError("Internal inconsistency; previously claimed getBytes returned success but failed with similar invocation")
     }
     
-    UnsafeMutablePointer<Int8>(buffer).advanced(by: cLength).initialize(to: 0)
+    buffer.advanced(by: cLength).initialize(to: 0)
     
-    return UnsafePointer<Int8>(buffer) // leaked and should be autoreleased via a NSData backing but we cannot here
+    return UnsafePointer(buffer) // leaked and should be autoreleased via a NSData backing but we cannot here
 }
 
 internal func isALineSeparatorTypeCharacter(_ ch: unichar) -> Bool {
@@ -311,7 +311,7 @@ public class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, N
     }
     
     public required init(stringLiteral value: StaticString) {
-        _storage = String(value)
+        _storage = String(describing: value)
     }
     
     internal var _fastCStringContents: UnsafePointer<Int8>? {
@@ -366,7 +366,7 @@ extension NSString {
     
     public func substring(from: Int) -> String {
         if self.dynamicType == NSString.self || self.dynamicType == NSMutableString.self {
-            return String(_storage.utf16.suffix(from: _storage.utf16.startIndex.advanced(by: from)))
+            return String(_storage.utf16.suffix(from: _storage.utf16.startIndex.advanced(by: from)))!
         } else {
             return substring(with: NSMakeRange(from, length - from))
         }
@@ -375,7 +375,7 @@ extension NSString {
     public func substring(to: Int) -> String {
         if self.dynamicType == NSString.self || self.dynamicType == NSMutableString.self {
             return String(_storage.utf16.prefix(upTo: _storage.utf16.startIndex
-            .advanced(by: to)))
+            .advanced(by: to)))!
         } else {
             return substring(with: NSMakeRange(0, to))
         }
@@ -386,11 +386,11 @@ extension NSString {
             let start = _storage.utf16.startIndex
             let min = start.advanced(by: range.location)
             let max = start.advanced(by: range.location + range.length)
-            return String(_storage.utf16[min..<max])
+            return String(_storage.utf16[min..<max])!
         } else {
             let buff = UnsafeMutablePointer<unichar>.allocate(capacity: range.length)
             getCharacters(buff, range: range)
-            let result = String(buff)
+            let result = String(describing: buff)
             buff.deinitialize()
             buff.deallocate(capacity: range.length)
             return result
@@ -469,7 +469,7 @@ extension NSString {
         var numCharsBuffered = 0
         var arrayBuffer = [unichar](repeating: 0, count: 100)
         let other = str._nsObject
-        return arrayBuffer.withUnsafeMutablePointerOrAllocation(selfLen, fastpath: UnsafeMutablePointer<unichar>(_fastContents)) { (selfChars: UnsafeMutablePointer<unichar>) -> String in
+        return arrayBuffer.withUnsafeMutablePointerOrAllocation(selfLen, fastpath: UnsafeMutablePointer<unichar>(mutating: _fastContents)) { (selfChars: UnsafeMutablePointer<unichar>) -> String in
             // Now do the binary search. Note that the probe value determines the length of the substring to check.
             while true {
                 let range = NSMakeRange(0, isLiteral ? probe + 1 : NSMaxRange(rangeOfComposedCharacterSequence(at: probe))) // Extend the end of the composed char sequence
@@ -550,7 +550,7 @@ extension NSString {
         }
         
         var result = CFRange()
-        let res = withUnsafeMutablePointer(&result) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
+        let res = withUnsafeMutablePointer(to: &result) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
             if let loc = locale {
                 return CFStringFindWithOptionsAndLocale(_cfObject, searchString._cfObject, CFRange(searchRange), mask._cfValue(true), loc._cfObject, rangep)
             } else {
@@ -578,7 +578,7 @@ extension NSString {
         precondition(searchRange.length <= len && searchRange.location <= len - searchRange.length, "Bounds Range {\(searchRange.location), \(searchRange.length)} out of bounds; string length \(len)")
         
         var result = CFRange()
-        let res = withUnsafeMutablePointer(&result) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
+        let res = withUnsafeMutablePointer(to: &result) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
             return CFStringFindCharacterFromSet(_cfObject, searchSet._cfObject, CFRange(searchRange), mask._cfValue(), rangep)
         }
         if res {
@@ -888,14 +888,14 @@ extension NSString {
                 return true
             }
         }
-        if getBytes(UnsafeMutablePointer<Void>(buffer), maxLength: maxBufferCount, usedLength: &used, encoding: encoding, options: [], range: NSMakeRange(0, self.length), remaining: nil) {
+        if getBytes(UnsafeMutableRawPointer(buffer), maxLength: maxBufferCount, usedLength: &used, encoding: encoding, options: [], range: NSMakeRange(0, self.length), remaining: nil) {
             buffer.advanced(by: used).initialize(to: 0)
             return true
         }
         return false
     }
     
-    public func getBytes(_ buffer: UnsafeMutablePointer<Void>?, maxLength maxBufferCount: Int, usedLength usedBufferCount: UnsafeMutablePointer<Int>?, encoding: UInt, options: EncodingConversionOptions = [], range: NSRange, remaining leftover: NSRangePointer?) -> Bool {
+    public func getBytes(_ buffer: UnsafeMutableRawPointer?, maxLength maxBufferCount: Int, usedLength usedBufferCount: UnsafeMutablePointer<Int>?, encoding: UInt, options: EncodingConversionOptions = [], range: NSRange, remaining leftover: NSRangePointer?) -> Bool {
         var totalBytesWritten = 0
         var numCharsProcessed = 0
         let cfStringEncoding = CFStringConvertNSStringEncodingToEncoding(encoding)
@@ -905,7 +905,8 @@ extension NSString {
                 let lossyOk = options.contains(.allowLossy)
                 let externalRep = options.contains(.externalRepresentation)
                 let failOnPartial = options.contains(.failOnPartialEncodingConversion)
-                numCharsProcessed = __CFStringEncodeByteStream(_cfObject, range.location, range.length, externalRep, cfStringEncoding, lossyOk ? (encoding == String.Encoding.ascii.rawValue ? 0xFF : 0x3F) : 0, UnsafeMutablePointer<UInt8>(buffer), buffer != nil ? maxBufferCount : 0, &totalBytesWritten)
+                let bytePtr = buffer?.bindMemory(to: UInt8.self, capacity: maxBufferCount)
+                numCharsProcessed = __CFStringEncodeByteStream(_cfObject, range.location, range.length, externalRep, cfStringEncoding, lossyOk ? (encoding == String.Encoding.ascii.rawValue ? 0xFF : 0x3F) : 0, bytePtr, bytePtr != nil ? maxBufferCount : 0, &totalBytesWritten)
                 if (failOnPartial && numCharsProcessed < range.length) || numCharsProcessed == 0 {
                     result = false
                 }
@@ -1147,7 +1148,8 @@ extension NSString {
         var mData = Data(count: numBytes)!
         // The getBytes:... call should hopefully not fail, given it succeeded above, but check anyway (mutable string changing behind our back?)
         var used = 0
-        try mData.withUnsafeMutableBytes { (mutableBytes: UnsafeMutablePointer<Void>) -> Void in
+        // This binds mData memory to UInt8 because Data.withUnsafeMutableBytes does not handle raw pointers.
+        try mData.withUnsafeMutableBytes { (mutableBytes: UnsafeMutablePointer<UInt8>) -> Void in
             if !getBytes(mutableBytes, maxLength: numBytes, usedLength: &used, encoding: enc, options: [], range: theRange, remaining: nil) {
                 throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnknownError.rawValue, userInfo: [
                     NSURLErrorKey: dest,
@@ -1175,13 +1177,17 @@ extension NSString {
         // ignore the no-copy-ness
         self.init(characters: characters, length: length)
         if freeBuffer { // cant take a hint here...
-            free(UnsafeMutablePointer<Void>(characters))
+            free(UnsafeMutableRawPointer(characters))
         }
     }
     
     public convenience init?(UTF8String nullTerminatedCString: UnsafePointer<Int8>) {
-        let buffer = UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(nullTerminatedCString), count: Int(strlen(nullTerminatedCString)))
-        if let str = String._fromCodeUnitSequence(UTF8.self, input: buffer) {
+        let count = Int(strlen(nullTerminatedCString))
+        if let str = nullTerminatedCString.withMemoryRebound(to: UInt8.self, capacity: count, {
+            let buffer = UnsafeBufferPointer<UInt8>(start: $0, count: count)
+            return String._fromCodeUnitSequence(UTF8.self, input: buffer)
+            }) as String?
+        {
             self.init(str)
         } else {
             return nil
@@ -1215,8 +1221,8 @@ extension NSString {
     }
     
     public convenience init?(data: Data, encoding: UInt) {
-        guard let cf = data.withUnsafeBytes({ (bytes: UnsafePointer<Void>) -> CFString? in
-            return CFStringCreateWithBytes(kCFAllocatorDefault, UnsafePointer<UInt8>(bytes), data.count, CFStringConvertNSStringEncodingToEncoding(encoding), true)
+        guard let cf = data.withUnsafeBytes({ (bytes: UnsafePointer<UInt8>) -> CFString? in
+            return CFStringCreateWithBytes(kCFAllocatorDefault, bytes, data.count, CFStringConvertNSStringEncodingToEncoding(encoding), true)
         }) else { return nil }
         
         var str: String?
@@ -1227,8 +1233,9 @@ extension NSString {
         }
     }
     
-    public convenience init?(bytes: UnsafePointer<Void>, length len: Int, encoding: UInt) {
-        guard let cf = CFStringCreateWithBytes(kCFAllocatorDefault, UnsafePointer<UInt8>(bytes), len, CFStringConvertNSStringEncodingToEncoding(encoding), true) else {
+    public convenience init?(bytes: UnsafeRawPointer, length len: Int, encoding: UInt) {
+        let bytePtr = bytes.bindMemory(to: UInt8.self, capacity: len)
+        guard let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr, len, CFStringConvertNSStringEncodingToEncoding(encoding), true) else {
             return nil
         }
         var str: String?
@@ -1239,7 +1246,7 @@ extension NSString {
         }
     }
     
-    public convenience init?(bytesNoCopy bytes: UnsafeMutablePointer<Void>, length len: Int, encoding: UInt, freeWhenDone freeBuffer: Bool) /* "NoCopy" is a hint */ {
+    public convenience init?(bytesNoCopy bytes: UnsafeMutableRawPointer, length len: Int, encoding: UInt, freeWhenDone freeBuffer: Bool) /* "NoCopy" is a hint */ {
         // just copy for now since the internal storage will be a copy anyhow
         self.init(bytes: bytes, length: len, encoding: encoding)
         if freeBuffer { // dont take the hint
@@ -1262,7 +1269,8 @@ extension NSString {
     public convenience init(contentsOf url: URL, encoding enc: UInt) throws {
         let readResult = try NSData(contentsOf: url, options: [])
 
-        guard let cf = CFStringCreateWithBytes(kCFAllocatorDefault, UnsafePointer<UInt8>(readResult.bytes), readResult.length, CFStringConvertNSStringEncodingToEncoding(enc), true) else {
+        let bytePtr = readResult.bytes.bindMemory(to: UInt8.self, capacity: readResult.length)
+        guard let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr, readResult.length, CFStringConvertNSStringEncodingToEncoding(enc), true) else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileReadInapplicableStringEncodingError.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to create a string using the specified encoding."
                 ])
@@ -1397,8 +1405,8 @@ extension NSMutableString {
         if let findResults = CFStringCreateArrayWithFindResults(kCFAllocatorSystemDefault, _cfObject, target._cfObject, CFRange(searchRange), options._cfValue(true)) {
             let numOccurrences = CFArrayGetCount(findResults)
             for cnt in 0..<numOccurrences {
-                let range = UnsafePointer<CFRange>(CFArrayGetValueAtIndex(findResults, backwards ? cnt : numOccurrences - cnt - 1)!)
-                replaceCharacters(in: NSRange(range.pointee), with: replacement)
+                let rangePtr = CFArrayGetValueAtIndex(findResults, backwards ? cnt : numOccurrences - cnt - 1)
+                replaceCharacters(in: NSRange(rangePtr!.load(as: CFRange.self)), with: replacement)
             }
             return numOccurrences
         } else {
@@ -1409,7 +1417,7 @@ extension NSMutableString {
     
     public func applyTransform(_ transform: String, reverse: Bool, range: NSRange, updatedRange resultingRange: NSRangePointer?) -> Bool {
         var cfRange = CFRangeMake(range.location, range.length)
-        return withUnsafeMutablePointer(&cfRange) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
+        return withUnsafeMutablePointer(to: &cfRange) { (rangep: UnsafeMutablePointer<CFRange>) -> Bool in
             if CFStringTransform(_cfMutableObject, rangep, transform._cfObject, reverse) {
                 resultingRange?.pointee.location = rangep.pointee.location
                 resultingRange?.pointee.length = rangep.pointee.length

@@ -719,7 +719,7 @@ public class XMLNode: NSObject, NSCopying {
         var result: [XMLNode] = []
         for i in 0..<CFArrayGetCount(nodes) {
             let nodePtr = CFArrayGetValueAtIndex(nodes, i)!
-            result.append(XMLNode._objectNodeForNode(_CFXMLNodePtr(nodePtr)))
+            result.append(XMLNode._objectNodeForNode(_CFXMLNodePtr(mutating: nodePtr)))
         }
 
         return result
@@ -883,8 +883,8 @@ internal protocol _NSXMLNodeCollectionType: Collection { }
 extension XMLNode: _NSXMLNodeCollectionType {
 
     public struct Index: Comparable {
-        private let node: _CFXMLNodePtr?
-        private let offset: Int?
+        fileprivate let node: _CFXMLNodePtr?
+        fileprivate let offset: Int?
     }
 
     public subscript(index: Index) -> XMLNode {
