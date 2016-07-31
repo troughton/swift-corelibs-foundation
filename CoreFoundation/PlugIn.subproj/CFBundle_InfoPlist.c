@@ -24,9 +24,12 @@
 #include <CoreFoundation/CFURLAccess.h>
 
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_FREEBSD
+#if TARGET_OS_CYGWIN
+#else
 #include <dirent.h>
 #include <sys/sysctl.h>
 #include <sys/mman.h>
+#endif
 #endif
 
 // The following strings are initialized 'later' (i.e., not at static initialization time) because static init time is too early for CFSTR to work, on platforms without constant CF strings
@@ -145,7 +148,7 @@ CF_EXPORT CFStringRef _CFGetPlatformName(void) {
     return _CFBundleLinuxPlatformName;
 #elif DEPLOYMENT_TARGET_FREEBSD
     return _CFBundleFreeBSDPlatformName;
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return _CFBundleCygwinPlatformName;
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
@@ -163,7 +166,7 @@ CF_EXPORT CFStringRef _CFGetAlternatePlatformName(void) {
     return CFSTR("Linux");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("FreeBSD");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Cygwin");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET

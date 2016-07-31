@@ -948,7 +948,7 @@
 #include <libc.h>
 #include <dlfcn.h>
 #endif
-#if DEPLOYMENT_TARGET_CYGWIN
+#if TARGET_OS_CYGWIN
 #include <sys/socket.h>
 #endif
 #include <arpa/inet.h>
@@ -1003,7 +1003,7 @@ if ((vvp)->tv_usec < 0) {				\
 
 //#define LOG_CFSOCKET
 
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || TARGET_OS_CYGWIN
 #define INVALID_SOCKET (CFSocketNativeHandle)(-1)
 #define closesocket(a) close((a))
 #define ioctlsocket(a,b,c) ioctl((a),(b),(c))
@@ -2067,9 +2067,9 @@ manageSelectError()
 
 static void *__CFSocketManager(void * arg)
 {
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#if (DEPLOYMENT_TARGET_LINUX && !TARGET_OS_CYGWIN) || DEPLOYMENT_TARGET_FREEBSD
     pthread_setname_np(pthread_self(), "com.apple.CFSocket.private");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
 #else
     pthread_setname_np("com.apple.CFSocket.private");
 #endif
@@ -2474,7 +2474,7 @@ static CFSocketRef _CFSocketCreateWithNative(CFAllocatorRef allocator, CFSocketN
     
     if (INVALID_SOCKET != sock) CFDictionaryAddValue(__CFAllSockets, (void *)(uintptr_t)sock, memory);
     if (NULL == __CFSocketManagerThread) {
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || TARGET_OS_CYGWIN
         pthread_t tid = 0;
         pthread_attr_t attr;
         pthread_attr_init(&attr);

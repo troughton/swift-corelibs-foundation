@@ -684,7 +684,7 @@ static void *_CFBundleDlfcnGetSymbolByNameWithSearch(CFBundleRef bundle, CFStrin
 
 #if !defined(BINARY_SUPPORT_DYLD)
 
-#if DEPLOYMENT_TARGET_CYGWIN
+#if TARGET_OS_CYGWIN
 static CFStringRef _CFBundleDlfcnCopyLoadedImagePathForPointer(void *p) {
 // Cygwin does not support dladdr()
     return NULL;

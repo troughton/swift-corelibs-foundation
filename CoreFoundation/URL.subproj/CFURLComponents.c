@@ -519,7 +519,7 @@ CF_EXPORT CFNumberRef _CFURLComponentsCopyPort(CFURLComponentsRef components) {
                 HALT;
             }
             long long value;
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
             if (sscanf(buf, "%lld", &value) != 1) {
                 HALT;
             }

@@ -31,9 +31,9 @@
 #include <sys/types.h>
 
 
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
 #include <unistd.h>
-#if DEPLOYMENT_TARGET_CYGWIN
+#if TARGET_OS_CYGWIN
 #else
 #include <sys/sysctl.h>
 #endif
@@ -319,7 +319,7 @@ CF_EXPORT CFStringRef _CFBundleGetCurrentPlatform(void) {
     return CFSTR("Linux");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("FreeBSD");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Cygwin");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
@@ -339,7 +339,7 @@ CF_PRIVATE CFStringRef _CFBundleGetPlatformExecutablesSubdirectoryName(void) {
     return CFSTR("Linux");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("FreeBSD");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Cygwin");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
@@ -359,7 +359,7 @@ CF_PRIVATE CFStringRef _CFBundleGetAlternatePlatformExecutablesSubdirectoryName(
     return CFSTR("Linux");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("FreeBSD");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Cygwin");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
@@ -379,7 +379,7 @@ CF_PRIVATE CFStringRef _CFBundleGetOtherPlatformExecutablesSubdirectoryName(void
     return CFSTR("Other");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("Other");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Other");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET
@@ -399,7 +399,7 @@ CF_PRIVATE CFStringRef _CFBundleGetOtherAlternatePlatformExecutablesSubdirectory
     return CFSTR("Other");
 #elif DEPLOYMENT_TARGET_FREEBSD
     return CFSTR("Other");
-#elif DEPLOYMENT_TARGET_CYGWIN
+#elif TARGET_OS_CYGWIN
     return CFSTR("Other");
 #else
 #error Unknown or unspecified DEPLOYMENT_TARGET

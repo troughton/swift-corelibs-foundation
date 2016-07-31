@@ -162,7 +162,7 @@ typedef int		boolean_t;
 #include <sys/stat.h> // mode_t
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN
     
 #define CF_PRIVATE __attribute__((visibility("hidden")))
 #define __strong
@@ -178,7 +178,7 @@ typedef int		boolean_t;
 
 #include <pthread.h>
 
-#if DEPLOYMENT_TARGET_CYGWIN
+#if TARGET_OS_CYGWIN
 #else
 CF_INLINE size_t
 strlcpy(char * dst, const char * src, size_t maxlen) {
@@ -266,14 +266,14 @@ void OSMemoryBarrier();
 
 #endif
 
-#if DEPLOYMENT_TARGET_CYGWIN
+#if TARGET_OS_CYGWIN
 #define HAVE_STRUCT_TIMESPEC 1
 #define strncasecmp_l(a, b, c, d) strncasecmp(a, b, c)
 #define _NO_BOOL_TYPEDEF
 #undef interface
 #endif
 
-#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN 
+#if DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || TARGET_OS_CYGWIN 
 #if !defined(MIN)
 #define MIN(A,B)	((A) < (B) ? (A) : (B))
 #endif
@@ -473,7 +473,7 @@ CF_EXPORT int64_t OSAtomicAdd64Barrier( int64_t __theAmount, volatile int64_t *_
 #define CF_PRIVATE __attribute__((__visibility__("hidden")))
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS || TARGET_OS_CYGWIN
 
 #include <stdarg.h>
 
