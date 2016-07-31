@@ -27,7 +27,6 @@
 #include <dispatch/dispatch.h>
 #endif
 
-
 #if DEPLOYMENT_TARGET_WINDOWS
 #include <typeinfo.h>
 #endif
@@ -59,6 +58,7 @@ typedef struct voucher_s *voucher_t;
 extern mach_port_t _dispatch_get_main_queue_port_4CF(void);
 extern void _dispatch_main_queue_callback_4CF(mach_msg_header_t *msg);
 #elif DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_CYGWIN
+#include <windows.h>
 #include <process.h>
 #define DISPATCH_EXPORT extern
 DISPATCH_EXPORT HANDLE _dispatch_get_main_queue_handle_4CF(void);
@@ -69,7 +69,6 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void*);
 #define mach_port_t HANDLE
 #define _dispatch_get_main_queue_port_4CF _dispatch_get_main_queue_handle_4CF
 
-//#define AbsoluteTime LARGE_INTEGER 
 #define LARGE_INTEGER uint64_t
 
 #elif DEPLOYMENT_TARGET_LINUX

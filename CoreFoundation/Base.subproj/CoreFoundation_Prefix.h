@@ -178,7 +178,8 @@ typedef int		boolean_t;
 
 #include <pthread.h>
 
-#if !DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_CYGWIN
+#else
 CF_INLINE size_t
 strlcpy(char * dst, const char * src, size_t maxlen) {
     const size_t srclen = strlen(src);
@@ -269,7 +270,6 @@ void OSMemoryBarrier();
 #define HAVE_STRUCT_TIMESPEC 1
 #define strncasecmp_l(a, b, c, d) strncasecmp(a, b, c)
 #define _NO_BOOL_TYPEDEF
-#include <windows.h>
 #undef interface
 #endif
 

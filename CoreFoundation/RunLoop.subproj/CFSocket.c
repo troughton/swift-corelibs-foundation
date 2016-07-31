@@ -2069,7 +2069,8 @@ static void *__CFSocketManager(void * arg)
 {
 #if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
     pthread_setname_np(pthread_self(), "com.apple.CFSocket.private");
-#elif !DEPLOYMENT_TARGET_CYGWIN
+#elif DEPLOYMENT_TARGET_CYGWIN
+#else
     pthread_setname_np("com.apple.CFSocket.private");
 #endif
     if (objc_collectingEnabled()) objc_registerThreadWithCollector();

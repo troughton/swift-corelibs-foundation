@@ -98,7 +98,8 @@ CF_EXTERN_C_BEGIN
 #include <CoreFoundation/CFRuntime.h>
 #include <limits.h>
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD || DEPLOYMENT_TARGET_CYGWIN
-#if !DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_CYGWIN
+#else
 #include <xlocale.h>
 #endif
 #include <unistd.h>
@@ -800,8 +801,6 @@ CF_PRIVATE const wchar_t *_CFDLLPath(void);
 #define PATH_SEP '/'
 #define PATH_SEP_STR CFSTR("/")
 #endif
-
-#include <stdio.h>
 
 CF_INLINE const char *CFPathRelativeToAppleFrameworksRoot(const char *path, Boolean *allocated) {
     if (!__CFProcessIsRestricted() && path) {

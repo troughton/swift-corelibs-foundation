@@ -155,9 +155,8 @@ const char *_CFProcessPath(void) {
 }
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
+#if DEPLOYMENT_TARGET_LINUX
 #include <unistd.h>
-#if !DEPLOYMENT_TARGET_CYGWIN
 #include <syscall.h>
 
 Boolean _CFIsMainThread(void) {
@@ -165,6 +164,7 @@ Boolean _CFIsMainThread(void) {
 }
 #endif
 
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_CYGWIN
 const char *_CFProcessPath(void) {
     if (__CFProcessPath) return __CFProcessPath;
     char buf[CFMaxPathSize + 1];

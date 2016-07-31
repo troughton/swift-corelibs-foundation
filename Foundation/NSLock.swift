@@ -152,7 +152,6 @@ public class RecursiveLock : NSObject, Locking {
         var attrib : pthread_mutexattr_t? = nil
 #else
         var attrib = pthread_mutexattr_t()
-<<<<<<< HEAD
 #endif
         withUnsafeMutablePointer(to: &attrib) { attrs in
             pthread_mutexattr_settype(attrs, Int32(PTHREAD_MUTEX_RECURSIVE))

@@ -684,18 +684,22 @@ static void *_CFBundleDlfcnGetSymbolByNameWithSearch(CFBundleRef bundle, CFStrin
 
 #if !defined(BINARY_SUPPORT_DYLD)
 
+#if DEPLOYMENT_TARGET_CYGWIN
+static CFStringRef _CFBundleDlfcnCopyLoadedImagePathForPointer(void *p) {
+// Cygwin does not support dladdr()
+    return NULL;
+}
+#else
 static CFStringRef _CFBundleDlfcnCopyLoadedImagePathForPointer(void *p) {
     CFStringRef result = NULL;
-// Cygwin does not support dladdr()
-#if !DEPLOYMENT_TARGET_CYGWIN
     Dl_info info;
     if (0 != dladdr(p, &info) && info.dli_fname) result = CFStringCreateWithFileSystemRepresentation(kCFAllocatorSystemDefault, info.dli_fname);
 #if LOG_BUNDLE_LOAD
     printf("dlfcn image path for pointer %p is %p\n", p, result);
 #endif /* LOG_BUNDLE_LOAD */
-#endif
     return result;
 }
+#endif
 
 #endif /* !BINARY_SUPPORT_DYLD */
 #endif /* BINARY_SUPPORT_DLFCN */
