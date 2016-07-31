@@ -162,9 +162,19 @@ public class Thread: NSObject {
             _status = .finished
             return
         }
+#if IS_CYGWIN
+        if let attr = self._attr {
+            _thread = self.withRetainedReference {
+              return _CFThreadCreate(attr, NSThreadStart, $0)
+            }
+        } else {
+            _thread = nil
+        }
+#else
         _thread = self.withRetainedReference {
             return _CFThreadCreate(self._attr, NSThreadStart, $0)
         }
+#endif
     }
     
     public func main() {
