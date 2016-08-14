@@ -12,7 +12,7 @@ import CoreFoundation
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux) || IS_CYGWIN
+#elseif os(Linux) || CYGWIN
     import Glibc
 #endif
 

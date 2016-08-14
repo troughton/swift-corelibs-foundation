@@ -10,7 +10,7 @@
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || IS_CYGWIN
+#elseif os(Linux) || CYGWIN
 import Glibc
 #endif
 
@@ -126,12 +126,12 @@ open class Thread: NSObject {
     }
     
     internal var _main: (Void) -> Void = {}
-#if os(OSX) || os(iOS) || IS_CYGWIN
+#if os(OSX) || os(iOS) || CYGWIN
     private var _thread: pthread_t? = nil
 #elseif os(Linux)
     private var _thread = pthread_t()
 #endif
-#if IS_CYGWIN
+#if CYGWIN
     internal var _attr : pthread_attr_t? = nil
 #else
     internal var _attr = pthread_attr_t()
@@ -162,7 +162,7 @@ open class Thread: NSObject {
             _status = .finished
             return
         }
-#if IS_CYGWIN
+#if CYGWIN
         if let attr = self._attr {
             _thread = self.withRetainedReference {
               return _CFThreadCreate(attr, NSThreadStart, $0)
