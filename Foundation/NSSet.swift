@@ -30,7 +30,7 @@ extension Set : _ObjectTypeBridgeable {
         var set = Set<Element>()
         var failedConversion = false
         
-        if x.dynamicType == NSSet.self || x.dynamicType == NSMutableSet.self {
+        if type(of: x) == NSSet.self || type(of: x) == NSMutableSet.self {
             x.enumerateObjects([]) { obj, stop in
                 if let o = obj as? Element {
                     set.insert(o)
@@ -39,7 +39,7 @@ extension Set : _ObjectTypeBridgeable {
                     stop.pointee = true
                 }
             }
-        } else if x.dynamicType == _NSCFSet.self {
+        } else if type(of: x) == _NSCFSet.self {
             let cf = x._cfObject
             let cnt = CFSetGetCount(cf)
             
@@ -70,19 +70,19 @@ extension Set : _ObjectTypeBridgeable {
     }
 }
 
-public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCoding {
+open class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCoding {
     private let _cfinfo = _CFInfo(typeID: CFSetGetTypeID())
     internal var _storage: Set<NSObject>
     
-    public var count: Int {
-        guard self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self || self.dynamicType === NSCountedSet.self else {
+    open var count: Int {
+        guard type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self || type(of: self) === NSCountedSet.self else {
                 NSRequiresConcreteImplementation()
         }
         return _storage.count
     }
     
-    public func member(_ object: AnyObject) -> AnyObject? {
-        guard self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self || self.dynamicType === NSCountedSet.self else {
+    open func member(_ object: AnyObject) -> AnyObject? {
+        guard type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self || type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
         
@@ -93,8 +93,8 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         return obj // this is not exactly the same behavior, but it is reasonably close
     }
     
-    public func objectEnumerator() -> NSEnumerator {
-        guard self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self || self.dynamicType === NSCountedSet.self else {
+    open func objectEnumerator() -> NSEnumerator {
+        guard type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self || type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
         return NSGeneratorEnumerator(_storage.makeIterator())
@@ -129,7 +129,7 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
             self.init(objects: UnsafePointer<AnyObject?>(objects), count: Int(cnt))
             objects.deinitialize(count: Int(cnt))
             objects.deallocate(capacity: Int(cnt))
-        } else if aDecoder.dynamicType == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
+        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
             let objects = aDecoder._decodeArrayOfObjectsForKey("NS.objects")
             self.init(array: objects)
         } else {
@@ -143,20 +143,20 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         }
     }
     
-    public func encode(with aCoder: NSCoder) {
+    open func encode(with aCoder: NSCoder) {
         // The encoding of a NSSet is identical to the encoding of an NSArray of its contents
         self.allObjects._nsObject.encode(with: aCoder)
     }
     
-    public override func copy() -> AnyObject {
+    open override func copy() -> AnyObject {
         return copy(with: nil)
     }
     
-    public func copy(with zone: NSZone? = nil) -> AnyObject {
-        if self.dynamicType === NSSet.self {
+    open func copy(with zone: NSZone? = nil) -> AnyObject {
+        if type(of: self) === NSSet.self {
             // return self for immutable type
             return self
-        } else if self.dynamicType === NSMutableSet.self {
+        } else if type(of: self) === NSMutableSet.self {
             let set = NSSet()
             set._storage = self._storage
             return set
@@ -164,12 +164,12 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         return NSSet(array: self.allObjects)
     }
     
-    public override func mutableCopy() -> AnyObject {
+    open override func mutableCopy() -> AnyObject {
         return mutableCopy(with: nil)
     }
 
-    public func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
-        if self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self {
+    open func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
+        if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
             // always create and return an NSMutableSet
             let mutableSet = NSMutableSet()
             mutableSet._storage = self._storage
@@ -182,13 +182,13 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         return true
     }
     
-    public func description(withLocale locale: AnyObject?) -> String { NSUnimplemented() }
+    open func description(withLocale locale: AnyObject?) -> String { NSUnimplemented() }
     
-    override public var _cfTypeID: CFTypeID {
+    override open var _cfTypeID: CFTypeID {
         return CFSetGetTypeID()
     }
 
-    public override func isEqual(_ object: AnyObject?) -> Bool {
+    open override func isEqual(_ object: AnyObject?) -> Bool {
         guard let otherObject = object, otherObject is NSSet else {
             return false
         }
@@ -196,7 +196,7 @@ public class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         return self.isEqual(to: otherSet.bridge())
     }
 
-    public override var hash: Int {
+    open override var hash: Int {
         return self.count
     }
 
@@ -269,7 +269,7 @@ extension NSSet {
     
     public func addingObjects(from other: Set<NSObject>) -> Set<NSObject> {
         var result = Set<NSObject>(minimumCapacity: Swift.max(count, other.count))
-        if self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self {
+        if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
             result.formUnion(_storage)
         } else {
             for case let obj as NSObject in self {
@@ -281,7 +281,7 @@ extension NSSet {
     
     public func addingObjects(from other: [AnyObject]) -> Set<NSObject> {
         var result = Set<NSObject>(minimumCapacity: count)
-        if self.dynamicType === NSSet.self || self.dynamicType === NSMutableSet.self {
+        if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
             result.formUnion(_storage)
         } else {
             for case let obj as NSObject in self {
@@ -351,17 +351,17 @@ extension NSSet : Sequence {
     }
 }
 
-public class NSMutableSet : NSSet {
+open class NSMutableSet : NSSet {
     
-    public func add(_ object: AnyObject) {
-        guard self.dynamicType === NSMutableSet.self else {
+    open func add(_ object: AnyObject) {
+        guard type(of: self) === NSMutableSet.self else {
             NSRequiresConcreteImplementation()
         }
         _storage.insert(object as! NSObject)
     }
     
-    public func remove(_ object: AnyObject) {
-        guard self.dynamicType === NSMutableSet.self else {
+    open func remove(_ object: AnyObject) {
+        guard type(of: self) === NSMutableSet.self else {
             NSRequiresConcreteImplementation()
         }
 
@@ -386,8 +386,8 @@ public class NSMutableSet : NSSet {
         NSUnimplemented()
     }
     
-    public func addObjects(from array: [AnyObject]) {
-        if self.dynamicType === NSMutableSet.self {
+    open func addObjects(from array: [AnyObject]) {
+        if type(of: self) === NSMutableSet.self {
             for case let obj as NSObject in array {
                 _storage.insert(obj)
             }
@@ -396,8 +396,8 @@ public class NSMutableSet : NSSet {
         }
     }
     
-    public func intersect(_ otherSet: Set<NSObject>) {
-        if self.dynamicType === NSMutableSet.self {
+    open func intersect(_ otherSet: Set<NSObject>) {
+        if type(of: self) === NSMutableSet.self {
             _storage.formIntersection(otherSet)
         } else {
             for case let obj as NSObject in self where !otherSet.contains(obj) {
@@ -406,32 +406,32 @@ public class NSMutableSet : NSSet {
         }
     }
     
-    public func minus(_ otherSet: Set<NSObject>) {
-        if self.dynamicType === NSMutableSet.self {
+    open func minus(_ otherSet: Set<NSObject>) {
+        if type(of: self) === NSMutableSet.self {
             _storage.subtract(otherSet)
         } else {
             otherSet.forEach(remove)
         }
     }
     
-    public func removeAllObjects() {
-        if self.dynamicType === NSMutableSet.self {
+    open func removeAllObjects() {
+        if type(of: self) === NSMutableSet.self {
             _storage.removeAll()
         } else {
             forEach(remove)
         }
     }
     
-    public func union(_ otherSet: Set<NSObject>) {
-        if self.dynamicType === NSMutableSet.self {
+    open func union(_ otherSet: Set<NSObject>) {
+        if type(of: self) === NSMutableSet.self {
             _storage.formUnion(otherSet)
         } else {
             otherSet.forEach(add)
         }
     }
     
-    public func setSet(_ otherSet: Set<NSObject>) {
-        if self.dynamicType === NSMutableSet.self {
+    open func setSet(_ otherSet: Set<NSObject>) {
+        if type(of: self) === NSMutableSet.self {
             _storage = otherSet
         } else {
             removeAllObjects()
@@ -442,7 +442,7 @@ public class NSMutableSet : NSSet {
 }
 
 /****************	Counted Set	****************/
-public class NSCountedSet : NSMutableSet {
+open class NSCountedSet : NSMutableSet {
     internal var _table: Dictionary<NSObject, Int>
 
     public required init(capacity numItems: Int) {
@@ -474,8 +474,8 @@ public class NSCountedSet : NSMutableSet {
 
     public required convenience init?(coder: NSCoder) { NSUnimplemented() }
 
-    public override func copy(with zone: NSZone? = nil) -> AnyObject {
-        if self.dynamicType === NSCountedSet.self {
+    open override func copy(with zone: NSZone? = nil) -> AnyObject {
+        if type(of: self) === NSCountedSet.self {
             let countedSet = NSCountedSet()
             countedSet._storage = self._storage
             countedSet._table = self._table
@@ -484,8 +484,8 @@ public class NSCountedSet : NSMutableSet {
         return NSCountedSet(array: self.allObjects)
     }
 
-    public override func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
-        if self.dynamicType === NSCountedSet.self {
+    open override func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
+        if type(of: self) === NSCountedSet.self {
             let countedSet = NSCountedSet()
             countedSet._storage = self._storage
             countedSet._table = self._table
@@ -494,8 +494,8 @@ public class NSCountedSet : NSMutableSet {
         return NSCountedSet(array: self.allObjects)
     }
 
-    public func countForObject(_ object: AnyObject) -> Int {
-        guard self.dynamicType === NSCountedSet.self else {
+    open func countForObject(_ object: AnyObject) -> Int {
+        guard type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
         guard let count = _table[object as! NSObject] else {
@@ -504,8 +504,8 @@ public class NSCountedSet : NSMutableSet {
         return count
     }
 
-    public override func add(_ object: AnyObject) {
-        guard self.dynamicType === NSCountedSet.self else {
+    open override func add(_ object: AnyObject) {
+        guard type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
 
@@ -517,8 +517,8 @@ public class NSCountedSet : NSMutableSet {
         }
     }
 
-    public override func remove(_ object: AnyObject) {
-        guard self.dynamicType === NSCountedSet.self else {
+    open override func remove(_ object: AnyObject) {
+        guard type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
         guard let count = _table[object as! NSObject] else {
@@ -533,8 +533,8 @@ public class NSCountedSet : NSMutableSet {
         }
     }
 
-    public override func removeAllObjects() {
-        if self.dynamicType === NSCountedSet.self {
+    open override func removeAllObjects() {
+        if type(of: self) === NSCountedSet.self {
             _storage.removeAll()
             _table.removeAll()
         } else {

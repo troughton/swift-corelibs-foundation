@@ -16,7 +16,7 @@ import Glibc
 
 import CoreFoundation
 
-public class Host: NSObject {
+open class Host: NSObject {
     enum ResolveType {
         case name
         case address
@@ -35,7 +35,7 @@ public class Host: NSObject {
     
     static internal let current = Host(nil, .current)
     
-    public class func currentHost() -> Host {
+    open class func currentHost() -> Host {
         return Host.current
     }
     
@@ -47,7 +47,7 @@ public class Host: NSObject {
         self.init(address, .address)
     }
     
-    public func isEqual(to aHost: Host) -> Bool {
+    open func isEqual(to aHost: Host) -> Bool {
         return false
     }
     
@@ -90,7 +90,7 @@ public class Host: NSObject {
                     res = info.ai_next
                     continue
                 }
-                let sa_len: socklen_t = socklen_t((family == AF_INET6) ? sizeof(sockaddr_in6.self) : sizeof(sockaddr_in.self))
+                let sa_len: socklen_t = socklen_t((family == AF_INET6) ? MemoryLayout<sockaddr_in6>.size : MemoryLayout<sockaddr_in>.size)
                 let lookupInfo = { (content: inout [String], flags: Int32) in
                     let hname = UnsafeMutablePointer<Int8>.allocate(capacity: 1024)
                     if (getnameinfo(info.ai_addr, sa_len, hname, 1024, nil, 0, flags) == 0) {
@@ -110,25 +110,25 @@ public class Host: NSObject {
 
     }
     
-    public var name: String? {
+    open var name: String? {
         return names.first
     }
     
-    public var names: [String] {
+    open var names: [String] {
         _resolve()
         return _names
     }
     
-    public var address: String? {
+    open var address: String? {
         return addresses.first
     }
     
-    public var addresses: [String] {
+    open var addresses: [String] {
         _resolve()
         return _addresses
     }
     
-    public var localizedName: String? {
+    open var localizedName: String? {
         return nil
     }
 }

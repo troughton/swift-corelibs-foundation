@@ -56,7 +56,7 @@ private func NSThreadStart(_ context: UnsafeMutableRawPointer?) -> UnsafeMutable
     return nil
 }
 
-public class Thread: NSObject {
+open class Thread: NSObject {
     
     static internal var _currentThread = NSThreadSpecific<Thread>()
     public static var current: Thread {
@@ -68,16 +68,16 @@ public class Thread: NSObject {
     /// Alternative API for detached thread creation
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation as a suitable alternative to creation via selector
     /// - Note: Since this API is under consideration it may be either removed or revised in the near future
-    public class func detachNewThread(_ main: (Void) -> Void) {
+    open class func detachNewThread(_ main: @escaping (Void) -> Void) {
         let t = Thread(main)
         t.start()
     }
     
-    public class func isMultiThreaded() -> Bool {
+    open class func isMultiThreaded() -> Bool {
         return true
     }
     
-    public class func sleepUntilDate(_ date: Date) {
+    open class func sleepUntilDate(_ date: Date) {
         let start_ut = CFGetSystemUptime()
         let start_at = CFAbsoluteTimeGetCurrent()
         let end_at = date.timeIntervalSinceReferenceDate
@@ -100,7 +100,7 @@ public class Thread: NSObject {
         }
     }
 
-    public class func sleepForTimeInterval(_ interval: TimeInterval) {
+    open class func sleepForTimeInterval(_ interval: TimeInterval) {
         var ti = interval
         let start_ut = CFGetSystemUptime()
         let end_ut = start_ut + ti
@@ -121,7 +121,7 @@ public class Thread: NSObject {
         }
     }
 
-    public class func exit() {
+    open class func exit() {
         pthread_exit(nil)
     }
     
@@ -139,14 +139,14 @@ public class Thread: NSObject {
     internal var _status = _NSThreadStatus.initialized
     internal var _cancelled = false
     /// - Note: this differs from the Darwin implementation in that the keys must be Strings
-    public var threadDictionary = [String:AnyObject]()
+    open var threadDictionary = [String:AnyObject]()
     
     internal init(thread: pthread_t) {
         // Note: even on Darwin this is a non-optional pthread_t; this is only used for valid threads, which are never null pointers.
         _thread = thread
     }
 
-    public init(_ main: (Void) -> Void) {
+    public init(_ main: @escaping (Void) -> Void) {
         _main = main
         let _ = withUnsafeMutablePointer(to: &_attr) { attr in
             pthread_attr_init(attr)
@@ -155,7 +155,7 @@ public class Thread: NSObject {
         }
     }
 
-    public func start() {
+    open func start() {
         precondition(_status == .initialized, "attempting to start a thread that has already been started")
         _status = .starting
         if _cancelled {
@@ -177,11 +177,11 @@ public class Thread: NSObject {
 #endif
     }
     
-    public func main() {
+    open func main() {
         _main()
     }
 
-    public var stackSize: Int {
+    open var stackSize: Int {
         get {
             var size: Int = 0
             return withUnsafeMutablePointer(to: &_attr) { attr in
@@ -203,27 +203,27 @@ public class Thread: NSObject {
         }
     }
 
-    public var executing: Bool {
+    open var executing: Bool {
         return _status == .executing
     }
 
-    public var finished: Bool {
+    open var finished: Bool {
         return _status == .finished
     }
     
-    public var cancelled: Bool {
+    open var cancelled: Bool {
         return _cancelled
     }
     
-    public func cancel() {
+    open func cancel() {
         _cancelled = true
     }
 
-    public class func callStackReturnAddresses() -> [NSNumber] {
+    open class func callStackReturnAddresses() -> [NSNumber] {
         NSUnimplemented()
     }
     
-    public class func callStackSymbols() -> [String] {
+    open class func callStackSymbols() -> [String] {
         NSUnimplemented()
     }
 }

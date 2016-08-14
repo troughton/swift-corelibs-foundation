@@ -291,9 +291,6 @@ extension TestNSJSONSerialization {
     }
     
     func test_deserialize_unicodeEscapeSequence() {
-        // DISABLED: changes for SE-128 have apparently changed the result of parsing
-        // TODO: Investigate and re-enable test.
-        /*
         let subject = "[\"\\u2728\"]"
         do {
             guard let data = subject.data(using: .utf8) else {
@@ -301,17 +298,15 @@ extension TestNSJSONSerialization {
                 return
             }
             let result = try JSONSerialization.jsonObject(with: data, options: []) as? [Any]
+            // result?[0] as? String returns an Optional<String> and RHS is promoted
+            // to Optional<String>
             XCTAssertEqual(result?[0] as? String, "✨")
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
-        */
     }
     
     func test_deserialize_unicodeSurrogatePairEscapeSequence() {
-        // DISABLED: changes for SE-128 have apparently changed the result of parsing
-        // TODO: Investigate and re-enable test.
-        /*
         let subject = "[\"\\uD834\\udd1E\"]"
         do {
             guard let data = subject.data(using: .utf8) else {
@@ -319,11 +314,12 @@ extension TestNSJSONSerialization {
                 return
             }
             let result = try JSONSerialization.jsonObject(with: data, options: []) as? [Any]
+            // result?[0] as? String returns an Optional<String> and RHS is promoted
+            // to Optional<String>
             XCTAssertEqual(result?[0] as? String, "\u{1D11E}")
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
-        */
     }
     
     func test_deserialize_allowFragments() {
@@ -843,10 +839,10 @@ extension TestNSJSONSerialization {
     }
     
     private func createTestFile(_ path: String,_contents: Data) -> String? {
-        let tempDir = "/tmp/TestFoundation_Playground_" + NSUUID().UUIDString + "/"
+        let tempDir = "/tmp/TestFoundation_Playground_" + NSUUID().uuidString + "/"
         do {
-            try FileManager.default().createDirectory(atPath: tempDir, withIntermediateDirectories: false, attributes: nil)
-            if FileManager.default().createFile(atPath: tempDir + "/" + path, contents: _contents,
+            try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: false, attributes: nil)
+            if FileManager.default.createFile(atPath: tempDir + "/" + path, contents: _contents,
                                                 attributes: nil) {
                 return tempDir + path
             } else {
@@ -859,7 +855,7 @@ extension TestNSJSONSerialization {
     
     private func removeTestFile(_ location: String) {
         do {
-            try FileManager.default().removeItem(atPath: location)
+            try FileManager.default.removeItem(atPath: location)
         } catch _ {
             
         }

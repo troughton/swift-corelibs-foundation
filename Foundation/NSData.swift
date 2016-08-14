@@ -72,7 +72,7 @@ private let __kCFUseAllocator: CFOptionFlags = 0x08
 private let __kCFDontDeallocate: CFOptionFlags = 0x10
 private let __kCFAllocatesCollectable: CFOptionFlags = 0x20
 
-public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
+open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     typealias CFType = CFData
     private var _base = _CFInfo(typeID: CFDataGetTypeID())
     private var _length: CFIndex = 0
@@ -82,7 +82,7 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     private var _bytes: UnsafeMutablePointer<UInt8>? = nil
     
     internal var _cfObject: CFType {
-        if self.dynamicType === NSData.self || self.dynamicType === NSMutableData.self {
+        if type(of: self) === NSData.self || type(of: self) === NSMutableData.self {
             return unsafeBitCast(self, to: CFType.self)
         } else {
             let bytePtr = self.bytes.bindMemory(to: UInt8.self, capacity: self.length)
@@ -95,11 +95,11 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         self.init(bytes: dummyPointer, length: 0, copy: false, deallocator: nil)
     }
     
-    public override var hash: Int {
+    open override var hash: Int {
         return Int(bitPattern: CFHash(_cfObject))
     }
     
-    public override func isEqual(_ object: AnyObject?) -> Bool {
+    open override func isEqual(_ object: AnyObject?) -> Bool {
         if let data = object as? NSData {
             return self.isEqual(to: data._swiftObject)
         } else {
@@ -111,14 +111,14 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         if let allocatedBytes = _bytes {
             _deallocHandler?.handler(allocatedBytes, _length)
         }
-        if self.dynamicType === NSData.self || self.dynamicType === NSMutableData.self {
+        if type(of: self) === NSData.self || type(of: self) === NSMutableData.self {
             _CFDeinit(self._cfObject)
         }
     }
     
     internal init(bytes: UnsafeMutableRawPointer?, length: Int, copy: Bool, deallocator: ((UnsafeMutableRawPointer, Int) -> Void)?) {
         super.init()
-        let options : CFOptionFlags = (self.dynamicType == NSMutableData.self) ? __kCFMutable | __kCFGrowable : 0x0
+        let options : CFOptionFlags = (type(of: self) == NSMutableData.self) ? __kCFMutable | __kCFGrowable : 0x0
         let bytePtr = bytes?.bindMemory(to: UInt8.self, capacity: length)
         if copy {
             _CFDataInit(unsafeBitCast(self, to: CFMutableData.self), options, length, bytePtr, length, false)
@@ -134,31 +134,31 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         }
     }
     
-    public var length: Int {
+    open var length: Int {
         return CFDataGetLength(_cfObject)
     }
 
-    public var bytes: UnsafeRawPointer {
+    open var bytes: UnsafeRawPointer {
         return UnsafeRawPointer(CFDataGetBytePtr(_cfObject))
     }
     
-    public override func copy() -> AnyObject {
+    open override func copy() -> AnyObject {
         return copy(with: nil)
     }
     
-    public func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> AnyObject {
         return self
     }
     
-    public override func mutableCopy() -> AnyObject {
+    open override func mutableCopy() -> AnyObject {
         return mutableCopy(with: nil)
     }
     
-    public func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
+    open func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
         return NSMutableData(bytes: UnsafeMutableRawPointer(mutating: bytes), length: length, copy: true, deallocator: nil)
     }
 
-    public func encode(with aCoder: NSCoder) {
+    open func encode(with aCoder: NSCoder) {
         if let aKeyedCoder = aCoder as? NSKeyedArchiver {
             aKeyedCoder._encodePropertyList(self, forKey: "NS.data")
         } else {
@@ -174,7 +174,7 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             } else {
                 return nil
             }
-        } else if aDecoder.dynamicType == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.data") {
+        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.data") {
             guard let data = aDecoder._decodePropertyListForKey("NS.data") as? NSData else {
                 return nil
             }
@@ -218,15 +218,15 @@ public class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         return s
     }
     
-    override public var debugDescription: String {
+    override open var debugDescription: String {
         return "<\(byteDescription(limit: 1024))>"
     }
     
-    override public var description: String {
+    override open var description: String {
         return "<\(byteDescription())>"
     }
     
-    override public var _cfTypeID: CFTypeID {
+    override open var _cfTypeID: CFTypeID {
         return CFDataGetTypeID()
     }
 }
@@ -257,7 +257,7 @@ extension NSData {
     internal struct NSDataReadResult {
         var bytes: UnsafeMutableRawPointer
         var length: Int
-        var deallocator: ((buffer: UnsafeMutableRawPointer, length: Int) -> Void)?
+        var deallocator: ((_ buffer: UnsafeMutableRawPointer, _ length: Int) -> Void)?
     }
     
     internal static func readBytesFromFileWithExtendedAttributes(_ path: String, options: ReadingOptions) throws -> NSDataReadResult {
@@ -408,7 +408,7 @@ extension NSData {
         if fd == -1 {
             throw _NSErrorWithErrno(errno, reading: false, path: dirPath)
         }
-        let pathResult = FileManager.default().string(withFileSystemRepresentation:buf, length: Int(strlen(buf)))
+        let pathResult = FileManager.default.string(withFileSystemRepresentation:buf, length: Int(strlen(buf)))
         return (fd, pathResult)
     }
 
@@ -472,7 +472,7 @@ extension NSData {
                 } catch let err {
                     if let auxFilePath = auxFilePath {
                         do {
-                            try FileManager.default().removeItem(atPath: auxFilePath)
+                            try FileManager.default.removeItem(atPath: auxFilePath)
                         } catch _ {}
                     }
                     throw err
@@ -482,7 +482,7 @@ extension NSData {
         if let auxFilePath = auxFilePath {
             if rename(auxFilePath, path) != 0 {
                 do {
-                    try FileManager.default().removeItem(atPath: auxFilePath)
+                    try FileManager.default.removeItem(atPath: auxFilePath)
                 } catch _ {}
                 throw _NSErrorWithErrno(errno, reading: false, path: path)
             }
@@ -611,7 +611,7 @@ extension NSMutableData {
     internal var _cfMutableObject: CFMutableData { return unsafeBitCast(self, to: CFMutableData.self) }
 }
 
-public class NSMutableData : NSData {
+open class NSMutableData : NSData {
 
     public required convenience init() {
         self.init(bytes: nil, length: 0)
@@ -621,11 +621,11 @@ public class NSMutableData : NSData {
         super.init(bytes: bytes, length: length, copy: copy, deallocator: deallocator)
     }
     
-    public var mutableBytes: UnsafeMutableRawPointer {
+    open var mutableBytes: UnsafeMutableRawPointer {
         return UnsafeMutableRawPointer(CFDataGetMutableBytePtr(_cfMutableObject))
     }
     
-    public override var length: Int {
+    open override var length: Int {
         get {
             return CFDataGetLength(_cfObject)
         }
@@ -634,7 +634,7 @@ public class NSMutableData : NSData {
         }
     }
     
-    public override func copy(with zone: NSZone? = nil) -> AnyObject {
+    open override func copy(with zone: NSZone? = nil) -> AnyObject {
         return NSData(bytes: bytes, length: length)
     }
 }
