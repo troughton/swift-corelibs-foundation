@@ -325,6 +325,7 @@ class Target:
     triple = None
     sdk = None
     arch = None
+    environ = None
     executable_suffix = ""
     dynamic_library_prefix = "lib"
     dynamic_library_suffix = ".dylib"
@@ -342,6 +343,10 @@ class Target:
             self.sdk = OSType.Win32
             self.dynamic_library_suffix = ".dll"
             self.executable_suffix = ".exe"
+            if "cygnus" in triple:
+                self.environ = EnvironmentType.Cygnus
+            else:
+                self.environ = EnvironmentType.UnknownEnvironment
         elif "darwin" in triple:
             self.sdk = OSType.MacOSX
         else:
@@ -387,7 +392,7 @@ class Target:
                 triple += "-unknown-linux"
         elif self.sdk == OSType.FreeBSD:
             triple += "-unknown-freebsd"
-        elif self.sdk == OSType.Win32:
+        elif self.sdk == OSType.Win32 and self.environ == EnvironmentType.Cygnus:
             triple += "-unknown-windows-cygnus"
         else:
             print("unknown sdk for swift")
