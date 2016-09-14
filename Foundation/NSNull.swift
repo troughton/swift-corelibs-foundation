@@ -10,11 +10,11 @@
 
 open class NSNull : NSObject, NSCopying, NSSecureCoding {
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
@@ -30,7 +30,7 @@ open class NSNull : NSObject, NSCopying, NSSecureCoding {
         // Nothing to do here
     }
     
-    public static func supportsSecureCoding() -> Bool {
+    public static var supportsSecureCoding: Bool {
         return true
     }
     

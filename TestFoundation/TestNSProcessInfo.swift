@@ -28,7 +28,7 @@ class TestNSProcessInfo : XCTestCase {
     }
     
     func test_operatingSystemVersion() {
-        let processInfo = ProcessInfo.processInfo()
+        let processInfo = ProcessInfo.processInfo
         let versionString = processInfo.operatingSystemVersionString
         XCTAssertFalse(versionString.isEmpty)
         
@@ -40,7 +40,7 @@ class TestNSProcessInfo : XCTestCase {
         // Assert that the original process name is "TestFoundation". This test
         // will fail if the test target ever gets renamed, so maybe it should
         // just test that the initial name is not empty or something?
-        let processInfo = ProcessInfo.processInfo()
+        let processInfo = ProcessInfo.processInfo
         let targetName = "TestFoundation"
         let originalProcessName = processInfo.processName
         XCTAssertEqual(originalProcessName, targetName, "\"\(originalProcessName)\" not equal to \"TestFoundation\"")
@@ -56,14 +56,15 @@ class TestNSProcessInfo : XCTestCase {
     }
     
     func test_globallyUniqueString() {
-        let uuid = ProcessInfo.processInfo().globallyUniqueString
-        let parts = uuid.bridge().components(separatedBy: "-")
+        let uuid = ProcessInfo.processInfo.globallyUniqueString
+        
+        let parts = uuid.components(separatedBy: "-")
         XCTAssertEqual(parts.count, 5)
-        XCTAssertEqual(parts[0].bridge().length, 8)
-        XCTAssertEqual(parts[1].bridge().length, 4)
-        XCTAssertEqual(parts[2].bridge().length, 4)
-        XCTAssertEqual(parts[3].bridge().length, 4)
-        XCTAssertEqual(parts[4].bridge().length, 12)
+        XCTAssertEqual(parts[0].utf16.count, 8)
+        XCTAssertEqual(parts[1].utf16.count, 4)
+        XCTAssertEqual(parts[2].utf16.count, 4)
+        XCTAssertEqual(parts[3].utf16.count, 4)
+        XCTAssertEqual(parts[4].utf16.count, 12)
     }
     
 }

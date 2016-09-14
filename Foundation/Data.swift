@@ -112,7 +112,7 @@ internal final class _SwiftNSData : NSData, _SwiftNativeFoundationType {
 //        }
 //    }
 //    
-//    override func enumerateByteRanges(using block: @noescape (UnsafeRawPointer, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
+//    override func enumerateByteRanges(using block: (UnsafeRawPointer, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
 //        return _mapUnmanaged { $0.enumerateBytes(block) }
 //    }
 //    
@@ -217,12 +217,18 @@ public struct Data : ReferenceConvertible, CustomStringConvertible, Equatable, H
     
     /// Initialize a `Data` with the specified size.
     ///
+    /// This initializer doesn't necessarily allocate the requested memory right away. `Data` allocates additional memory as needed, so `capacity` simply establishes the initial capacity. When it does allocate the initial memory, though, it allocates the specified amount.
+    ///
+    /// This method sets the `count` of the data to 0.
+    ///
+    /// If the capacity specified in `capacity` is greater than four memory pages in size, this may round the amount of requested memory up to the nearest full page.
+    ///
     /// - parameter capacity: The size of the data.
-    public init?(capacity: Int) {
+    public init(capacity: Int) {
         if let d = NSMutableData(capacity: capacity) {
             _wrapped = _SwiftNSData(immutableObject: d)
         } else {
-            return nil
+            fatalError("Unable to allocate data of the requested capacity")
         }
     }
     
@@ -278,17 +284,20 @@ public struct Data : ReferenceConvertible, CustomStringConvertible, Equatable, H
         }
     }
 
-    public init?(count: Int) {
-        if let memory = malloc(count)?.bindMemory(to: UInt8.self, capacity: count) {
+    /// Initialize a `Data` with the specified count of zeroed bytes.
+    ///
+    /// - parameter count: The number of bytes the data initially contains.
+    public init(count: Int) {
+        if let memory = calloc(1, count)?.bindMemory(to: UInt8.self, capacity: count) {
             self.init(bytesNoCopy: memory, count: count, deallocator: .free)
         } else {
-            return nil
+            fatalError("Unable to allocate data of the requested count")
         }
     }
     
     internal init(_bridged data: NSData) {
         // We must copy the input because it might be mutable; just like storing a value type in ObjC
-        _wrapped = _SwiftNSData(immutableObject: data.copy())
+        _wrapped = _SwiftNSData(immutableObject: data.copy() as! NSObject)
     }
     
     // -----------------------------------
@@ -311,7 +320,7 @@ public struct Data : ReferenceConvertible, CustomStringConvertible, Equatable, H
     /// Access the bytes in the data.
     ///
     /// - warning: The byte pointer argument should not be stored and used outside of the lifetime of the call to the closure.
-    public func withUnsafeBytes<ResultType, ContentType>(_ body: @noescape (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
+    public func withUnsafeBytes<ResultType, ContentType>(_ body: (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         let bytes =  _getUnsafeBytesPointer()
         defer { _fixLifetime(self)}
         let contentPtr = bytes.bindMemory(to: ContentType.self, capacity: count / MemoryLayout<ContentType>.stride)
@@ -328,7 +337,7 @@ public struct Data : ReferenceConvertible, CustomStringConvertible, Equatable, H
     ///
     /// This function assumes that you are mutating the contents.
     /// - warning: The byte pointer argument should not be stored and used outside of the lifetime of the call to the closure.
-    public mutating func withUnsafeMutableBytes<ResultType, ContentType>(_ body: @noescape (UnsafeMutablePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
+    public mutating func withUnsafeMutableBytes<ResultType, ContentType>(_ body: (UnsafeMutablePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         let mutableBytes = _getUnsafeMutableBytesPointer()
         defer { _fixLifetime(self)}
         let contentPtr = mutableBytes.bindMemory(to: ContentType.self, capacity: count / MemoryLayout<ContentType>.stride)
@@ -435,7 +444,7 @@ public struct Data : ReferenceConvertible, CustomStringConvertible, Equatable, H
     ///
     /// In some cases, (for example, a `Data` backed by a `dispatch_data_t`, the bytes may be stored discontiguously. In those cases, this function invokes the closure for each contiguous region of bytes.
     /// - parameter block: The closure to invoke for each region of data. You may stop the enumeration by setting the `stop` parameter to `true`.
-    public func enumerateBytes(_ block: @noescape (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Bool) -> Void) {
+    public func enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Bool) -> Void) {
         _mapUnmanaged {
             $0.enumerateBytes { (ptr, range, stop) in
                 var stopv = false
@@ -619,7 +628,7 @@ public func ==(d1 : Data, d2 : Data) -> Bool {
 }
 
 /// Provides bridging functionality for struct Data to class NSData and vice-versa.
-extension Data {
+extension Data : _ObjectTypeBridgeable {
     public static func _isBridgedToObjectiveC() -> Bool {
         return true
     }

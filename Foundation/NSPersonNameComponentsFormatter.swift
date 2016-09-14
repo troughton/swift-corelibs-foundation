@@ -65,7 +65,7 @@ open class PersonNameComponentsFormatter : Formatter {
     /* Returns attributed string with annotations for each component. For each range, attributes can be obtained by querying
         dictionary key NSPersonNameComponentKey , using NSPersonNameComponent constant values.
      */
-    open func annotatedString(from components: PersonNameComponents) -> AttributedString { NSUnimplemented() }
+    open func annotatedString(from components: PersonNameComponents) -> NSAttributedString { NSUnimplemented() }
     
     open func personNameComponents(from string: String) -> PersonNameComponents? { NSUnimplemented() }
     
@@ -73,7 +73,7 @@ open class PersonNameComponentsFormatter : Formatter {
      */
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation as a suitable alternative
     /// - Note: Since this API is under consideration it may be either removed or revised in the near future
-    open override func objectValue(_ string: String) throws -> AnyObject? { return nil }
+    open override func objectValue(_ string: String) throws -> Any? { return nil }
 }
 
 // Attributed String identifier key string

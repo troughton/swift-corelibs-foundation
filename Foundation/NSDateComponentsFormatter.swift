@@ -10,12 +10,12 @@
 
 extension DateComponentsFormatter {
     public enum UnitsStyle : Int {
-        
         case positional // "1:10; may fall back to abbreviated units in some cases, e.g. 3d"
         case abbreviated // "1h 10m"
-        case short // "1hr 10min"
+        case short // "1hr, 10min"
         case full // "1 hour, 10 minutes"
         case spellOut // "One hour, ten minutes"
+        case brief // "1hr 10min"
     }
 
     public struct ZeroFormattingBehavior : OptionSet {
@@ -49,7 +49,7 @@ open class DateComponentsFormatter : Formatter {
     
     /* 'obj' must be an instance of NSDateComponents.
      */
-    open override func string(for obj: AnyObject) -> String? { NSUnimplemented() }
+    open override func string(for obj: Any?) -> String? { NSUnimplemented() }
     
     open func string(from components: DateComponents) -> String? { NSUnimplemented() }
     
@@ -85,7 +85,7 @@ open class DateComponentsFormatter : Formatter {
      
        Specifying any other NSCalendarUnits will result in an exception.
      */
-    open var allowedUnits: Calendar.Unit
+    open var allowedUnits: NSCalendar.Unit
     
     /* Bitmask specifying how to handle zeros in units. This includes both padding and dropping zeros so that a consistent number digits are displayed, causing updating displays to remain more stable. Default is NSDateComponentsFormatterZeroFormattingBehaviorDefault.
      
@@ -133,6 +133,6 @@ open class DateComponentsFormatter : Formatter {
      */
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation as a suitable alternative
     /// - Note: Since this API is under consideration it may be either removed or revised in the near future
-    open override func objectValue(_ string: String) throws -> AnyObject? { return nil }
+    open override func objectValue(_ string: String) throws -> Any? { return nil }
 }
 

@@ -34,19 +34,19 @@ internal class _NSCFCharacterSet : NSMutableCharacterSet {
         return CFCharacterSetIsSupersetOfSet(_cfObject, theOtherSet._cfObject)
     }
     
-    override func hasMember(inPlane plane: UInt8) -> Bool {
-        return CFCharacterSetHasMemberInPlane(_cfObject, CFIndex(plane))
+    override func hasMemberInPlane(_ thePlane: UInt8) -> Bool {
+        return CFCharacterSetHasMemberInPlane(_cfObject, CFIndex(thePlane))
     }
     
-    override func copy() -> AnyObject {
+    override func copy() -> Any {
         return copy(with: nil)
     }
     
-    override func copy(with zone: NSZone? = nil) -> AnyObject {
+    override func copy(with zone: NSZone? = nil) -> Any {
         return CFCharacterSetCreateCopy(kCFAllocatorSystemDefault, self._cfObject)
     }
     
-    override func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
+    override func mutableCopy(with zone: NSZone? = nil) -> Any {
         return CFCharacterSetCreateMutableCopy(kCFAllocatorSystemDefault, _cfObject)._nsObject
     }
     
@@ -101,7 +101,7 @@ internal  func _CFSwiftCharacterSetLongCharacterIsMember(_ cset: CFTypeRef, _ ch
 }
 
 internal  func _CFSwiftCharacterSetHasMemberInPlane(_ cset: CFTypeRef, _ plane: UInt8) -> Bool {
-    return (cset as! NSCharacterSet).hasMember(inPlane: plane)
+    return (cset as! NSCharacterSet).hasMemberInPlane(plane)
 }
 
 internal  func _CFSwiftCharacterSetInverted(_ cset: CFTypeRef) -> Unmanaged<CFCharacterSet> {

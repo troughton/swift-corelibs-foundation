@@ -31,11 +31,19 @@ open class NSMeasurement : NSObject, NSCopying, NSSecureCoding {
     
     open func subtracting(_ measurement: Measurement<Unit>) -> Measurement<Unit> { NSUnimplemented() }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject { NSUnimplemented() }
+    open func copy(with zone: NSZone? = nil) -> Any { NSUnimplemented() }
     
-    open class func supportsSecureCoding() -> Bool { return true }
+    open class var supportsSecureCoding: Bool { return true }
     
     open func encode(with aCoder: NSCoder) { NSUnimplemented() }
     
     public required init?(coder aDecoder: NSCoder) { NSUnimplemented() }
+}
+
+extension NSMeasurement : _StructTypeBridgeable {
+    public typealias _StructType = Measurement<Unit>
+    
+    public func _bridgeToSwift() -> Measurement<Unit> {
+        return _StructType._unconditionallyBridgeFromObjectiveC(self)
+    }
 }

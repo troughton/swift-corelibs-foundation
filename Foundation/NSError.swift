@@ -55,8 +55,8 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
     public required init?(coder aDecoder: NSCoder) {
         if aDecoder.allowsKeyedCoding {
             _code = aDecoder.decodeInteger(forKey: "NSCode")
-            _domain = aDecoder.decodeObjectOfClass(NSString.self, forKey: "NSDomain")!._swiftObject
-            if let info = aDecoder.decodeObjectOfClasses([NSSet.self, NSDictionary.self, NSArray.self, NSString.self, NSNumber.self, NSData.self, NSURL.self], forKey: "NSUserInfo") as? NSDictionary {
+            _domain = aDecoder.decodeObject(of: NSString.self, forKey: "NSDomain")!._swiftObject
+            if let info = aDecoder.decodeObject(of: [NSSet.self, NSDictionary.self, NSArray.self, NSString.self, NSNumber.self, NSData.self, NSURL.self], forKey: "NSUserInfo") as? NSDictionary {
                 var filteredUserInfo = [String : Any]()
                 // user info must be filtered so that the keys are all strings
                 info.enumerateKeysAndObjects([]) {
@@ -84,28 +84,28 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
         }
     }
     
-    public static func supportsSecureCoding() -> Bool {
+    public static var supportsSecureCoding: Bool {
         return true
     }
     
     open func encode(with aCoder: NSCoder) {
         if aCoder.allowsKeyedCoding {
-            aCoder.encode(_domain.bridge(), forKey: "NSDomain")
+            aCoder.encode(_domain._bridgeToObjectiveC(), forKey: "NSDomain")
             aCoder.encode(Int32(_code), forKey: "NSCode")
-            aCoder.encode(_userInfo?.bridge(), forKey: "NSUserInfo")
+            aCoder.encode(_userInfo?._bridgeToObjectiveC(), forKey: "NSUserInfo")
         } else {
             var codeValue: Int32 = Int32(self._code)
             aCoder.encodeValue(ofObjCType: "i", at: &codeValue)
-            aCoder.encode(self._domain.bridge())
-            aCoder.encode(self._userInfo?.bridge())
+            aCoder.encode(self._domain._bridgeToObjectiveC())
+            aCoder.encode(self._userInfo?._bridgeToObjectiveC())
         }
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
@@ -163,6 +163,10 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
     open class func userInfoValueProviderForDomain(_ errorDomain: String) -> ((NSError, String) -> AnyObject?)? {
         return NSError.userInfoProviders[errorDomain]
     }
+    
+    override open var description: String {
+        return localizedDescription
+    }
 }
 
 extension NSError : Swift.Error { }
@@ -174,8 +178,8 @@ extension CFError : _NSBridgable {
         let userInfo = CFErrorCopyUserInfo(self)._swiftObject
         var newUserInfo: [String: Any] = [:]
         for (key, value) in userInfo {
-            if let key = key as? NSString {
-                newUserInfo[key._swiftObject] = value
+            if let key = key as? String {
+                newUserInfo[key] = value
             }
         }
 
@@ -192,7 +196,7 @@ public protocol __BridgedNSError : RawRepresentable, Swift.Error {
     static var __NSErrorDomain: String { get }
 }
 
-public func ==<T: __BridgedNSError where T.RawValue: SignedInteger>(lhs: T, rhs: T) -> Bool {
+public func ==<T: __BridgedNSError>(lhs: T, rhs: T) -> Bool where T.RawValue: SignedInteger {
     return lhs.rawValue.toIntMax() == rhs.rawValue.toIntMax()
 }
 
@@ -215,7 +219,7 @@ public extension __BridgedNSError where RawValue: SignedInteger {
     public final var hashValue: Int { return _code }
 }
 
-public func ==<T: __BridgedNSError where T.RawValue: UnsignedInteger>(lhs: T, rhs: T) -> Bool {
+public func ==<T: __BridgedNSError>(lhs: T, rhs: T) -> Bool where T.RawValue: UnsignedInteger {
     return lhs.rawValue.toUIntMax() == rhs.rawValue.toUIntMax()
 }
 

@@ -57,25 +57,25 @@ open class Formatter : NSObject, NSCopying, NSCoding {
         
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
-    open func string(for obj: AnyObject) -> String? {
+    open func string(for obj: Any) -> String? {
         NSRequiresConcreteImplementation()
     }
     
-    open func editingString(for obj: AnyObject) -> String? {
+    open func editingString(for obj: Any) -> String? {
         return string(for: obj)
     }
     
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation as a suitable alternative
     /// - Note: Since this API is under consideration it may be either removed or revised in the near future
-    open func objectValue(_ string: String) throws -> AnyObject? {
+    open func objectValue(_ string: String) throws -> Any? {
         NSRequiresConcreteImplementation()
     }
 }

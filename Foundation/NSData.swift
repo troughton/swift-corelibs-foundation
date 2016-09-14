@@ -142,19 +142,19 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         return UnsafeRawPointer(CFDataGetBytePtr(_cfObject))
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
-    open override func mutableCopy() -> AnyObject {
+    open override func mutableCopy() -> Any {
         return mutableCopy(with: nil)
     }
     
-    open func mutableCopy(with zone: NSZone? = nil) -> AnyObject {
+    open func mutableCopy(with zone: NSZone? = nil) -> Any {
         return NSMutableData(bytes: UnsafeMutableRawPointer(mutating: bytes), length: length, copy: true, deallocator: nil)
     }
 
@@ -169,7 +169,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     
     public required convenience init?(coder aDecoder: NSCoder) {
         if !aDecoder.allowsKeyedCoding {
-            if let data = aDecoder.decodeDataObject() {
+            if let data = aDecoder.decodeData() {
                 self.init(data: data)
             } else {
                 return nil
@@ -190,7 +190,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         }
     }
     
-    public static func supportsSecureCoding() -> Bool {
+    public static var supportsSecureCoding: Bool {
         return true
     }
     
@@ -336,10 +336,10 @@ extension NSData {
     
     public convenience init(contentsOf url: URL, options readOptionsMask: ReadingOptions) throws {
         if url.isFileURL {
-            try self.init(contentsOfFile: url.path!, options: readOptionsMask)
+            try self.init(contentsOfFile: url.path, options: readOptionsMask)
         } else {
             let session = URLSession(configuration: URLSessionConfiguration.defaultSessionConfiguration())
-            let cond = Condition()
+            let cond = NSCondition()
             var resError: NSError?
             var resData: Data?
             let task = session.dataTaskWithURL(url, completionHandler: { (data: Data?, response: URLResponse?, error: NSError?) -> Void in
@@ -400,7 +400,7 @@ extension NSData {
     }
 
     internal func makeTemporaryFileInDirectory(_ dirPath: String) throws -> (Int32, String) {
-        let template = dirPath._nsObject.stringByAppendingPathComponent("tmp.XXXXXX")
+        let template = dirPath._nsObject.appendingPathComponent("tmp.XXXXXX")
         let maxLength = Int(PATH_MAX) + 1
         var buf = [Int8](repeating: 0, count: maxLength)
         let _ = template._nsObject.getFileSystemRepresentation(&buf, maxLength: maxLength)
@@ -444,7 +444,7 @@ extension NSData {
             } else if errno != ENOENT && errno != ENAMETOOLONG {
                 throw _NSErrorWithErrno(errno, reading: false, path: path)
             }
-            let (newFD, path) = try self.makeTemporaryFileInDirectory(path._nsObject.stringByDeletingLastPathComponent)
+            let (newFD, path) = try self.makeTemporaryFileInDirectory(path._nsObject.deletingLastPathComponent)
             fd = newFD
             auxFilePath = path
             fchmod(fd, 0o666)
@@ -503,9 +503,7 @@ extension NSData {
     
     public func write(to url: URL, atomically: Bool) -> Bool {
         if url.isFileURL {
-            if let path = url.path {
-                return write(toFile: path, atomically: atomically)
-            }
+            return write(toFile: url.path, atomically: atomically)
         }
         return false
     }
@@ -519,12 +517,12 @@ extension NSData {
     ///
     ///      This method is invoked in a `try` expression and the caller is responsible for handling any errors in the `catch` clauses of a `do` statement, as described in [Error Handling](https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/Swift_Programming_Language/ErrorHandling.html#//apple_ref/doc/uid/TP40014097-CH42) in [The Swift Programming Language](https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/Swift_Programming_Language/index.html#//apple_ref/doc/uid/TP40014097) and [Error Handling](https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/BuildingCocoaApps/AdoptingCocoaDesignPatterns.html#//apple_ref/doc/uid/TP40014216-CH7-ID10) in [Using Swift with Cocoa and Objective-C](https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/BuildingCocoaApps/index.html#//apple_ref/doc/uid/TP40014216).
     public func write(to url: URL, options writeOptionsMask: WritingOptions = []) throws {
-        guard let path = url.path, url.isFileURL == true else {
+        guard url.isFileURL else {
             let userInfo = [NSLocalizedDescriptionKey : "The folder at “\(url)” does not exist or is not a file URL.", // NSLocalizedString() not yet available
-                            NSURLErrorKey             : url.absoluteString ?? ""] as Dictionary<String, Any>
+                            NSURLErrorKey             : url.absoluteString] as Dictionary<String, Any>
             throw NSError(domain: NSCocoaErrorDomain, code: 4, userInfo: userInfo)
         }
-        try write(toFile: path, options: writeOptionsMask)
+        try write(toFile: url.path, options: writeOptionsMask)
     }
     
     public func range(of searchData: Data, options mask: SearchOptions = [], in searchRange: NSRange) -> NSRange {
@@ -532,7 +530,7 @@ extension NSData {
         guard dataToFind.length > 0 else {return NSRange(location: NSNotFound, length: 0)}
         guard let searchRange = searchRange.toRange() else {fatalError("invalid range")}
         
-        precondition(searchRange.endIndex <= self.length, "range outside the bounds of data")
+        precondition(searchRange.upperBound <= self.length, "range outside the bounds of data")
 
         let basePtr = self.bytes.bindMemory(to: UInt8.self, capacity: self.length)
         let baseData = UnsafeBufferPointer<UInt8>(start: basePtr, count: self.length)[searchRange]
@@ -548,7 +546,7 @@ extension NSData {
         }
         return location.map {NSRange(location: $0, length: search.count)} ?? NSRange(location: NSNotFound, length: 0)
     }
-    private static func searchSubSequence<T : Collection, T2 : Sequence where T.Iterator.Element : Equatable, T.Iterator.Element == T2.Iterator.Element, T.SubSequence.Iterator.Element == T.Iterator.Element, T.Indices.Iterator.Element == T.Index>(_ subSequence : T2, inSequence seq: T,anchored : Bool) -> T.Index? {
+    private static func searchSubSequence<T : Collection, T2 : Sequence>(_ subSequence : T2, inSequence seq: T,anchored : Bool) -> T.Index? where T.Iterator.Element : Equatable, T.Iterator.Element == T2.Iterator.Element, T.SubSequence.Iterator.Element == T.Iterator.Element, T.Indices.Iterator.Element == T.Index {
         for index in seq.indices {
             if seq.suffix(from: index).starts(with: subSequence) {
                 return index
@@ -558,7 +556,7 @@ extension NSData {
         return nil
     }
     
-    internal func enumerateByteRangesUsingBlockRethrows(_ block: @noescape (UnsafeRawPointer, NSRange, UnsafeMutablePointer<Bool>) throws -> Void) throws {
+    internal func enumerateByteRangesUsingBlockRethrows(_ block: (UnsafeRawPointer, NSRange, UnsafeMutablePointer<Bool>) throws -> Void) throws {
         var err : Swift.Error? = nil
         self.enumerateBytes() { (buf, range, stop) -> Void in
             do {
@@ -572,7 +570,7 @@ extension NSData {
         }
     }
 
-    public func enumerateBytes(_ block: @noescape (UnsafeRawPointer, NSRange, UnsafeMutablePointer<Bool>) -> Void) {
+    public func enumerateBytes(_ block: (UnsafeRawPointer, NSRange, UnsafeMutablePointer<Bool>) -> Void) {
         var stop = false
         withUnsafeMutablePointer(to: &stop) { stopPointer in
             block(bytes, NSMakeRange(0, length), stopPointer)
@@ -634,7 +632,7 @@ open class NSMutableData : NSData {
         }
     }
     
-    open override func copy(with zone: NSZone? = nil) -> AnyObject {
+    open override func copy(with zone: NSZone? = nil) -> Any {
         return NSData(bytes: bytes, length: length)
     }
 }
@@ -933,7 +931,7 @@ extension NSMutableData {
     }
     
     public func replaceBytes(in range: NSRange, withBytes replacementBytes: UnsafeRawPointer, length replacementLength: Int) {
-        let bytePtr = bytes.bindMemory(to: UInt8.self, capacity: replacementLength)
+        let bytePtr = replacementBytes.bindMemory(to: UInt8.self, capacity: replacementLength)
         CFDataReplaceBytes(_cfMutableObject, CFRangeMake(range.location, range.length), bytePtr, replacementLength)
     }
 }
@@ -947,5 +945,12 @@ extension NSMutableData {
     public convenience init?(length: Int) {
         self.init(bytes: nil, length: 0)
         self.length = length
+    }
+}
+
+extension NSData : _StructTypeBridgeable {
+    public typealias _StructType = Data
+    public func _bridgeToSwift() -> Data {
+        return Data._unconditionallyBridgeFromObjectiveC(self)
     }
 }

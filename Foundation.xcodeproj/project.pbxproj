@@ -220,7 +220,7 @@
 		5B7C8B021BEA830200C5B690 /* CFBurstTrie.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B5D89341BBDA76300234F36 /* CFBurstTrie.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5B7C8B031BEA86A900C5B690 /* libCoreFoundation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B7C8A6E1BEA7F8F00C5B690 /* libCoreFoundation.a */; };
 		5B8BA1621D0B773A00938C27 /* IndexSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8BA1611D0B773A00938C27 /* IndexSet.swift */; };
-		5B94E8821C430DE70055C035 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B94E8811C430DE70055C035 /* String.swift */; };
+		5B94E8821C430DE70055C035 /* NSStringAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B94E8811C430DE70055C035 /* NSStringAPI.swift */; };
 		5BA9BEA41CF380E8009DBD6C /* URLRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA9BEA31CF380E8009DBD6C /* URLRequest.swift */; };
 		5BA9BEA61CF3D747009DBD6C /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA9BEA51CF3D747009DBD6C /* Data.swift */; };
 		5BA9BEA81CF3E7E7009DBD6C /* CharacterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA9BEA71CF3E7E7009DBD6C /* CharacterSet.swift */; };
@@ -229,6 +229,14 @@
 		5BC2C00F1C07833200CC214E /* CFStringTransform.c in Sources */ = {isa = PBXBuildFile; fileRef = 5BC2C00D1C07832E00CC214E /* CFStringTransform.c */; };
 		5BC46D541D05D6D900005853 /* DateInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC46D531D05D6D900005853 /* DateInterval.swift */; };
 		5BCCA8D91CE6697F0059B963 /* URLComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BCCA8D81CE6697F0059B963 /* URLComponents.swift */; };
+		5BCD03821D3EE35C00E3FF9B /* TimeZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BCD03811D3EE35C00E3FF9B /* TimeZone.swift */; };
+		5BD31D201D5CE8C400563814 /* Bridging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD31D1F1D5CE8C400563814 /* Bridging.swift */; };
+		5BD31D221D5CEBA800563814 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD31D211D5CEBA800563814 /* String.swift */; };
+		5BD31D241D5CECC400563814 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD31D231D5CECC400563814 /* Array.swift */; };
+		5BD31D3F1D5D19D600563814 /* Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD31D3E1D5D19D600563814 /* Dictionary.swift */; };
+		5BD31D411D5D1BC300563814 /* Set.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD31D401D5D1BC300563814 /* Set.swift */; };
+		5BD70FB21D3D4CDC003B9BF8 /* Locale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD70FB11D3D4CDC003B9BF8 /* Locale.swift */; };
+		5BD70FB41D3D4F8B003B9BF8 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD70FB31D3D4F8B003B9BF8 /* Calendar.swift */; };
 		5BDC3FCA1BCF176100ED97BB /* NSCFArray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BDC3FC91BCF176100ED97BB /* NSCFArray.swift */; };
 		5BDC3FCC1BCF177E00ED97BB /* NSCFString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BDC3FCB1BCF177E00ED97BB /* NSCFString.swift */; };
 		5BDC3FCE1BCF17D300ED97BB /* NSCFDictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BDC3FCD1BCF17D300ED97BB /* NSCFDictionary.swift */; };
@@ -303,6 +311,7 @@
 		E1A03F361C4828650023AF4D /* PropertyList-1.0.dtd in Resources */ = {isa = PBXBuildFile; fileRef = E1A03F351C4828650023AF4D /* PropertyList-1.0.dtd */; };
 		E1A03F381C482C730023AF4D /* NSXMLDTDTestData.xml in Resources */ = {isa = PBXBuildFile; fileRef = E1A03F371C482C730023AF4D /* NSXMLDTDTestData.xml */; };
 		E1A3726F1C31EBFB0023AF4D /* NSXMLDocumentTestData.xml in Resources */ = {isa = PBXBuildFile; fileRef = E1A3726E1C31EBFB0023AF4D /* NSXMLDocumentTestData.xml */; };
+		EA418C261D57257D005EAD0D /* NSKeyedArchiverHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA418C251D57257D005EAD0D /* NSKeyedArchiverHelpers.swift */; };
 		EA66F6361BEED03E00136161 /* TargetConditionals.h in Headers */ = {isa = PBXBuildFile; fileRef = EA66F6351BEED03E00136161 /* TargetConditionals.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		EA66F6481BF1619600136161 /* NSURLTestData.plist in Resources */ = {isa = PBXBuildFile; fileRef = EA66F63B1BF1619600136161 /* NSURLTestData.plist */; };
 		EA66F6671BF2F2F100136161 /* CoreFoundation.h in Headers */ = {isa = PBXBuildFile; fileRef = EA66F6651BF2F2E800136161 /* CoreFoundation.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -365,7 +374,6 @@
 		EADE0BC91BD15E0000C49C64 /* NSXMLDTDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE0B8B1BD15DFF00C49C64 /* NSXMLDTDNode.swift */; };
 		EADE0BCA1BD15E0000C49C64 /* NSXMLElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE0B8C1BD15DFF00C49C64 /* NSXMLElement.swift */; };
 		EADE0BCB1BD15E0000C49C64 /* NSXMLNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE0B8D1BD15DFF00C49C64 /* NSXMLNode.swift */; };
-		EADE0BCC1BD15E0000C49C64 /* NSXMLNodeOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE0B8E1BD15DFF00C49C64 /* NSXMLNodeOptions.swift */; };
 		EADE0BCD1BD15E0000C49C64 /* NSXMLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE0B8F1BD15DFF00C49C64 /* NSXMLParser.swift */; };
 		F03A43181D4877DD00A7791E /* CFAsmMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = F03A43161D48778200A7791E /* CFAsmMacros.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		F9E0BB371CA70B8000F7FF3C /* TestNSURLCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E0BB361CA70B8000F7FF3C /* TestNSURLCredential.swift */; };
@@ -610,7 +618,7 @@
 		5B6F17961C48631C00935030 /* TestUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestUtils.swift; sourceTree = "<group>"; };
 		5B7C8A6E1BEA7F8F00C5B690 /* libCoreFoundation.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreFoundation.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B8BA1611D0B773A00938C27 /* IndexSet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IndexSet.swift; sourceTree = "<group>"; };
-		5B94E8811C430DE70055C035 /* String.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		5B94E8811C430DE70055C035 /* NSStringAPI.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSStringAPI.swift; sourceTree = "<group>"; };
 		5BA9BEA31CF380E8009DBD6C /* URLRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLRequest.swift; sourceTree = "<group>"; };
 		5BA9BEA51CF3D747009DBD6C /* Data.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
 		5BA9BEA71CF3E7E7009DBD6C /* CharacterSet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CharacterSet.swift; sourceTree = "<group>"; };
@@ -619,6 +627,14 @@
 		5BC2C00D1C07832E00CC214E /* CFStringTransform.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CFStringTransform.c; sourceTree = "<group>"; };
 		5BC46D531D05D6D900005853 /* DateInterval.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DateInterval.swift; sourceTree = "<group>"; };
 		5BCCA8D81CE6697F0059B963 /* URLComponents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLComponents.swift; sourceTree = "<group>"; };
+		5BCD03811D3EE35C00E3FF9B /* TimeZone.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimeZone.swift; sourceTree = "<group>"; };
+		5BD31D1F1D5CE8C400563814 /* Bridging.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bridging.swift; sourceTree = "<group>"; };
+		5BD31D211D5CEBA800563814 /* String.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		5BD31D231D5CECC400563814 /* Array.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Array.swift; sourceTree = "<group>"; };
+		5BD31D3E1D5D19D600563814 /* Dictionary.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Dictionary.swift; sourceTree = "<group>"; };
+		5BD31D401D5D1BC300563814 /* Set.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Set.swift; sourceTree = "<group>"; };
+		5BD70FB11D3D4CDC003B9BF8 /* Locale.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Locale.swift; sourceTree = "<group>"; };
+		5BD70FB31D3D4F8B003B9BF8 /* Calendar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		5BDC3F191BCC440100ED97BB /* CFICULogging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFICULogging.h; sourceTree = "<group>"; };
 		5BDC3F1C1BCC447900ED97BB /* CFStringLocalizedFormattingInternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFStringLocalizedFormattingInternal.h; sourceTree = "<group>"; };
 		5BDC3F2E1BCC5DCB00ED97BB /* NSArray.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = NSArray.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
@@ -717,6 +733,7 @@
 		EA313DFD1BE7F2E90060A403 /* CFURLComponents_URIParser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CFURLComponents_URIParser.c; sourceTree = "<group>"; };
 		EA313DFE1BE7F2E90060A403 /* CFURLComponents.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CFURLComponents.c; sourceTree = "<group>"; };
 		EA313DFF1BE7F2E90060A403 /* CFURLComponents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFURLComponents.h; sourceTree = "<group>"; };
+		EA418C251D57257D005EAD0D /* NSKeyedArchiverHelpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSKeyedArchiverHelpers.swift; sourceTree = "<group>"; };
 		EA66F6351BEED03E00136161 /* TargetConditionals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TargetConditionals.h; path = CoreFoundation/Base.subproj/SwiftRuntime/TargetConditionals.h; sourceTree = SOURCE_ROOT; };
 		EA66F6381BF1619600136161 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		EA66F63B1BF1619600136161 /* NSURLTestData.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = NSURLTestData.plist; sourceTree = "<group>"; };
@@ -797,7 +814,6 @@
 		EADE0B8B1BD15DFF00C49C64 /* NSXMLDTDNode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSXMLDTDNode.swift; sourceTree = "<group>"; };
 		EADE0B8C1BD15DFF00C49C64 /* NSXMLElement.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSXMLElement.swift; sourceTree = "<group>"; };
 		EADE0B8D1BD15DFF00C49C64 /* NSXMLNode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSXMLNode.swift; sourceTree = "<group>"; };
-		EADE0B8E1BD15DFF00C49C64 /* NSXMLNodeOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSXMLNodeOptions.swift; sourceTree = "<group>"; };
 		EADE0B8F1BD15DFF00C49C64 /* NSXMLParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSXMLParser.swift; sourceTree = "<group>"; };
 		F03A43161D48778200A7791E /* CFAsmMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CFAsmMacros.h; sourceTree = "<group>"; };
 		F9E0BB361CA70B8000F7FF3C /* TestNSURLCredential.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestNSURLCredential.swift; sourceTree = "<group>"; };
@@ -1412,6 +1428,7 @@
 				EADE0B651BD15DFF00C49C64 /* NSKeyedArchiver.swift */,
 				D3BCEB9F1C2F6DDB00295652 /* NSKeyedCoderOldStyleArray.swift */,
 				D39A14001C2D6E0A00295652 /* NSKeyedUnarchiver.swift */,
+				EA418C251D57257D005EAD0D /* NSKeyedArchiverHelpers.swift */,
 				5BDC3F321BCC5DCB00ED97BB /* NSCoder.swift */,
 				5BDC3F421BCC5DCB00ED97BB /* NSPropertyList.swift */,
 			);
@@ -1426,7 +1443,6 @@
 				EADE0B8B1BD15DFF00C49C64 /* NSXMLDTDNode.swift */,
 				EADE0B8C1BD15DFF00C49C64 /* NSXMLElement.swift */,
 				EADE0B8D1BD15DFF00C49C64 /* NSXMLNode.swift */,
-				EADE0B8E1BD15DFF00C49C64 /* NSXMLNodeOptions.swift */,
 				EADE0B8F1BD15DFF00C49C64 /* NSXMLParser.swift */,
 			);
 			name = XML;
@@ -1440,6 +1456,7 @@
 				5BDC3F3F1BCC5DCB00ED97BB /* NSObject.swift */,
 				5BDC3F461BCC5DCB00ED97BB /* NSSwiftRuntime.swift */,
 				5B23AB861CE62D17000DB898 /* Boxing.swift */,
+				5BD31D1F1D5CE8C400563814 /* Bridging.swift */,
 				5B23AB881CE62D4D000DB898 /* ReferenceConvertible.swift */,
 			);
 			name = Runtime;
@@ -1455,9 +1472,12 @@
 				EADE0B621BD15DFF00C49C64 /* NSIndexPath.swift */,
 				5B424C751D0B6E5B007B39C8 /* IndexPath.swift */,
 				5BDC3F2E1BCC5DCB00ED97BB /* NSArray.swift */,
+				5BD31D231D5CECC400563814 /* Array.swift */,
 				5BDC3F361BCC5DCB00ED97BB /* NSDictionary.swift */,
+				5BD31D3E1D5D19D600563814 /* Dictionary.swift */,
 				5BDC3FCD1BCF17D300ED97BB /* NSCFDictionary.swift */,
 				5BDC3F441BCC5DCB00ED97BB /* NSSet.swift */,
+				5BD31D401D5D1BC300563814 /* Set.swift */,
 				5BDC3FCF1BCF17E600ED97BB /* NSCFSet.swift */,
 				EADE0B541BD15DFF00C49C64 /* NSCache.swift */,
 				EADE0B781BD15DFF00C49C64 /* NSSortDescriptor.swift */,
@@ -1490,7 +1510,8 @@
 				5BDC3F451BCC5DCB00ED97BB /* NSString.swift */,
 				5B40920F1D1B304C0022B067 /* NSStringEncodings.swift */,
 				5BDC3FCB1BCF177E00ED97BB /* NSCFString.swift */,
-				5B94E8811C430DE70055C035 /* String.swift */,
+				5B94E8811C430DE70055C035 /* NSStringAPI.swift */,
+				5BD31D211D5CEBA800563814 /* String.swift */,
 				5B4092111D1B30B40022B067 /* ExtraStringAPIs.swift */,
 			);
 			name = String;
@@ -1520,6 +1541,7 @@
 			children = (
 				EADE0B871BD15DFF00C49C64 /* NSUserDefaults.swift */,
 				5BDC3F3B1BCC5DCB00ED97BB /* NSLocale.swift */,
+				5BD70FB11D3D4CDC003B9BF8 /* Locale.swift */,
 			);
 			name = UserDefaults;
 			sourceTree = "<group>";
@@ -1545,11 +1567,13 @@
 			isa = PBXGroup;
 			children = (
 				5BDC3F301BCC5DCB00ED97BB /* NSCalendar.swift */,
+				5BD70FB31D3D4F8B003B9BF8 /* Calendar.swift */,
 				5B0163BA1D024EB7003CCD96 /* DateComponents.swift */,
 				5BDC3F341BCC5DCB00ED97BB /* NSDate.swift */,
 				5BC46D531D05D6D900005853 /* DateInterval.swift */,
 				5B5C5EEF1CE61FA4001346BD /* Date.swift */,
 				5BDC3F491BCC5DCB00ED97BB /* NSTimeZone.swift */,
+				5BCD03811D3EE35C00E3FF9B /* TimeZone.swift */,
 			);
 			name = DateTime;
 			sourceTree = "<group>";
@@ -1768,7 +1792,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0720;
-				LastUpgradeCheck = 0730;
+				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = Apple;
 				TargetAttributes = {
 					5B5D885C1BBC938800234F36 = {
@@ -1901,6 +1925,7 @@
 				5B23AB891CE62D4D000DB898 /* ReferenceConvertible.swift in Sources */,
 				D3E8D6D11C367AB600295652 /* NSSpecialValue.swift in Sources */,
 				EAB57B721BD1C7A5004AC5C5 /* NSPortMessage.swift in Sources */,
+				5BD31D201D5CE8C400563814 /* Bridging.swift in Sources */,
 				EADE0BBB1BD15E0000C49C64 /* NSURLAuthenticationChallenge.swift in Sources */,
 				EADE0BA11BD15DFF00C49C64 /* NSIndexSet.swift in Sources */,
 				5BF7AEA91BCD51F9008F214A /* NSDate.swift in Sources */,
@@ -1908,9 +1933,13 @@
 				5BF7AEAE1BCD51F9008F214A /* NSFormatter.swift in Sources */,
 				EADE0B9C1BD15DFF00C49C64 /* NSFileManager.swift in Sources */,
 				5BF7AEA61BCD51F9008F214A /* NSCharacterSet.swift in Sources */,
+				5BD70FB41D3D4F8B003B9BF8 /* Calendar.swift in Sources */,
 				5BA9BEBD1CF4F3B8009DBD6C /* Notification.swift in Sources */,
+				5BD70FB21D3D4CDC003B9BF8 /* Locale.swift in Sources */,
 				EADE0BB71BD15E0000C49C64 /* NSStream.swift in Sources */,
 				5BF7AEBF1BCD51F9008F214A /* NSURL.swift in Sources */,
+				5BD31D411D5D1BC300563814 /* Set.swift in Sources */,
+				5BD31D241D5CECC400563814 /* Array.swift in Sources */,
 				5BF7AEBC1BCD51F9008F214A /* NSThread.swift in Sources */,
 				D31302011C30CEA900295652 /* NSConcreteValue.swift in Sources */,
 				5BF7AEA81BCD51F9008F214A /* NSData.swift in Sources */,
@@ -1931,7 +1960,8 @@
 				5BF7AEA51BCD51F9008F214A /* NSCalendar.swift in Sources */,
 				EADE0BB81BD15E0000C49C64 /* NSTask.swift in Sources */,
 				5BF7AEB31BCD51F9008F214A /* NSObjCRuntime.swift in Sources */,
-				5B94E8821C430DE70055C035 /* String.swift in Sources */,
+				5BD31D3F1D5D19D600563814 /* Dictionary.swift in Sources */,
+				5B94E8821C430DE70055C035 /* NSStringAPI.swift in Sources */,
 				5B0163BB1D024EB7003CCD96 /* DateComponents.swift in Sources */,
 				5BF7AEAB1BCD51F9008F214A /* NSDictionary.swift in Sources */,
 				EADE0BAA1BD15E0000C49C64 /* NSNumberFormatter.swift in Sources */,
@@ -1943,8 +1973,10 @@
 				EADE0BC71BD15E0000C49C64 /* NSXMLDocument.swift in Sources */,
 				5BDC3FCE1BCF17D300ED97BB /* NSCFDictionary.swift in Sources */,
 				EADE0BA81BD15E0000C49C64 /* NSNotificationQueue.swift in Sources */,
+				EA418C261D57257D005EAD0D /* NSKeyedArchiverHelpers.swift in Sources */,
 				EADE0B981BD15DFF00C49C64 /* NSDecimalNumber.swift in Sources */,
 				5BA9BEA61CF3D747009DBD6C /* Data.swift in Sources */,
+				5BD31D221D5CEBA800563814 /* String.swift in Sources */,
 				5BF7AEA71BCD51F9008F214A /* NSCoder.swift in Sources */,
 				D3BCEBA01C2F6DDB00295652 /* NSKeyedCoderOldStyleArray.swift in Sources */,
 				5B8BA1621D0B773A00938C27 /* IndexSet.swift in Sources */,
@@ -1957,9 +1989,9 @@
 				EADE0BC81BD15E0000C49C64 /* NSXMLDTD.swift in Sources */,
 				5B23AB8B1CE62F9B000DB898 /* PersonNameComponents.swift in Sources */,
 				EADE0BA61BD15E0000C49C64 /* NSMassFormatter.swift in Sources */,
-				EADE0BCC1BD15E0000C49C64 /* NSXMLNodeOptions.swift in Sources */,
 				5BECBA3A1D1CAE9A00B39B1F /* NSMeasurement.swift in Sources */,
 				5BF7AEB21BCD51F9008F214A /* NSNumber.swift in Sources */,
+				5BCD03821D3EE35C00E3FF9B /* TimeZone.swift in Sources */,
 				EADE0BBC1BD15E0000C49C64 /* NSURLCache.swift in Sources */,
 				5B4092121D1B30B40022B067 /* ExtraStringAPIs.swift in Sources */,
 				5BC46D541D05D6D900005853 /* DateInterval.swift in Sources */,
@@ -2167,8 +2199,10 @@
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "";
@@ -2214,8 +2248,10 @@
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "";
@@ -2236,6 +2272,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -2407,6 +2444,10 @@
 					"-Wno-int-conversion",
 					"-Wno-unused-function",
 					"-DHAVE_STRUCT_TIMESPEC",
+					"-DCF_CHARACTERSET_UNICODE_DATA_L=\\\\\"CoreFoundation/CharacterSets/CFUnicodeData-L.mapping\\\\\"",
+					"-DCF_CHARACTERSET_UNICODE_DATA_B=\\\\\"CoreFoundation/CharacterSets/CFUnicodeData-B.mapping\\\\\"",
+					"-DCF_CHARACTERSET_UNICHAR_DB=\\\\\"CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data\\\\\"",
+					"-DCF_CHARACTERSET_BITMAP=\\\\\"CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap\\\\\"",
 				);
 				PRIVATE_HEADERS_FOLDER_PATH = /usr/local/include/CoreFoundation;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2442,6 +2483,10 @@
 					"-Wno-int-conversion",
 					"-Wno-unused-function",
 					"-DHAVE_STRUCT_TIMESPEC",
+					"-DCF_CHARACTERSET_UNICODE_DATA_L=\\\\\"CoreFoundation/CharacterSets/CFUnicodeData-L.mapping\\\\\"",
+					"-DCF_CHARACTERSET_UNICODE_DATA_B=\\\\\"CoreFoundation/CharacterSets/CFUnicodeData-B.mapping\\\\\"",
+					"-DCF_CHARACTERSET_UNICHAR_DB=\\\\\"CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data\\\\\"",
+					"-DCF_CHARACTERSET_BITMAP=\\\\\"CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap\\\\\"",
 				);
 				PRIVATE_HEADERS_FOLDER_PATH = /usr/local/include/CoreFoundation;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2453,10 +2498,10 @@
 		5BDC40601BD6D83B00ED97BB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(CONFIGURATION_BUILD_DIR)/usr/local/include",
 					/usr/include/libxml2,
@@ -2476,10 +2521,10 @@
 		5BDC40611BD6D83B00ED97BB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(CONFIGURATION_BUILD_DIR)/usr/local/include",
 					/usr/include/libxml2,

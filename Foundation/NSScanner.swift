@@ -17,11 +17,11 @@ open class Scanner: NSObject, NSCopying {
     internal var _invertedSkipSet: CharacterSet?
     internal var _scanLocation: Int
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return Scanner(string: string)
     }
     
@@ -86,7 +86,7 @@ internal struct _NSStringBuffer {
     static let EndCharacter = unichar(0xffff)
     
     init(string: String, start: Int, end: Int) {
-        self.string = string._bridgeToObject()
+        self.string = string._bridgeToObjectiveC()
         _stringLoc = start
         stringLen = end
     
@@ -176,7 +176,7 @@ internal struct _NSStringBuffer {
     
     mutating func skip(_ skipSet: CharacterSet?) {
         if let set = skipSet {
-            while set.contains(currentCharacter) && !isAtEnd {
+            while set.contains(UnicodeScalar(currentCharacter)!) && !isAtEnd {
                 advance()
             }
         }
@@ -208,14 +208,14 @@ private func isADigit(_ ch: unichar) -> Bool {
     struct Local {
         static let set = CharacterSet.decimalDigits
     }
-    return Local.set.contains(ch)
+    return Local.set.contains(UnicodeScalar(ch)!)
 }
 
 // This is just here to allow just enough generic math to handle what is needed for scanning an abstract integer from a string, perhaps these should be on IntegerType?
 
 internal protocol _BitShiftable {
-    func >>(lhs: Self, rhs: Self) -> Self
-    func <<(lhs: Self, rhs: Self) -> Self
+    static func >>(lhs: Self, rhs: Self) -> Self
+    static func <<(lhs: Self, rhs: Self) -> Self
 }
 
 internal protocol _IntegerLike : Integer, _BitShiftable {
@@ -225,10 +225,10 @@ internal protocol _IntegerLike : Integer, _BitShiftable {
 }
 
 internal protocol _FloatArithmeticType {
-    func +(lhs: Self, rhs: Self) -> Self
-    func -(lhs: Self, rhs: Self) -> Self
-    func *(lhs: Self, rhs: Self) -> Self
-    func /(lhs: Self, rhs: Self) -> Self
+    static func +(lhs: Self, rhs: Self) -> Self
+    static func -(lhs: Self, rhs: Self) -> Self
+    static func *(lhs: Self, rhs: Self) -> Self
+    static func /(lhs: Self, rhs: Self) -> Self
 }
 
 internal protocol _FloatLike : FloatingPoint, _FloatArithmeticType {
@@ -277,7 +277,7 @@ private func numericOrHexValue(_ ch: unichar) -> Int {
 
 private func decimalSep(_ locale: Locale?) -> String {
     if let loc = locale {
-        if let sep = loc.objectForKey(NSLocaleDecimalSeparator) as? NSString {
+        if let sep = loc._bridgeToObjectiveC().object(forKey: .decimalSeparator) as? NSString {
             return sep._swiftObject
         }
         return "."
@@ -624,7 +624,7 @@ extension Scanner {
     // These methods avoid calling the private API for _invertedSkipSet and manually re-construct them so that it is only usage of public API usage
     // Future implementations on Darwin of these methods will likely be more optimized to take advantage of the cached values.
     public func scanString(string searchString: String) -> String? {
-        let str = self.string._bridgeToObject()
+        let str = self.string._bridgeToObjectiveC()
         var stringLoc = scanLocation
         let stringLen = str.length
         let options: NSString.CompareOptions = [caseSensitive ? [] : NSString.CompareOptions.caseInsensitive, NSString.CompareOptions.anchored]
@@ -645,7 +645,7 @@ extension Scanner {
     }
     
     public func scanCharactersFromSet(_ set: CharacterSet) -> String? {
-        let str = self.string._bridgeToObject()
+        let str = self.string._bridgeToObjectiveC()
         var stringLoc = scanLocation
         let stringLen = str.length
         let options: NSString.CompareOptions = caseSensitive ? [] : NSString.CompareOptions.caseInsensitive
@@ -666,7 +666,7 @@ extension Scanner {
     }
     
     public func scanUpToString(_ string: String) -> String? {
-        let str = self.string._bridgeToObject()
+        let str = self.string._bridgeToObjectiveC()
         var stringLoc = scanLocation
         let stringLen = str.length
         let options: NSString.CompareOptions = caseSensitive ? [] : NSString.CompareOptions.caseInsensitive
@@ -687,7 +687,7 @@ extension Scanner {
     }
     
     public func scanUpToCharactersFromSet(_ set: CharacterSet) -> String? {
-        let str = self.string._bridgeToObject()
+        let str = self.string._bridgeToObjectiveC()
         var stringLoc = scanLocation
         let stringLen = str.length
         let options: NSString.CompareOptions = caseSensitive ? [] : NSString.CompareOptions.caseInsensitive

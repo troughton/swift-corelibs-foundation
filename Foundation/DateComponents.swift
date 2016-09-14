@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import CoreFoundation
+
 /**
  `DateComponents` encapsulates the components of a date in an extendable, structured manner.
  
@@ -214,15 +216,21 @@ public struct DateComponents : ReferenceConvertible, Hashable, Equatable, _Mutab
     /// Set the value of one of the properties, using an enumeration value instead of a property name.
     ///
     /// The calendar and timeZone and isLeapMonth properties cannot be set by this method.
-    public mutating func setValue(_ value: Int?, forComponent unit: Calendar.Unit) {
-        _applyMutation { $0.setValue(_setter(value), forComponent: unit) }
+    @available(OSX 10.9, iOS 8.0, *)
+    public mutating func setValue(_ value: Int?, for component: Calendar.Component) {
+        _applyMutation {
+            $0.setValue(_setter(value), forComponent: Calendar._toCalendarUnit([component]))
+        }
     }
     
     /// Returns the value of one of the properties, using an enumeration value instead of a property name.
     ///
     /// The calendar and timeZone and isLeapMonth property values cannot be retrieved by this method.
-    public func value(forComponent unit: Calendar.Unit) -> Int? {
-        return _handle.map { $0.value(forComponent: unit) }
+    @available(OSX 10.9, iOS 8.0, *)
+    public func value(for component: Calendar.Component) -> Int? {
+        return _handle.map {
+            $0.value(forComponent: Calendar._toCalendarUnit([component]))
+        }
     }
     
     // MARK: -
@@ -236,6 +244,7 @@ public struct DateComponents : ReferenceConvertible, Hashable, Equatable, _Mutab
     /// If the time zone property is set in the `DateComponents`, it is used.
     ///
     /// The calendar property must be set, or the result is always `false`.
+    @available(OSX 10.9, iOS 8.0, *)
     public var isValidDate: Bool {
         return _handle.map { $0.isValidDate }
     }
@@ -247,16 +256,30 @@ public struct DateComponents : ReferenceConvertible, Hashable, Equatable, _Mutab
     /// Except for some trivial cases (e.g., 'seconds' should be 0 - 59 in any calendar), this method is not necessarily cheap.
     ///
     /// If the time zone property is set in the `DateComponents`, it is used.
+    @available(OSX 10.9, iOS 8.0, *)
     public func isValidDate(in calendar: Calendar) -> Bool {
         return _handle.map { $0.isValidDate(in: calendar) }
     }
     
     // MARK: -
     
-    public var hashValue : Int {
+    public var hashValue: Int {
         return _handle.map { $0.hash }
     }
     
+    public static func ==(lhs: DateComponents, rhs: DateComponents) -> Bool {
+        // Don't copy references here; no one should be storing anything
+        return lhs._handle._uncopiedReference().isEqual(rhs._handle._uncopiedReference())
+    }
+    
+    // MARK: - Bridging Helpers
+    
+    internal init(reference: NSDateComponents) {
+        _handle = _MutableHandle(reference: reference)
+    }
+}
+
+extension DateComponents : CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public var description: String {
         return _handle.map { $0.description }
     }
@@ -265,22 +288,32 @@ public struct DateComponents : ReferenceConvertible, Hashable, Equatable, _Mutab
         return _handle.map { $0.debugDescription }
     }
     
-    // MARK: - Bridging Helpers
-    
-    internal init(reference: NSDateComponents) {
-        _handle = _MutableHandle(reference: reference)
+    public var customMirror: Mirror {
+        var c: [(label: String?, value: Any)] = []
+        if let r = calendar { c.append((label: "calendar", value: r)) }
+        if let r = timeZone { c.append((label: "timeZone", value: r)) }
+        if let r = era { c.append((label: "era", value: r)) }
+        if let r = year { c.append((label: "year", value: r)) }
+        if let r = month { c.append((label: "month", value: r)) }
+        if let r = day { c.append((label: "day", value: r)) }
+        if let r = hour { c.append((label: "hour", value: r)) }
+        if let r = minute { c.append((label: "minute", value: r)) }
+        if let r = second { c.append((label: "second", value: r)) }
+        if let r = nanosecond { c.append((label: "nanosecond", value: r)) }
+        if let r = weekday { c.append((label: "weekday", value: r)) }
+        if let r = weekdayOrdinal { c.append((label: "weekdayOrdinal", value: r)) }
+        if let r = quarter { c.append((label: "quarter", value: r)) }
+        if let r = weekOfMonth { c.append((label: "weekOfMonth", value: r)) }
+        if let r = weekOfYear { c.append((label: "weekOfYear", value: r)) }
+        if let r = yearForWeekOfYear { c.append((label: "yearForWeekOfYear", value: r)) }
+        if let r = isLeapMonth { c.append((label: "isLeapMonth", value: r)) }
+        return Mirror(self, children: c, displayStyle: Mirror.DisplayStyle.struct)
     }
-    
-}
-
-public func ==(lhs : DateComponents, rhs: DateComponents) -> Bool {
-    // Don't copy references here; no one should be storing anything
-    return lhs._handle._uncopiedReference().isEqual(rhs._handle._uncopiedReference())
 }
 
 // MARK: - Bridging
 
-extension DateComponents {
+extension DateComponents : _ObjectTypeBridgeable {
     public static func _isBridgedToObjectiveC() -> Bool {
         return true
     }
@@ -296,7 +329,7 @@ extension DateComponents {
     
     public static func _forceBridgeFromObjectiveC(_ dateComponents: NSDateComponents, result: inout DateComponents?) {
         if !_conditionallyBridgeFromObjectiveC(dateComponents, result: &result) {
-            fatalError("Unable to bridge \(NSDateComponents.self) to \(self)")
+            fatalError("Unable to bridge \(DateComponents.self) to \(self)")
         }
     }
     
@@ -311,3 +344,4 @@ extension DateComponents {
         return result!
     }
 }
+

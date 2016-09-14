@@ -85,10 +85,11 @@ internal func __CFInitializeSwift() {
     _CFRuntimeBridgeTypeToClass(CFDataGetTypeID(), unsafeBitCast(NSData.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFDateGetTypeID(), unsafeBitCast(NSDate.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFURLGetTypeID(), unsafeBitCast(NSURL.self, to: UnsafeRawPointer.self))
-    _CFRuntimeBridgeTypeToClass(CFCalendarGetTypeID(), unsafeBitCast(Calendar.self, to: UnsafeRawPointer.self))
-    _CFRuntimeBridgeTypeToClass(CFLocaleGetTypeID(), unsafeBitCast(Locale.self, to: UnsafeRawPointer.self))
-    _CFRuntimeBridgeTypeToClass(CFTimeZoneGetTypeID(), unsafeBitCast(TimeZone.self, to: UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(CFCalendarGetTypeID(), unsafeBitCast(NSCalendar.self, to: UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(CFLocaleGetTypeID(), unsafeBitCast(NSLocale.self, to: UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(CFTimeZoneGetTypeID(), unsafeBitCast(NSTimeZone.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFCharacterSetGetTypeID(), unsafeBitCast(_NSCFCharacterSet.self, to: UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(_CFKeyedArchiverUIDGetTypeID(), unsafeBitCast(_NSKeyedArchiverUID.self, to: UnsafeRawPointer.self))
     
 //    _CFRuntimeBridgeTypeToClass(CFErrorGetTypeID(), unsafeBitCast(NSError.self, UnsafeRawPointer.self))
 //    _CFRuntimeBridgeTypeToClass(CFAttributedStringGetTypeID(), unsafeBitCast(NSMutableAttributedString.self, UnsafeRawPointer.self))
@@ -185,127 +186,6 @@ internal func __CFInitializeSwift() {
     __CFDefaultEightBitStringEncoding = UInt32(kCFStringEncodingUTF8)
 }
 
-public protocol _ObjectTypeBridgeable {
-    associatedtype _ObjectType : AnyObject
-    
-    /// Convert `self` to an Object type
-    func _bridgeToObject() -> _ObjectType
-    
-    /// Bridge from an object of the bridged class type to a value of 
-    /// the Self type.
-    ///
-    /// This bridging operation is used for forced downcasting (e.g.,
-    /// via as), and may defer complete checking until later. For
-    /// example, when bridging from `NSArray` to `Array<Element>`, we can defer
-    /// the checking for the individual elements of the array.
-    ///
-    /// - parameter result: The location where the result is written. The optional
-    ///   will always contain a value.
-    static func _forceBridgeFromObject(
-        _ source: _ObjectType,
-        result: inout Self?
-    )
-    
-    /// Try to bridge from an object of the bridged class type to a value of 
-    /// the Self type.
-    ///
-    /// This conditional bridging operation is used for conditional
-    /// downcasting (e.g., via as?) and therefore must perform a
-    /// complete conversion to the value type; it cannot defer checking
-    /// to a later time.
-    ///
-    /// - parameter result: The location where the result is written.
-    ///
-    /// - Returns: `true` if bridging succeeded, `false` otherwise. This redundant
-    ///   information is provided for the convenience of the runtime's `dynamic_cast`
-    ///   implementation, so that it need not look into the optional representation
-    ///   to determine success.
-    static func _conditionallyBridgeFromObject(
-        _ source: _ObjectType,
-        result: inout Self?
-    ) -> Bool
-}
-
-protocol _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject
-}
-
-internal func _NSObjectRepresentableBridge(_ value: Any) -> NSObject {
-    if let obj = value as? _NSObjectRepresentable {
-        return obj._nsObjectRepresentation()
-    } else if let str = value as? String {
-        return str._nsObjectRepresentation()
-    } else if let obj = value as? NSObject {
-        return obj
-    } else if let obj = value as? Int {
-        return obj._bridgeToObject()
-    } else if let obj = value as? UInt {
-        return obj._bridgeToObject()
-    } else if let obj = value as? Float {
-        return obj._bridgeToObject()
-    } else if let obj = value as? Double {
-        return obj._bridgeToObject()
-    } else if let obj = value as? Bool {
-        return obj._bridgeToObject()
-    }
-    fatalError("Unable to convert value of type \(type(of: value))")
-}
-
-extension Array : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Dictionary : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-
-extension String : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Set : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Int : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension UInt : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Float : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Double : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
-extension Bool : _NSObjectRepresentable {
-    func _nsObjectRepresentation() -> NSObject {
-        return _bridgeToObject()
-    }
-}
-
 public func === (lhs: AnyClass, rhs: AnyClass) -> Bool {
     return unsafeBitCast(lhs, to: UnsafeRawPointer.self) == unsafeBitCast(rhs, to: UnsafeRawPointer.self)
 }
@@ -330,29 +210,29 @@ extension NSObject {
         _CFSwiftRelease(value)
     }
 
-    func withRetainedReference<T, R>(_ work: @noescape (UnsafePointer<T>) -> R) -> R {
+    func withRetainedReference<T, R>(_ work: (UnsafePointer<T>) -> R) -> R {
         let selfPtr = Unmanaged.passRetained(self).toOpaque().assumingMemoryBound(to: T.self)
         return work(selfPtr)
     }
     
-    func withRetainedReference<T, R>(_ work: @noescape (UnsafeMutablePointer<T>) -> R) -> R {
+    func withRetainedReference<T, R>(_ work: (UnsafeMutablePointer<T>) -> R) -> R {
         let selfPtr = Unmanaged.passRetained(self).toOpaque().assumingMemoryBound(to: T.self)
         return work(selfPtr)
     }
     
-    func withUnretainedReference<T, R>(_ work: @noescape (UnsafePointer<T>) -> R) -> R {
+    func withUnretainedReference<T, R>(_ work: (UnsafePointer<T>) -> R) -> R {
         let selfPtr = Unmanaged.passUnretained(self).toOpaque().assumingMemoryBound(to: T.self)
         return work(selfPtr)
     }
     
-    func withUnretainedReference<T, R>(_ work: @noescape (UnsafeMutablePointer<T>) -> R) -> R {
+    func withUnretainedReference<T, R>(_ work: (UnsafeMutablePointer<T>) -> R) -> R {
         let selfPtr = Unmanaged.passUnretained(self).toOpaque().assumingMemoryBound(to: T.self)
         return work(selfPtr)
     }
 }
 
 extension Array {
-    internal mutating func withUnsafeMutablePointerOrAllocation<R>(_ count: Int, fastpath: UnsafeMutablePointer<Element>? = nil, body: @noescape (UnsafeMutablePointer<Element>) -> R) -> R {
+    internal mutating func withUnsafeMutablePointerOrAllocation<R>(_ count: Int, fastpath: UnsafeMutablePointer<Element>? = nil, body: (UnsafeMutablePointer<Element>) -> R) -> R {
         if let fastpath = fastpath {
             return body(fastpath)
         } else if self.count > count {
@@ -369,10 +249,6 @@ extension Array {
     }
 }
 
-public protocol Bridgeable {
-    associatedtype BridgeType
-    func bridge() -> BridgeType
-}
 
 #if os(OSX) || os(iOS)
     internal typealias _DarwinCompatibleBoolean = DarwinBoolean

@@ -38,16 +38,19 @@ extension CFRange {
 public typealias NSRange = _NSRange
 
 extension NSRange {
-    public init(_ x: CountableRange<Int>) {
-        location = x.startIndex
+    public init(_ x: Range<Int>) {
+        location = x.lowerBound
         length = x.count
     }
     
-    public func toRange() -> CountableRange<Int>? {
+    public func toRange() -> Range<Int>? {
         if location == NSNotFound { return nil }
-        let min = location
-        let max = location + length
-        return min..<max
+        return location..<(location+length)
+    }
+    
+    internal func toCountableRange() -> CountableRange<Int>? {
+        if location == NSNotFound { return nil }
+        return location..<(location+length)
     }
 }
 
@@ -59,12 +62,12 @@ extension NSRange: NSSpecialValueCoding {
     
     init?(coder aDecoder: NSCoder) {
         if aDecoder.allowsKeyedCoding {
-            if let location = aDecoder.decodeObjectOfClass(NSNumber.self, forKey: "NS.rangeval.location") {
+            if let location = aDecoder.decodeObject(of: NSNumber.self, forKey: "NS.rangeval.location") {
                 self.location = location.intValue
             } else {
                 self.location = 0
             }
-            if let length = aDecoder.decodeObjectOfClass(NSNumber.self, forKey: "NS.rangeval.length") {
+            if let length = aDecoder.decodeObject(of: NSNumber.self, forKey: "NS.rangeval.length") {
                 self.length = length.intValue
             } else {
                 self.length = 0

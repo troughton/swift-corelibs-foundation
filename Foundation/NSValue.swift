@@ -10,7 +10,7 @@
 open class NSValue : NSObject, NSCopying, NSSecureCoding, NSCoding {
 
     private static var SideTable = [ObjectIdentifier : NSValue]()
-    private static var SideTableLock = Lock()
+    private static var SideTableLock = NSLock()
 
     internal override init() {
         super.init()
@@ -140,15 +140,15 @@ open class NSValue : NSObject, NSCopying, NSSecureCoding, NSCoding {
         }
     }
     
-    open class func supportsSecureCoding() -> Bool {
+    open class var supportsSecureCoding: Bool {
         return true
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
 }

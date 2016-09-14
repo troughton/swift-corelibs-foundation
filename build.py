@@ -15,7 +15,7 @@ foundation.GCC_PREFIX_HEADER = 'CoreFoundation/Base.subproj/CoreFoundation_Prefi
 
 swift_cflags = []
 if Configuration.current.target.sdk == OSType.Linux:
-	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE '
+	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -DCF_CHARACTERSET_DATA_DIR="CoreFoundation/CharacterSets"'
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -Wl,@./CoreFoundation/linux.ld -lswiftGlibc `${PKG_CONFIG} icu-uc icu-i18n --libs` -Wl,-defsym,__CFConstantStringClassReference=_TMC10Foundation19_NSCFConstantString -Wl,-Bsymbolic '
 	Configuration.current.requires_pkg_config = True
 elif Configuration.current.target.sdk == OSType.FreeBSD:
@@ -31,6 +31,13 @@ elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.
 
 if Configuration.current.build_mode == Configuration.Debug:
         foundation.LDFLAGS += ' -lswiftSwiftOnoneSupport '
+
+foundation.ASFLAGS = " ".join([
+        '-DCF_CHARACTERSET_BITMAP=\\"CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap\\"',
+        '-DCF_CHARACTERSET_UNICHAR_DB=\\"CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data\\"',
+        '-DCF_CHARACTERSET_UNICODE_DATA_B=\\"CoreFoundation/CharacterSets/CFUnicodeData-B.mapping\\"',
+        '-DCF_CHARACTERSET_UNICODE_DATA_L=\\"CoreFoundation/CharacterSets/CFUnicodeData-L.mapping\\"',
+])
 
 # For now, we do not distinguish between public and private headers (they are all private to Foundation)
 # These are really part of CF, which should ultimately be a separate target
@@ -321,6 +328,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSJSONSerialization.swift',
 	'Foundation/NSKeyedCoderOldStyleArray.swift',
 	'Foundation/NSKeyedArchiver.swift',
+	'Foundation/NSKeyedArchiverHelpers.swift',
 	'Foundation/NSKeyedUnarchiver.swift',
 	'Foundation/NSLengthFormatter.swift',
 	'Foundation/NSLocale.swift',
@@ -353,7 +361,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSSpecialValue.swift',
 	'Foundation/NSStream.swift',
 	'Foundation/NSString.swift',
-	'Foundation/String.swift',
+	'Foundation/NSStringAPI.swift',
 	'Foundation/NSSwiftRuntime.swift',
 	'Foundation/NSTask.swift',
 	'Foundation/NSTextCheckingResult.swift',
@@ -379,7 +387,6 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSXMLDTDNode.swift',
 	'Foundation/NSXMLElement.swift',
 	'Foundation/NSXMLNode.swift',
-	'Foundation/NSXMLNodeOptions.swift',
 	'Foundation/NSXMLParser.swift',
 	'Foundation/FoundationErrors.swift',
 	'Foundation/URL.swift',
@@ -402,6 +409,14 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSMeasurement.swift',
 	'Foundation/NSMeasurementFormatter.swift',
 	'Foundation/Unit.swift',
+	'Foundation/TimeZone.swift',
+	'Foundation/Calendar.swift',
+	'Foundation/Locale.swift',
+	'Foundation/String.swift',
+	'Foundation/Set.swift',
+	'Foundation/Dictionary.swift',
+	'Foundation/Array.swift',
+	'Foundation/Bridging.swift',
 ])
 
 swift_sources.add_dependency(headers)
@@ -466,7 +481,7 @@ build install: phony | ${BUILD_DIR}/.install
 """
 extra_script += """
 rule RunTestFoundation
-    command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${LIBS_DIRS} lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
+    command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
     description = Building Tests
 
 build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation

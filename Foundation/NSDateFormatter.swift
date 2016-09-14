@@ -45,7 +45,7 @@ open class DateFormatter : Formatter {
 
     open func objectValue(_ string: String, range rangep: UnsafeMutablePointer<NSRange>) throws -> AnyObject? { NSUnimplemented() }
 
-    open override func string(for obj: AnyObject) -> String? {
+    open override func string(for obj: Any) -> String? {
         guard let date = obj as? Date else { return nil }
         return string(from: date)
     }
@@ -88,9 +88,13 @@ open class DateFormatter : Formatter {
     }
 
     internal func _setFormatterAttributes(_ formatter: CFDateFormatter) {
-        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterIsLenient, value: lenient._cfObject)
+        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterIsLenient, value: isLenient._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterTimeZone, value: timeZone?._cfObject)
-        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterCalendarName, value: _calendar?.calendarIdentifier._cfObject)
+        if let ident = _calendar?.identifier {
+            _setFormatterAttribute(formatter, attributeName: kCFDateFormatterCalendarName, value: Calendar._toNSCalendarIdentifier(ident).rawValue._cfObject)
+        } else {
+            _setFormatterAttribute(formatter, attributeName: kCFDateFormatterCalendarName, value: nil)
+        }
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterTwoDigitStartDate, value: _twoDigitStartDate?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterDefaultDate, value: defaultDate?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterCalendar, value: _calendar?._cfObject)
@@ -99,8 +103,8 @@ open class DateFormatter : Formatter {
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterShortMonthSymbols, value: _shortMonthSymbols?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterWeekdaySymbols, value: _weekdaySymbols?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterShortWeekdaySymbols, value: _shortWeekdaySymbols?._cfObject)
-        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterAMSymbol, value: _AMSymbol?._cfObject)
-        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterPMSymbol, value: _PMSymbol?._cfObject)
+        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterAMSymbol, value: _amSymbol?._cfObject)
+        _setFormatterAttribute(formatter, attributeName: kCFDateFormatterPMSymbol, value: _pmSymbol?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterLongEraSymbols, value: _longEraSymbols?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterVeryShortMonthSymbols, value: _veryShortMonthSymbols?._cfObject)
         _setFormatterAttribute(formatter, attributeName: kCFDateFormatterStandaloneMonthSymbols, value: _standaloneMonthSymbols?._cfObject)
@@ -136,21 +140,21 @@ open class DateFormatter : Formatter {
         }
     }
 
-    open var dateStyle: Style = .noStyle { willSet { _dateFormat = nil; _reset() } }
+    open var dateStyle: Style = .none { willSet { _dateFormat = nil; _reset() } }
 
-    open var timeStyle: Style = .noStyle { willSet { _dateFormat = nil; _reset() } }
+    open var timeStyle: Style = .none { willSet { _dateFormat = nil; _reset() } }
 
     /*@NSCopying*/ open var locale: Locale! = .current { willSet { _reset() } }
 
     open var generatesCalendarDates = false { willSet { _reset() } }
 
-    /*@NSCopying*/ open var timeZone: TimeZone! = .systemTimeZone() { willSet { _reset() } }
+    /*@NSCopying*/ open var timeZone: TimeZone! = NSTimeZone.systemTimeZone() { willSet { _reset() } }
 
     /*@NSCopying*/ internal var _calendar: Calendar! { willSet { _reset() } }
     open var calendar: Calendar! {
         get {
             guard let calendar = _calendar else {
-                return CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterCalendar) as! Calendar
+                return (CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterCalendar) as! NSCalendar)._swiftObject
             }
             return calendar
         }
@@ -159,7 +163,7 @@ open class DateFormatter : Formatter {
         }
     }
 
-    open var lenient = false { willSet { _reset() } }
+    open var isLenient = false { willSet { _reset() } }
 
     /*@NSCopying*/ internal var _twoDigitStartDate: Date? { willSet { _reset() } }
     open var twoDigitStartDate: Date? {
@@ -181,7 +185,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _eraSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterEraSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -195,7 +199,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _monthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -209,7 +213,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortMonthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -224,7 +228,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _weekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -238,7 +242,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortWeekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -247,29 +251,29 @@ open class DateFormatter : Formatter {
         }
     }
 
-    internal var _AMSymbol: String! { willSet { _reset() } }
-    open var AMSymbol: String! {
+    internal var _amSymbol: String! { willSet { _reset() } }
+    open var amSymbol: String! {
         get {
-            guard let symbol = _AMSymbol else {
+            guard let symbol = _amSymbol else {
                 return (CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterAMSymbol) as! NSString)._swiftObject
             }
             return symbol
         }
         set {
-            _AMSymbol = newValue
+            _amSymbol = newValue
         }
     }
 
-    internal var _PMSymbol: String! { willSet { _reset() } }
-    open var PMSymbol: String! {
+    internal var _pmSymbol: String! { willSet { _reset() } }
+    open var pmSymbol: String! {
         get {
-            guard let symbol = _PMSymbol else {
+            guard let symbol = _pmSymbol else {
                 return (CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterPMSymbol) as! NSString)._swiftObject
             }
             return symbol
         }
         set {
-            _PMSymbol = newValue
+            _pmSymbol = newValue
         }
     }
 
@@ -278,7 +282,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _longEraSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterLongEraSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -292,7 +296,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _veryShortMonthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterVeryShortMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -306,7 +310,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _standaloneMonthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterStandaloneMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -320,7 +324,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortStandaloneMonthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortStandaloneMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -334,7 +338,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _veryShortStandaloneMonthSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterVeryShortStandaloneMonthSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -348,7 +352,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _veryShortWeekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterVeryShortWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -362,7 +366,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _standaloneWeekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterStandaloneWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -376,7 +380,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortStandaloneWeekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortStandaloneWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -390,7 +394,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _veryShortStandaloneWeekdaySymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterVeryShortStandaloneWeekdaySymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -404,7 +408,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _quarterSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterQuarterSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -418,7 +422,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortQuarterSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortQuarterSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -432,7 +436,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _standaloneQuarterSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterStandaloneQuarterSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -446,7 +450,7 @@ open class DateFormatter : Formatter {
         get {
             guard let symbols = _shortStandaloneQuarterSymbols else {
                 let cfSymbols = CFDateFormatterCopyProperty(_cfObject, kCFDateFormatterShortStandaloneQuarterSymbols) as! NSArray
-                return cfSymbols.bridge().map { ($0 as! NSString).bridge() }
+                return cfSymbols.allObjects as! [String]
             }
             return symbols
         }
@@ -473,10 +477,10 @@ open class DateFormatter : Formatter {
 
 extension DateFormatter {
     public enum Style : UInt {
-        case noStyle
-        case shortStyle
-        case mediumStyle
-        case longStyle
-        case fullStyle
+        case none
+        case short
+        case medium
+        case long
+        case full
     }
 }

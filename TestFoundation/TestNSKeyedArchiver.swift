@@ -19,7 +19,7 @@
 public class UserClass : NSObject, NSSecureCoding {
     var ivar : Int
     
-    public class func supportsSecureCoding() -> Bool {
+    public class var supportsSecureCoding: Bool {
         return true
     }
     
@@ -58,7 +58,7 @@ class TestNSKeyedArchiver : XCTestCase {
             ("test_archive_concrete_value", test_archive_concrete_value),
             ("test_archive_dictionary", test_archive_dictionary),
             ("test_archive_generic_objc", test_archive_generic_objc),
-            //("test_archive_locale", test_archive_locale), // not isEqual()
+//            ("test_archive_locale", test_archive_locale),
             ("test_archive_string", test_archive_string),
             ("test_archive_mutable_array", test_archive_mutable_array),
             ("test_archive_mutable_dictionary", test_archive_mutable_dictionary),
@@ -97,8 +97,8 @@ class TestNSKeyedArchiver : XCTestCase {
                 unarchiver.requiresSecureCoding = allowsSecureCoding
                 
                 do {
-                    guard let root = try unarchiver.decodeTopLevelObjectOfClasses(classes,
-                        forKey: NSKeyedArchiveRootObjectKey) as? NSObject else {
+                    let rootObj = try unarchiver.decodeTopLevelObject(of: classes, forKey: NSKeyedArchiveRootObjectKey)
+                    guard let root = rootObj as? NSObject else {
                         XCTFail("Unable to decode data")
                         return false
                     }
@@ -121,8 +121,8 @@ class TestNSKeyedArchiver : XCTestCase {
     }
     
     func test_archive_array() {
-        let array = ["one", "two", "three"]
-        test_archive(array.bridge())
+        let array = NSArray(array: ["one", "two", "three"])
+        test_archive(array)
     }
     
     func test_archive_concrete_value() {
@@ -135,8 +135,8 @@ class TestNSKeyedArchiver : XCTestCase {
     }
     
     func test_archive_dictionary() {
-        let dictionary = ["one" : 1, "two" : 2, "three" : 3]
-        test_archive(dictionary.bridge())
+        let dictionary = NSDictionary(dictionary: ["one" : 1, "two" : 2, "three" : 3])
+        test_archive(dictionary)
     }
     
     func test_archive_generic_objc() {
@@ -160,22 +160,26 @@ class TestNSKeyedArchiver : XCTestCase {
 
     func test_archive_locale() {
         let locale = Locale.current
-        test_archive(locale)
+        test_archive(locale._bridgeToObjectiveC())
     }
     
     func test_archive_string() {
-        let string = "hello"
-        test_archive(string.bridge())
+        let string = NSString(string: "hello")
+        test_archive(string)
     }
     
     func test_archive_mutable_array() {
-        let array = ["one", "two", "three"]
-        test_archive(array.bridge().mutableCopy() as! NSObject)
+        let array = NSMutableArray(array: ["one", "two", "three"])
+        test_archive(array)
     }
 
     func test_archive_mutable_dictionary() {
-        let mdictionary = NSMutableDictionary(objects: [NSNumber(value: Int(1)), NSNumber(value: Int(2)), NSNumber(value: Int(3))],
-                                              forKeys: ["one".bridge(), "two".bridge(), "three".bridge()])
+        let mdictionary = NSMutableDictionary(dictionary: [
+            "one": NSNumber(value: Int(1)),
+            "two": NSNumber(value: Int(2)),
+            "three": NSNumber(value: Int(3)),
+        ])
+        
         test_archive(mdictionary)
     }
     
@@ -211,8 +215,8 @@ class TestNSKeyedArchiver : XCTestCase {
     }
     
     func test_archive_url() {
-        let url = URL(string: "index.html", relativeTo: URL(string: "http://www.apple.com"))!
-        test_archive(url.bridge())
+        let url = NSURL(string: "index.html", relativeTo: URL(string: "http://www.apple.com"))!
+        test_archive(url)
     }
     
     func test_archive_charptr() {
@@ -226,7 +230,7 @@ class TestNSKeyedArchiver : XCTestCase {
                 return true
             },
              decode: {unarchiver -> Bool in
-                guard let value = unarchiver.decodeObjectOfClass(NSValue.self, forKey: "root") else {
+                guard let value = unarchiver.decodeObject(of: NSValue.self, forKey: "root") else {
                     return false
                 }
                 var expectedCharPtr: UnsafeMutablePointer<CChar>? = nil

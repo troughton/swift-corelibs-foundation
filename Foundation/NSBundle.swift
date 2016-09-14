@@ -16,9 +16,16 @@ open class Bundle: NSObject {
         return Bundle(cfBundle: CFBundleGetMainBundle())
     }()
     
-    open class func main() -> Bundle {
-        return _mainBundle
+    open class var main: Bundle {
+        get {
+            return _mainBundle
+        }
     }
+    
+    open class var allBundles: [Bundle] {
+        NSUnimplemented()
+    }
+
     
     internal init(cfBundle: CFBundle) {
         super.init()
@@ -43,11 +50,7 @@ open class Bundle: NSObject {
     }
     
     public convenience init?(url: URL) {
-        if let path = url.path {
-            self.init(path: path)
-        } else {
-            return nil
-        }
+        self.init(path: url.path)
     }
     
     public init(for aClass: AnyClass) { NSUnimplemented() }
@@ -63,7 +66,7 @@ open class Bundle: NSObject {
     }
     
     override open var description: String {
-        return "\(String(describing: Bundle.self)) <\(bundleURL.path!)> (\(isLoaded  ? "loaded" : "not yet loaded"))"
+        return "\(String(describing: Bundle.self)) <\(bundleURL.path)> (\(isLoaded  ? "loaded" : "not yet loaded"))"
     }
 
     
@@ -111,7 +114,7 @@ open class Bundle: NSObject {
         return CFBundleCopyExecutableURL(_bundle)?._swiftObject
     }
     
-    open func urlForAuxiliaryExecutable(_ executableName: String) -> NSURL? {
+    open func url(forAuxiliaryExecutable executableName: String) -> NSURL? {
         return CFBundleCopyAuxiliaryExecutableURL(_bundle, executableName._cfObject)?._nsObject
     }
     
@@ -137,7 +140,7 @@ open class Bundle: NSObject {
     }
     
     open var bundlePath: String {
-        return bundleURL.path!
+        return bundleURL.path
     }
     
     open var resourcePath: String? {
@@ -148,8 +151,8 @@ open class Bundle: NSObject {
         return executableURL?.path
     }
     
-    open func pathForAuxiliaryExecutable(_ executableName: String) -> String? {
-        return urlForAuxiliaryExecutable(executableName)?.path
+    open func path(forAuxiliaryExecutable executableName: String) -> String? {
+        return url(forAuxiliaryExecutable: executableName)?.path
     }
     
     open var privateFrameworksPath: String? {
@@ -171,7 +174,7 @@ open class Bundle: NSObject {
     // -----------------------------------------------------------------------------------
     // MARK: - URL Resource Lookup - Class
     
-    open class func urlForResource(_ name: String?, withExtension ext: String?, subdirectory subpath: String?, inBundleWith bundleURL: URL) -> URL? {
+    open class func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, in bundleURL: URL) -> URL? {
         // If both name and ext are nil/zero-length, return nil
         if (name == nil || name!.isEmpty) && (ext == nil || ext!.isEmpty) {
             return nil
@@ -180,18 +183,18 @@ open class Bundle: NSObject {
         return CFBundleCopyResourceURLInDirectory(bundleURL._cfObject, name?._cfObject, ext?._cfObject, subpath?._cfObject)._swiftObject
     }
     
-    open class func urlsForResources(withExtension ext: String?, subdirectory subpath: String?, inBundleWith bundleURL: NSURL) -> [NSURL]? {
+    open class func urls(forResourcesWithExtension ext: String?, subdirectory subpath: String?, in bundleURL: NSURL) -> [NSURL]? {
         return CFBundleCopyResourceURLsOfTypeInDirectory(bundleURL._cfObject, ext?._cfObject, subpath?._cfObject)?._unsafeTypedBridge()
     }
     
     // -----------------------------------------------------------------------------------
     // MARK: - URL Resource Lookup - Instance
 
-    open func urlForResource(_ name: String?, withExtension ext: String?) -> URL? {
-        return self.urlForResource(name, withExtension: ext, subdirectory: nil)
+    open func url(forResource name: String?, withExtension ext: String?) -> URL? {
+        return self.url(forResource: name, withExtension: ext, subdirectory: nil)
     }
     
-    open func urlForResource(_ name: String?, withExtension ext: String?, subdirectory subpath: String?) -> URL? {
+    open func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?) -> URL? {
         // If both name and ext are nil/zero-length, return nil
         if (name == nil || name!.isEmpty) && (ext == nil || ext!.isEmpty) {
             return nil
@@ -199,7 +202,7 @@ open class Bundle: NSObject {
         return CFBundleCopyResourceURL(_bundle, name?._cfObject, ext?._cfObject, subpath?._cfObject)?._swiftObject
     }
     
-    open func urlForResource(_ name: String?, withExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> URL? {
+    open func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> URL? {
         // If both name and ext are nil/zero-length, return nil
         if (name == nil || name!.isEmpty) && (ext == nil || ext!.isEmpty) {
             return nil
@@ -208,49 +211,49 @@ open class Bundle: NSObject {
         return CFBundleCopyResourceURLForLocalization(_bundle, name?._cfObject, ext?._cfObject, subpath?._cfObject, localizationName?._cfObject)?._swiftObject
     }
     
-    open func urlsForResources(withExtension ext: String?, subdirectory subpath: String?) -> [NSURL]? {
+    open func urls(forResourcesWithExtension ext: String?, subdirectory subpath: String?) -> [NSURL]? {
         return CFBundleCopyResourceURLsOfType(_bundle, ext?._cfObject, subpath?._cfObject)?._unsafeTypedBridge()
     }
     
-    open func urlsForResources(withExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> [NSURL]? {
+    open func urls(forResourcesWithExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> [NSURL]? {
         return CFBundleCopyResourceURLsOfTypeForLocalization(_bundle, ext?._cfObject, subpath?._cfObject, localizationName?._cfObject)?._unsafeTypedBridge()
     }
     
     // -----------------------------------------------------------------------------------
     // MARK: - Path Resource Lookup - Class
 
-    open class func pathForResource(_ name: String?, ofType ext: String?, inDirectory bundlePath: String) -> String? {
-        return Bundle.urlForResource(name, withExtension: ext, subdirectory: bundlePath, inBundleWith: URL(fileURLWithPath: bundlePath))?.path ?? nil
+    open class func path(forResource name: String?, ofType ext: String?, inDirectory bundlePath: String) -> String? {
+        return Bundle.url(forResource: name, withExtension: ext, subdirectory: bundlePath, in: URL(fileURLWithPath: bundlePath))?.path ?? nil
     }
     
-    open class func pathsForResources(ofType ext: String?, inDirectory bundlePath: String) -> [String] {
+    open class func paths(forResourcesOfType ext: String?, inDirectory bundlePath: String) -> [String] {
         // Force-unwrap path, beacuse if the URL can't be turned into a path then something is wrong anyway
-        return urlsForResources(withExtension: ext, subdirectory: bundlePath, inBundleWith: NSURL(fileURLWithPath: bundlePath))?.map { $0.path! } ?? []
+        return urls(forResourcesWithExtension: ext, subdirectory: bundlePath, in: NSURL(fileURLWithPath: bundlePath))?.map { $0.path! } ?? []
     }
     
     // -----------------------------------------------------------------------------------
     // MARK: - Path Resource Lookup - Instance
 
-    open func pathForResource(_ name: String?, ofType ext: String?) -> String? {
-        return self.urlForResource(name, withExtension: ext, subdirectory: nil)?.path
+    open func path(forResource name: String?, ofType ext: String?) -> String? {
+        return self.url(forResource: name, withExtension: ext, subdirectory: nil)?.path
     }
     
-    open func pathForResource(_ name: String?, ofType ext: String?, inDirectory subpath: String?) -> String? {
-        return self.urlForResource(name, withExtension: ext, subdirectory: subpath)?.path
+    open func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?) -> String? {
+        return self.url(forResource: name, withExtension: ext, subdirectory: subpath)?.path
     }
     
-    open func pathForResource(_ name: String?, ofType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> String? {
-        return self.urlForResource(name, withExtension: ext, subdirectory: subpath, localization: localizationName)?.path
+    open func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> String? {
+        return self.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName)?.path
     }
     
-    open func pathsForResources(ofType ext: String?, inDirectory subpath: String?) -> [String] {
+    open func paths(forResourcesOfType ext: String?, inDirectory subpath: String?) -> [String] {
         // Force-unwrap path, beacuse if the URL can't be turned into a path then something is wrong anyway
-        return self.urlsForResources(withExtension: ext, subdirectory: subpath)?.map { $0.path! } ?? []
+        return self.urls(forResourcesWithExtension: ext, subdirectory: subpath)?.map { $0.path! } ?? []
     }
     
-    open func pathsForResources(ofType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> [String] {
+    open func paths(forResourcesOfType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> [String] {
         // Force-unwrap path, beacuse if the URL can't be turned into a path then something is wrong anyway
-        return self.urlsForResources(withExtension: ext, subdirectory: subpath, localization: localizationName)?.map { $0.path! } ?? []
+        return self.urls(forResourcesWithExtension: ext, subdirectory: subpath, localization: localizationName)?.map { $0.path! } ?? []
     }
     
     // -----------------------------------------------------------------------------------
@@ -272,19 +275,19 @@ open class Bundle: NSObject {
     /// - Note: This API differs from Darwin because it uses [String : Any] as a type instead of [String : AnyObject]. This allows the use of Swift value types.
     open var infoDictionary: [String : Any]? {
         let cfDict: CFDictionary? = CFBundleGetInfoDictionary(_bundle)
-        return cfDict.map(_expensivePropertyListConversion) as? [String: Any]
+        return _SwiftValue.fetch(cfDict) as? [String : Any]
     }
     
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation
     /// - Note: This API differs from Darwin because it uses [String : Any] as a type instead of [String : AnyObject]. This allows the use of Swift value types.
     open var localizedInfoDictionary: [String : Any]? {
         let cfDict: CFDictionary? = CFBundleGetLocalInfoDictionary(_bundle)
-        return cfDict.map(_expensivePropertyListConversion) as? [String: Any]
+        return _SwiftValue.fetch(cfDict) as? [String : Any]
     }
     
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation
     /// - Note: This API differs from Darwin because it uses [String : Any] as a type instead of [String : AnyObject]. This allows the use of Swift value types.
-    open func objectForInfoDictionaryKey(_ key: String) -> Any? {
+    open func object(forInfoDictionaryKey key: String) -> Any? {
         if let localizedInfoDictionary = localizedInfoDictionary {
             return localizedInfoDictionary[key]
         } else {
@@ -299,7 +302,7 @@ open class Bundle: NSObject {
     }
     open var localizations: [String] {
         let cfLocalizations: CFArray? = CFBundleCopyBundleLocalizations(_bundle)
-        let nsLocalizations = cfLocalizations.map(_expensivePropertyListConversion) as? [Any]
+        let nsLocalizations = _SwiftValue.fetch(cfLocalizations) as? [Any]
         return nsLocalizations?.map { $0 as! String } ?? []
     }
 
@@ -310,7 +313,7 @@ open class Bundle: NSObject {
 
     open class func preferredLocalizations(from localizationsArray: [String]) -> [String] {
         let cfLocalizations: CFArray? = CFBundleCopyPreferredLocalizationsFromArray(localizationsArray._cfObject)
-        let nsLocalizations = cfLocalizations.map(_expensivePropertyListConversion) as? [Any]
+        let nsLocalizations = _SwiftValue.fetch(cfLocalizations) as? [Any]
         return nsLocalizations?.map { $0 as! String } ?? []
     }
     

@@ -85,7 +85,7 @@ open class UnitConverterLinear : UnitConverter, NSSecureCoding {
         }
     }
     
-    public static func supportsSecureCoding() -> Bool { return true }
+    public static var supportsSecureCoding: Bool { return true }
 }
 
 private class UnitConverterReciprocal : UnitConverter, NSSecureCoding {
@@ -126,7 +126,7 @@ private class UnitConverterReciprocal : UnitConverter, NSSecureCoding {
         }
     }
     
-    fileprivate static func supportsSecureCoding() -> Bool { return true }
+    fileprivate static var supportsSecureCoding: Bool { return true }
 }
 
 /*
@@ -143,7 +143,7 @@ open class Unit : NSObject, NSCopying, NSSecureCoding {
         self.symbol = symbol
     }
     
-    open func copy(with zone: NSZone?) -> AnyObject {
+    open func copy(with zone: NSZone?) -> Any {
         return self
     }
     
@@ -161,13 +161,13 @@ open class Unit : NSObject, NSCopying, NSSecureCoding {
     
     open func encode(with aCoder: NSCoder) {
         if aCoder.allowsKeyedCoding {
-            aCoder.encode(self.symbol.bridge(), forKey:"NS.symbol")
+            aCoder.encode(self.symbol._bridgeToObjectiveC(), forKey:"NS.symbol")
         } else {
-            aCoder.encode(self.symbol.bridge())
+            aCoder.encode(self.symbol._bridgeToObjectiveC())
         }
     }
 
-    public static func supportsSecureCoding() -> Bool { return true }
+    public static var supportsSecureCoding: Bool { return true }
 }
 
 open class Dimension : Unit {

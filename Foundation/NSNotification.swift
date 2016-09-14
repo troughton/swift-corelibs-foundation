@@ -31,16 +31,16 @@ public func <(lhs: NSNotification.Name, rhs: NSNotification.Name) -> Bool {
 open class NSNotification: NSObject, NSCopying, NSCoding {
     private(set) open var name: Name
     
-    private(set) open var object: AnyObject?
+    private(set) open var object: Any?
     
-    private(set) open var userInfo: [String : Any]?
+    private(set) open var userInfo: [AnyHashable : Any]?
     
     public convenience override init() {
         /* do not invoke; not a valid initializer for this class */
         fatalError()
     }
     
-    public init(name: Name, object: AnyObject?, userInfo: [String : Any]?) {
+    public init(name: Name, object: Any?, userInfo: [AnyHashable : Any]?) {
         self.name = name
         self.object = object
         self.userInfo = userInfo
@@ -48,39 +48,40 @@ open class NSNotification: NSObject, NSCopying, NSCoding {
     
     public convenience required init?(coder aDecoder: NSCoder) {
         if aDecoder.allowsKeyedCoding {
-            guard let name = aDecoder.decodeObjectOfClass(NSString.self, forKey:"NS.name") else {
+            guard let name = aDecoder.decodeObject(of: NSString.self, forKey:"NS.name") else {
                 return nil
             }
             let object = aDecoder.decodeObject(forKey: "NS.object")
-//            let userInfo = aDecoder.decodeObjectOfClass(NSDictionary.self, forKey: "NS.userinfo")
-            self.init(name: Name(rawValue: name.bridge()), object: object, userInfo: nil)
+//            let userInfo = aDecoder.decodeObject(of: NSDictionary.self, forKey: "NS.userinfo")
+            self.init(name: Name(rawValue: String._unconditionallyBridgeFromObjectiveC(name)), object: object as! NSObject, userInfo: nil)
+
         } else {
             guard let name = aDecoder.decodeObject() as? NSString else {
                 return nil
             }
             let object = aDecoder.decodeObject()
 //            let userInfo = aDecoder.decodeObject() as? NSDictionary
-            self.init(name: Name(rawValue: name.bridge()), object: object, userInfo: nil)
+            self.init(name: Name(rawValue: String._unconditionallyBridgeFromObjectiveC(name)), object: object, userInfo: nil)
         }
     }
     
     open func encode(with aCoder: NSCoder) {
         if aCoder.allowsKeyedCoding {
-            aCoder.encode(self.name.rawValue.bridge(), forKey:"NS.name")
+            aCoder.encode(self.name.rawValue._bridgeToObjectiveC(), forKey:"NS.name")
             aCoder.encode(self.object, forKey:"NS.object")
-//            aCoder.encodeObject(self.userInfo?.bridge(), forKey:"NS.userinfo")
+            aCoder.encode(self.userInfo?._bridgeToObjectiveC(), forKey:"NS.userinfo")
         } else {
-            aCoder.encode(self.name.rawValue.bridge())
+            aCoder.encode(self.name.rawValue._bridgeToObjectiveC())
             aCoder.encode(self.object)
-//            aCoder.encodeObject(self.userInfo?.bridge())
+            aCoder.encode(self.userInfo?._bridgeToObjectiveC())
         }
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
@@ -101,7 +102,7 @@ open class NSNotification: NSObject, NSCopying, NSCoding {
 }
 
 extension NSNotification {
-    public convenience init(name aName: Name, object anObject: AnyObject?) {
+    public convenience init(name aName: Name, object anObject: Any?) {
         self.init(name: aName, object: anObject, userInfo: nil)
     }
 }
@@ -122,14 +123,14 @@ extension Sequence where Iterator.Element : NSNotificationReceiver {
     ///  - elements that property `name` is not equal to parameter `name` if specified.
     ///  - elements that property `sender` is not equal to parameter `object` if specified.
     ///
-    fileprivate func filterOutObserver(_ observerToFilter: AnyObject, name:Notification.Name? = nil, object: AnyObject? = nil) -> [Iterator.Element] {
+    fileprivate func filterOutObserver(_ observerToFilter: AnyObject, name:Notification.Name? = nil, object: Any? = nil) -> [Iterator.Element] {
         return self.filter { observer in
 
             let differentObserver = observer.object !== observerToFilter
             let nameSpecified = name != nil
             let differentName = observer.name != name
             let objectSpecified = object != nil
-            let differentSender = observer.sender !== object
+            let differentSender = observer.sender !== _SwiftValue.store(object)
 
             return differentObserver || (nameSpecified  && differentName) || (objectSpecified && differentSender)
         }
@@ -141,13 +142,13 @@ extension Sequence where Iterator.Element : NSNotificationReceiver {
     ///  - elements that property `sender` is `nil` or equals specified parameter `sender`.
     ///  - elements that property `name` is `nil` or equals specified parameter `name`.
     ///
-    fileprivate func observersMatchingName(_ name:Notification.Name? = nil, sender: AnyObject? = nil) -> [Iterator.Element] {
+    fileprivate func observersMatchingName(_ name:Notification.Name? = nil, sender: Any? = nil) -> [Iterator.Element] {
         return self.filter { observer in
 
             let emptyName = observer.name == nil
             let sameName = observer.name == name
             let emptySender = observer.sender == nil
-            let sameSender = observer.sender === sender
+            let sameSender = observer.sender === _SwiftValue.store(sender)
 
             return (emptySender || sameSender) && (emptyName || sameName)
         }
@@ -159,7 +160,7 @@ private let _defaultCenter: NotificationCenter = NotificationCenter()
 open class NotificationCenter: NSObject {
     
     private var _observers: [NSNotificationReceiver]
-    private let _observersLock = Lock()
+    private let _observersLock = NSLock()
     
     public required override init() {
         _observers = [NSNotificationReceiver]()
@@ -189,7 +190,7 @@ open class NotificationCenter: NSObject {
         postNotification(notification)
     }
 
-    open func postNotificationName(_ aName: Notification.Name, object anObject: AnyObject?, userInfo aUserInfo: [String : Any]?) {
+    open func postNotificationName(_ aName: Notification.Name, object anObject: AnyObject?, userInfo aUserInfo: [AnyHashable : Any]?) {
         let notification = Notification(name: aName, object: anObject, userInfo: aUserInfo)
         postNotification(notification)
     }
@@ -198,7 +199,7 @@ open class NotificationCenter: NSObject {
         removeObserver(observer, name: nil, object: nil)
     }
 
-    open func removeObserver(_ observer: AnyObject, name: Notification.Name?, object: AnyObject?) {
+    open func removeObserver(_ observer: Any, name: Notification.Name?, object: Any?) {
         guard let observer = observer as? NSObject else {
             return
         }
@@ -208,7 +209,7 @@ open class NotificationCenter: NSObject {
         })
     }
     
-    open func addObserverForName(_ name: Notification.Name?, object obj: AnyObject?, queue: OperationQueue?, usingBlock block: @escaping (Notification) -> Void) -> NSObjectProtocol {
+    open func addObserverForName(_ name: Notification.Name?, object obj: Any?, queue: OperationQueue?, usingBlock block: @escaping (Notification) -> Void) -> NSObjectProtocol {
         if queue != nil {
             NSUnimplemented()
         }
@@ -219,7 +220,7 @@ open class NotificationCenter: NSObject {
         newObserver.object = object
         newObserver.name = name
         newObserver.block = block
-        newObserver.sender = obj
+        newObserver.sender = _SwiftValue.store(obj)
 
         _observersLock.synchronized({
             _observers.append(newObserver)

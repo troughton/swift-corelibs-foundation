@@ -50,6 +50,8 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
     open var timeIntervalSinceReferenceDate: TimeInterval {
         return _timeIntervalSinceReferenceDate
     }
+    
+    open class var timeIntervalSinceReferenceDate: TimeInterval { NSUnimplemented() }
 
     public convenience override init() {
         var tv = timeval()
@@ -78,24 +80,24 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
         }
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
 
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
-    public static func supportsSecureCoding() -> Bool {
+    public static var supportsSecureCoding: Bool {
         return true
     }
     
     open func encode(with aCoder: NSCoder) {
-	if aCoder.allowsKeyedCoding {
-	    aCoder.encode(_timeIntervalSinceReferenceDate, forKey: "NS.time")
-	} else {
-	    NSUnimplemented()
-	}
+        if aCoder.allowsKeyedCoding {
+            aCoder.encode(_timeIntervalSinceReferenceDate, forKey: "NS.time")
+        } else {
+            NSUnimplemented()
+        }
     }
 
     /**
@@ -134,9 +136,9 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
        offset in hours and minutes from UTC (for example,
        "2001-03-24 10:45:32 +0600")
      */
-    open func descriptionWithLocale(_ locale: AnyObject?) -> String {
+    open func description(with locale: Locale?) -> String {
         guard let aLocale = locale else { return description }
-        let dateFormatterRef = CFDateFormatterCreate(kCFAllocatorSystemDefault, (aLocale as! Locale)._cfObject, kCFDateFormatterFullStyle, kCFDateFormatterFullStyle)
+        let dateFormatterRef = CFDateFormatterCreate(kCFAllocatorSystemDefault, aLocale._cfObject, kCFDateFormatterFullStyle, kCFDateFormatterFullStyle)
         CFDateFormatterSetProperty(dateFormatterRef, kCFDateFormatterTimeZoneKey, CFTimeZoneCopySystem())
 
         return CFDateFormatterCreateStringWithDate(kCFAllocatorSystemDefault, dateFormatterRef, _cfObject)._swiftObject
@@ -149,23 +151,23 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
 
 extension NSDate {
     
-    public func timeIntervalSince(_ anotherDate: Date) -> TimeInterval {
+    open func timeIntervalSince(_ anotherDate: Date) -> TimeInterval {
         return self.timeIntervalSinceReferenceDate - anotherDate.timeIntervalSinceReferenceDate
     }
     
-    public var timeIntervalSinceNow: TimeInterval {
+    open var timeIntervalSinceNow: TimeInterval {
         return timeIntervalSince(Date())
     }
     
-    public var timeIntervalSince1970: TimeInterval {
+    open var timeIntervalSince1970: TimeInterval {
         return timeIntervalSinceReferenceDate + NSTimeIntervalSince1970
     }
     
-    public func addingTimeInterval(_ ti: TimeInterval) -> Date {
+    open func addingTimeInterval(_ ti: TimeInterval) -> Date {
         return Date(timeIntervalSinceReferenceDate:_timeIntervalSinceReferenceDate + ti)
     }
     
-    public func earlierDate(_ anotherDate: Date) -> Date {
+    open func earlierDate(_ anotherDate: Date) -> Date {
         if self.timeIntervalSinceReferenceDate < anotherDate.timeIntervalSinceReferenceDate {
             return Date(timeIntervalSinceReferenceDate: timeIntervalSinceReferenceDate)
         } else {
@@ -173,7 +175,7 @@ extension NSDate {
         }
     }
     
-    public func laterDate(_ anotherDate: Date) -> Date {
+    open func laterDate(_ anotherDate: Date) -> Date {
         if self.timeIntervalSinceReferenceDate < anotherDate.timeIntervalSinceReferenceDate {
             return anotherDate
         } else {
@@ -181,7 +183,7 @@ extension NSDate {
         }
     }
     
-    public func compare(_ other: Date) -> ComparisonResult {
+    open func compare(_ other: Date) -> ComparisonResult {
         let t1 = self.timeIntervalSinceReferenceDate
         let t2 = other.timeIntervalSinceReferenceDate
         if t1 < t2 {
@@ -193,19 +195,19 @@ extension NSDate {
         }
     }
     
-    public func isEqual(to otherDate: Date) -> Bool {
+    open func isEqual(to otherDate: Date) -> Bool {
         return timeIntervalSinceReferenceDate == otherDate.timeIntervalSinceReferenceDate
     }
 }
 
 extension NSDate {
     internal static let _distantFuture = Date(timeIntervalSinceReferenceDate: 63113904000.0)
-    public static func distantFuture() -> Date {
+    open class var distantFuture: Date {
         return _distantFuture
     }
     
     internal static let _distantPast = Date(timeIntervalSinceReferenceDate: -63113904000.0)
-    public static func distantPast() -> Date {
+    open class var distantPast: Date {
         return _distantPast
     }
     
@@ -217,7 +219,7 @@ extension NSDate {
         self.init(timeIntervalSinceReferenceDate: secs - NSTimeIntervalSince1970)
     }
     
-    public convenience init(timeInterval secsToBeAdded: TimeInterval, sinceDate date: Date) {
+    public convenience init(timeInterval secsToBeAdded: TimeInterval, since date: Date) {
         self.init(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate + secsToBeAdded)
     }
 }
@@ -276,11 +278,11 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
     
     public required convenience init?(coder: NSCoder) {
         precondition(coder.allowsKeyedCoding)
-        guard let start = coder.decodeObjectOfClass(NSDate.self, forKey: "NS.startDate") else {
+        guard let start = coder.decodeObject(of: NSDate.self, forKey: "NS.startDate") else {
             coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderValueNotFoundError.rawValue, userInfo: nil))
             return nil
         }
-        guard let end = coder.decodeObjectOfClass(NSDate.self, forKey: "NS.startDate") else {
+        guard let end = coder.decodeObject(of: NSDate.self, forKey: "NS.startDate") else {
             coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderValueNotFoundError.rawValue, userInfo: nil))
             return nil
         }
@@ -300,7 +302,7 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
         self.init(start: startDate, duration: endDate.timeIntervalSince(startDate))
     }
     
-    open func copy(with zone: NSZone?) -> AnyObject {
+    open func copy(with zone: NSZone?) -> Any {
         return NSDateInterval(start: startDate, duration: duration)
     }
     
@@ -310,7 +312,7 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
         aCoder.encode(endDate._nsObject, forKey: "NS.endDate")
     }
     
-    public static func supportsSecureCoding() -> Bool {
+    public static var supportsSecureCoding: Bool {
         return true
     }
     
@@ -396,5 +398,21 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
             return true
         }
         return false
+    }
+}
+
+extension NSDate : _StructTypeBridgeable {
+    public typealias _StructType = Date
+    
+    public func _bridgeToSwift() -> Date {
+        return Date._unconditionallyBridgeFromObjectiveC(self)
+    }
+}
+
+extension NSDateInterval : _StructTypeBridgeable {
+    public typealias _StructType = DateInterval
+    
+    public func _bridgeToSwift() -> DateInterval {
+        return DateInterval._unconditionallyBridgeFromObjectiveC(self)
     }
 }

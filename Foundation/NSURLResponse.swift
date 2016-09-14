@@ -18,7 +18,7 @@
 /// data for a URL load.
 open class URLResponse : NSObject, NSSecureCoding, NSCopying {
 
-    static public func supportsSecureCoding() -> Bool {
+    static public var supportsSecureCoding: Bool {
         return true
     }
     
@@ -30,11 +30,11 @@ open class URLResponse : NSObject, NSSecureCoding, NSCopying {
         NSUnimplemented()
     }
     
-    open override func copy() -> AnyObject {
+    open override func copy() -> Any {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> AnyObject {
+    open func copy(with zone: NSZone? = nil) -> Any {
         return self
     }
     
@@ -52,7 +52,7 @@ open class URLResponse : NSObject, NSSecureCoding, NSCopying {
         self.expectedContentLength = Int64(length)
         self.textEncodingName = name
         let c = url.lastPathComponent
-        self.suggestedFilename = (c?.isEmpty ?? true) ? "Unknown" : c
+        self.suggestedFilename = c.isEmpty ? "Unknown" : c
     }
     
     /// The URL of the receiver.

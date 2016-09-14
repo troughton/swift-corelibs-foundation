@@ -60,21 +60,29 @@ public struct NSFileManagerItemReplacementOptions : OptionSet {
     public static let withoutDeletingBackupItem = NSFileManagerItemReplacementOptions(rawValue: 1 << 1)
 }
 
-public enum NSURLRelationship : Int {
-    case contains
-    case same
-    case other
+extension FileManager {
+    public enum URLRelationship : Int {
+        case contains
+        case same
+        case other
+    }
 }
 
 open class FileManager: NSObject {
+    public typealias FileAttributeKey = String
     
     /* Returns the default singleton instance.
     */
-    public static let `default` = FileManager()
+    private static let _default = FileManager()
+    open class var `default`: FileManager {
+        get {
+            return _default
+        }
+    }
     
     /* Returns an NSArray of NSURLs locating the mounted volumes available on the computer. The property keys that can be requested are available in NSURL.
      */
-    open func mountedVolumeURLs(includingResourceValuesForKeys propertyKeys: [String]?, options: VolumeEnumerationOptions = []) -> [URL]? {
+    open func mountedVolumeURLs(includingResourceValuesForKeys propertyKeys: [URLResourceKey]?, options: VolumeEnumerationOptions = []) -> [URL]? {
         NSUnimplemented()
     }
     
@@ -86,8 +94,8 @@ open class FileManager: NSObject {
      
         If you wish to only receive the URLs and no other attributes, then pass '0' for 'options' and an empty NSArray ('[NSArray array]') for 'keys'. If you wish to have the property caches of the vended URLs pre-populated with a default set of attributes, then pass '0' for 'options' and 'nil' for 'keys'.
      */
-    open func contentsOfDirectory(at url: URL, includingPropertiesForKeys keys: [String]?, options mask: DirectoryEnumerationOptions = []) throws -> [URL] {
-        var error : NSError? = nil
+    open func contentsOfDirectory(at url: URL, includingPropertiesForKeys keys: [URLResourceKey]?, options mask: DirectoryEnumerationOptions = []) throws -> [URL] {
+        var error : Error? = nil
         let e = self.enumerator(at: url, includingPropertiesForKeys: keys, options: mask.union(.skipsSubdirectoryDescendants)) { (url, err) -> Bool in
             error = err
             return false
@@ -95,7 +103,7 @@ open class FileManager: NSObject {
         var result = [URL]()
         if let e = e {
             for url in e {
-                result.append((url as! NSURL)._swiftObject)
+                result.append(url as! URL)
             }
             if let error = error {
                 throw error
@@ -106,7 +114,7 @@ open class FileManager: NSObject {
     
     /* -URLsForDirectory:inDomains: is analogous to NSSearchPathForDirectoriesInDomains(), but returns an array of NSURL instances for use with URL-taking APIs. This API is suitable when you need to search for a file or files which may live in one of a variety of locations in the domains specified.
      */
-    open func urlsForDirectory(_ directory: SearchPathDirectory, inDomains domainMask: SearchPathDomainMask) -> [URL] {
+    open func urls(forDirectory directory: SearchPathDirectory, in domainMask: SearchPathDomainMask) -> [URL] {
         NSUnimplemented()
     }
     
@@ -114,32 +122,29 @@ open class FileManager: NSObject {
      
         You may pass only one of the values from the NSSearchPathDomainMask enumeration, and you may not pass NSAllDomainsMask.
      */
-    open func urlForDirectory(_ directory: SearchPathDirectory, in domain: SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Bool) throws -> URL {
+    open func url(forDirectory directory: SearchPathDirectory, in domain: SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Bool) throws -> URL {
         NSUnimplemented()
     }
     
     /* Sets 'outRelationship' to NSURLRelationshipContains if the directory at 'directoryURL' directly or indirectly contains the item at 'otherURL', meaning 'directoryURL' is found while enumerating parent URLs starting from 'otherURL'. Sets 'outRelationship' to NSURLRelationshipSame if 'directoryURL' and 'otherURL' locate the same item, meaning they have the same NSURLFileResourceIdentifierKey value. If 'directoryURL' is not a directory, or does not contain 'otherURL' and they do not locate the same file, then sets 'outRelationship' to NSURLRelationshipOther. If an error occurs, returns NO and sets 'error'.
      */
-    open func getRelationship(_ outRelationship: UnsafeMutablePointer<NSURLRelationship>, ofDirectoryAtURL directoryURL: URL, toItemAtURL otherURL: URL) throws {
+    open func getRelationship(_ outRelationship: UnsafeMutablePointer<URLRelationship>, ofDirectoryAtURL directoryURL: URL, toItemAtURL otherURL: URL) throws {
         NSUnimplemented()
     }
     
     /* Similar to -[NSFileManager getRelationship:ofDirectoryAtURL:toItemAtURL:error:], except that the directory is instead defined by an NSSearchPathDirectory and NSSearchPathDomainMask. Pass 0 for domainMask to instruct the method to automatically choose the domain appropriate for 'url'. For example, to discover if a file is contained by a Trash directory, call [fileManager getRelationship:&result ofDirectory:NSTrashDirectory inDomain:0 toItemAtURL:url error:&error].
      */
-    open func getRelationship(_ outRelationship: UnsafeMutablePointer<NSURLRelationship>, ofDirectory directory: SearchPathDirectory, in domainMask: SearchPathDomainMask, toItemAtURL url: URL) throws {
+    open func getRelationship(_ outRelationship: UnsafeMutablePointer<URLRelationship>, ofDirectory directory: SearchPathDirectory, in domainMask: SearchPathDomainMask, toItemAtURL url: URL) throws {
         NSUnimplemented()
     }
     
     /* createDirectoryAtURL:withIntermediateDirectories:attributes:error: creates a directory at the specified URL. If you pass 'NO' for withIntermediateDirectories, the directory must not exist at the time this call is made. Passing 'YES' for withIntermediateDirectories will create any necessary intermediate directories. This method returns YES if all directories specified in 'url' were created and attributes were set. Directories are created with attributes specified by the dictionary passed to 'attributes'. If no dictionary is supplied, directories are created according to the umask of the process. This method returns NO if a failure occurs at any stage of the operation. If an error parameter was provided, a presentable NSError will be returned by reference.
      */
-    open func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [String : AnyObject]? = [:]) throws {
+    open func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [String : Any]? = [:]) throws {
         guard url.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : url])
         }
-        guard let path = url.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: nil)
-        }
-        try self.createDirectory(atPath: path, withIntermediateDirectories: createIntermediates, attributes: attributes)
+        try self.createDirectory(atPath: url.path, withIntermediateDirectories: createIntermediates, attributes: attributes)
     }
     
     /* createSymbolicLinkAtURL:withDestinationURL:error: returns YES if the symbolic link that point at 'destURL' was able to be created at the location specified by 'url'. 'destURL' is always resolved against its base URL, if it has one. If 'destURL' has no base URL and it's 'relativePath' is indeed a relative path, then a relative symlink will be created. If this method returns NO, the link was unable to be created and an NSError will be returned by reference in the 'error' parameter. This method does not traverse a terminal symlink.
@@ -151,18 +156,12 @@ open class FileManager: NSObject {
         guard destURL.scheme == nil || destURL.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : destURL])
         }
-        guard let path = url.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : url])
-        }
-        guard let destPath = destURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : destURL])
-        }
-        try self.createSymbolicLink(atPath: path, withDestinationPath: destPath)
+        try self.createSymbolicLink(atPath: url.path, withDestinationPath: destURL.path)
     }
     
     /* Instances of NSFileManager may now have delegates. Each instance has one delegate, and the delegate is not retained. In versions of Mac OS X prior to 10.5, the behavior of calling [[NSFileManager alloc] init] was undefined. In Mac OS X 10.5 "Leopard" and later, calling [[NSFileManager alloc] init] returns a new instance of an NSFileManager.
      */
-    open weak var delegate: NSFileManagerDelegate? {
+    open weak var delegate: FileManagerDelegate? {
         NSUnimplemented()
     }
     
@@ -170,7 +169,7 @@ open class FileManager: NSObject {
      
         This method replaces changeFileAttributes:atPath:.
      */
-    open func setAttributes(_ attributes: [String : AnyObject], ofItemAtPath path: String) throws {
+    open func setAttributes(_ attributes: [FileAttributeKey : Any], ofItemAtPath path: String) throws {
         for attribute in attributes.keys {
             switch attribute {
             case NSFilePosixPermissions:
@@ -195,11 +194,11 @@ open class FileManager: NSObject {
      
         This method replaces createDirectoryAtPath:attributes:
      */
-    open func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [String : AnyObject]? = [:]) throws {
+    open func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [String : Any]? = [:]) throws {
         if createIntermediates {
             var isDir: ObjCBool = false
             if !fileExists(atPath: path, isDirectory: &isDir) {
-                let parent = path._nsObject.stringByDeletingLastPathComponent
+                let parent = path._nsObject.deletingLastPathComponent
                 if !fileExists(atPath: parent, isDirectory: &isDir) {
                     try createDirectory(atPath: parent, withIntermediateDirectories: true, attributes: attributes)
                 }
@@ -325,7 +324,7 @@ open class FileManager: NSObject {
         This method replaces fileAttributesAtPath:traverseLink:.
      */
     /// - Experiment: Note that the return type of this function is different than on Darwin Foundation (Any instead of AnyObject). This is likely to change once we have a more complete story for bridging in place.
-    open func attributesOfItem(atPath path: String) throws -> [String : Any] {    
+    open func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
         var s = stat()
         guard lstat(path, &s) == 0 else {
             throw _NSErrorWithErrno(errno, reading: true, path: path)
@@ -391,7 +390,7 @@ open class FileManager: NSObject {
      
         This method replaces fileSystemAttributesAtPath:.
      */
-    open func attributesOfFileSystem(forPath path: String) throws -> [String : AnyObject] {
+    open func attributesOfFileSystem(forPath path: String) throws -> [FileAttributeKey : Any] {
         NSUnimplemented()
     }
     
@@ -508,13 +507,7 @@ open class FileManager: NSObject {
         guard dstURL.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : dstURL])
         }
-        guard let srcPath = srcURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : srcURL])
-        }
-        guard let dstPath = dstURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : dstURL])
-        }
-        try copyItem(atPath: srcPath, toPath: dstPath)
+        try copyItem(atPath: srcURL.path, toPath: dstURL.path)
     }
     
     open func moveItem(at srcURL: URL, to dstURL: URL) throws {
@@ -524,13 +517,7 @@ open class FileManager: NSObject {
         guard dstURL.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : dstURL])
         }
-        guard let srcPath = srcURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : srcURL])
-        }
-        guard let dstPath = dstURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : dstURL])
-        }
-        try moveItem(atPath: srcPath, toPath: dstPath)
+        try moveItem(atPath: srcURL.path, toPath: dstURL.path)
     }
     
     open func linkItem(at srcURL: URL, to dstURL: URL) throws {
@@ -540,23 +527,14 @@ open class FileManager: NSObject {
         guard dstURL.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : dstURL])
         }
-        guard let srcPath = srcURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : srcURL])
-        }
-        guard let dstPath = dstURL.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : dstURL])
-        }
-        try linkItem(atPath: srcPath, toPath: dstPath)
+        try linkItem(atPath: srcURL.path, toPath: dstURL.path)
     }
     
     open func removeItem(at url: URL) throws {
         guard url.isFileURL else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnsupportedSchemeError.rawValue, userInfo: [NSURLErrorKey : url])
         }
-        guard let path = url.path else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileNoSuchFileError.rawValue, userInfo: [NSURLErrorKey : url])
-        }
-        try self.removeItem(atPath: path)
+        try self.removeItem(atPath: url.path)
     }
     
     /* Process working directory management. Despite the fact that these are instance methods on NSFileManager, these methods report and change (respectively) the working directory for the entire process. Developers are cautioned that doing so is fraught with peril.
@@ -621,7 +599,7 @@ open class FileManager: NSObject {
         return access(path, X_OK) == 0
     }
     
-    public func isDeletableFile(atPath path: String) -> Bool {
+    open func isDeletableFile(atPath path: String) -> Bool {
         NSUnimplemented()
     }
     
@@ -645,7 +623,7 @@ open class FileManager: NSObject {
     
     /* enumeratorAtPath: returns an NSDirectoryEnumerator rooted at the provided path. If the enumerator cannot be created, this returns NULL. Because NSDirectoryEnumerator is a subclass of NSEnumerator, the returned object can be used in the for...in construct.
      */
-    public func enumerator(atPath path: String) -> DirectoryEnumerator? {
+    open func enumerator(atPath path: String) -> DirectoryEnumerator? {
         return NSPathDirectoryEnumerator(path: path)
     }
     
@@ -653,7 +631,7 @@ open class FileManager: NSObject {
     
         If you wish to only receive the URLs and no other attributes, then pass '0' for 'options' and an empty NSArray ('[NSArray array]') for 'keys'. If you wish to have the property caches of the vended URLs pre-populated with a default set of attributes, then pass '0' for 'options' and 'nil' for 'keys'.
      */
-    public func enumerator(at url: URL, includingPropertiesForKeys keys: [String]?, options mask: DirectoryEnumerationOptions = [], errorHandler handler: ((URL, NSError) -> Bool)? = nil) -> DirectoryEnumerator? {
+    open func enumerator(at url: URL, includingPropertiesForKeys keys: [URLResourceKey]?, options mask: DirectoryEnumerationOptions = [], errorHandler handler: ((URL, Error) -> Bool)? = nil) -> DirectoryEnumerator? {
         if mask.contains(.skipsPackageDescendants) || mask.contains(.skipsHiddenFiles) {
             NSUnimplemented("Enumeration options not yet implemented")
         }
@@ -676,7 +654,7 @@ open class FileManager: NSObject {
         }
     }
     
-    open func createFile(atPath path: String, contents data: Data?, attributes attr: [String : AnyObject]? = [:]) -> Bool {
+    open func createFile(atPath path: String, contents data: Data?, attributes attr: [String : Any]? = [:]) -> Bool {
         do {
             try (data ?? Data()).write(to: URL(fileURLWithPath: path), options: .dataWritingAtomic)
             return true
@@ -741,8 +719,8 @@ open class FileManager: NSObject {
         if dest.hasPrefix("/") {
             return dest
         } else {
-            let temp = toPath.bridge().stringByDeletingLastPathComponent
-            return temp.bridge().stringByAppendingPathComponent(dest)
+            let temp = toPath._bridgeToObjectiveC().deletingLastPathComponent
+            return temp._bridgeToObjectiveC().appendingPathComponent(dest)
         }
     }
     
@@ -757,7 +735,7 @@ open class FileManager: NSObject {
     }
 }
 
-extension NSFileManagerDelegate {
+extension FileManagerDelegate {
     func fileManager(_ fileManager: FileManager, shouldCopyItemAtPath srcPath: String, toPath dstPath: String) -> Bool { return true }
     func fileManager(_ fileManager: FileManager, shouldCopyItemAtURL srcURL: URL, toURL dstURL: URL) -> Bool { return true }
     
@@ -783,7 +761,7 @@ extension NSFileManagerDelegate {
     func fileManager(_ fileManager: FileManager, shouldProceedAfterError error: NSError, removingItemAtURL url: URL) -> Bool { return false }
 }
 
-public protocol NSFileManagerDelegate : class {
+public protocol FileManagerDelegate : class {
     
     /* fileManager:shouldCopyItemAtPath:toPath: gives the delegate an opportunity to filter the resulting copy. Returning YES from this method will allow the copy to happen. Returning NO from this method causes the item in question to be skipped. If the item skipped was a directory, no children of that directory will be copied, nor will the delegate be notified of those children.
      */
@@ -877,13 +855,13 @@ extension FileManager {
             self.innerEnumerator = ie
         }
         
-        override func nextObject() -> AnyObject? {
+        override func nextObject() -> Any? {
             let o = innerEnumerator.nextObject()
-            guard let url = o as? NSURL else {
+            guard let url = o as? URL else {
                 return nil
             }
-            let path = url.path!.replacingOccurrences(of: baseURL.path!+"/", with: "")
-            return NSString(string: path)
+            let path = url.path.replacingOccurrences(of: baseURL.path+"/", with: "")
+            return path
         }
 
     }
@@ -902,22 +880,17 @@ extension FileManager {
             _options = options
             _errorHandler = errorHandler
             
-            if let path = _url.path {
-                if FileManager.default.fileExists(atPath: path) {
-                    let fsRep = FileManager.default.fileSystemRepresentation(withPath: path)
-                    let ps = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: 2)
-                    ps.initialize(to: UnsafeMutablePointer(mutating: fsRep))
-                    ps.advanced(by: 1).initialize(to: nil)
-                    _stream = fts_open(ps, FTS_PHYSICAL | FTS_XDEV | FTS_NOCHDIR, nil)
-                    ps.deinitialize(count: 2)
-                    ps.deallocate(capacity: 2)
-                } else {
-                    _rootError = _NSErrorWithErrno(ENOENT, reading: true, url: url)
-                }
+            if FileManager.default.fileExists(atPath: _url.path) {
+                let fsRep = FileManager.default.fileSystemRepresentation(withPath: _url.path)
+                let ps = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: 2)
+                ps.initialize(to: UnsafeMutablePointer(mutating: fsRep))
+                ps.advanced(by: 1).initialize(to: nil)
+                _stream = fts_open(ps, FTS_PHYSICAL | FTS_XDEV | FTS_NOCHDIR, nil)
+                ps.deinitialize(count: 2)
+                ps.deallocate(capacity: 2)
             } else {
                 _rootError = _NSErrorWithErrno(ENOENT, reading: true, url: url)
             }
-
         }
         
         deinit {
@@ -926,7 +899,7 @@ extension FileManager {
             }
         }
         
-        override func nextObject() -> AnyObject? {
+        override func nextObject() -> Any? {
             if let stream = _stream {
                 
                 if !_gotRoot  {
@@ -947,7 +920,7 @@ extension FileManager {
                             fallthrough
                         case FTS_DEFAULT, FTS_F, FTS_NSOK, FTS_SL, FTS_SLNONE:
                             let str = NSString(bytes: current.pointee.fts_path, length: Int(strlen(current.pointee.fts_path)), encoding: String.Encoding.utf8.rawValue)!._swiftObject
-                            return NSURL(fileURLWithPath: str)
+                            return URL(fileURLWithPath: str)
                         case FTS_DNR, FTS_ERR, FTS_NS:
                             let keepGoing : Bool
                             if let handler = _errorHandler {
