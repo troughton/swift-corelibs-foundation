@@ -103,8 +103,8 @@ extension NSString {
 
 internal func _createRegexForPattern(_ pattern: String, _ options: RegularExpression.Options) -> RegularExpression? {
     struct local {
-        static let __NSRegularExpressionCache: Cache = {
-            let cache = Cache()
+        static let __NSRegularExpressionCache: NSCache<NSString, RegularExpression> = {
+            let cache = NSCache<NSString, RegularExpression>()
             cache.name = "NSRegularExpressionCache"
             cache.countLimit = 10
             return cache
@@ -112,7 +112,7 @@ internal func _createRegexForPattern(_ pattern: String, _ options: RegularExpres
     }
     let key = "\(options):\(pattern)"
     if let regex = local.__NSRegularExpressionCache.object(forKey: key._nsObject) {
-        return (regex as! RegularExpression)
+        return regex
     }
     do {
         let regex = try RegularExpression(pattern: pattern, options: options)
@@ -197,7 +197,7 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
     
     public convenience required init?(coder aDecoder: NSCoder) {
         if !aDecoder.allowsKeyedCoding {
-            aDecoder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderReadCorruptError.rawValue, userInfo: ["NSDebugDescription": "NSUUID cannot be decoded by non-keyed coders"]))
+            aDecoder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderReadCorrupt.rawValue, userInfo: ["NSDebugDescription": "NSUUID cannot be decoded by non-keyed coders"]))
             return nil
         } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.string") {
             let str = aDecoder._decodePropertyListForKey("NS.string") as! String
@@ -303,7 +303,7 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
         return CFStringGetTypeID()
     }
   
-    open override func isEqual(_ object: AnyObject?) -> Bool {
+    open override func isEqual(_ object: Any?) -> Bool {
         guard let string = (object as? NSString)?._swiftObject else { return false }
         return self.isEqual(to: string)
     }
@@ -791,7 +791,7 @@ extension NSString {
         return String.Encoding.unicode.rawValue
     }
     
-    public func data(using encoding: UInt, allowLossyConversion lossy: Bool) -> Data? {
+    public func data(using encoding: UInt, allowLossyConversion lossy: Bool = false) -> Data? {
         let len = length
         var reqSize = 0
         
@@ -804,7 +804,7 @@ extension NSString {
         if convertedLen != len {
             return nil 	// Not able to do it all...
         }
-                
+        
         if 0 < reqSize {
             var data = Data(count: reqSize)
             data.count = data.withUnsafeMutableBytes { (mutableBytes: UnsafeMutablePointer<UInt8>) -> Int in
@@ -1046,7 +1046,7 @@ extension NSString {
         return mStr._swiftObject
     }
     
-    open func folding(options options: CompareOptions = [], locale: Locale?) -> String {
+    open func folding(options: CompareOptions = [], locale: Locale?) -> String {
         let string = CFStringCreateMutable(kCFAllocatorSystemDefault, 0)!
         CFStringReplaceAll(string, self._cfObject)
         CFStringFold(string, options._cfValue(), locale?._cfObject)
@@ -1099,7 +1099,7 @@ extension NSString {
         var numBytes = 0
         let theRange = NSMakeRange(0, length)
         if !getBytes(nil, maxLength: Int.max - 1, usedLength: &numBytes, encoding: enc, options: [], range: theRange, remaining: nil) {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteInapplicableStringEncodingError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteInapplicableStringEncoding.rawValue, userInfo: [
                 NSURLErrorKey: dest,
             ])
         }
@@ -1109,7 +1109,7 @@ extension NSString {
         // This binds mData memory to UInt8 because Data.withUnsafeMutableBytes does not handle raw pointers.
         try mData.withUnsafeMutableBytes { (mutableBytes: UnsafeMutablePointer<UInt8>) -> Void in
             if !getBytes(mutableBytes, maxLength: numBytes, usedLength: &used, encoding: enc, options: [], range: theRange, remaining: nil) {
-                throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileWriteUnknownError.rawValue, userInfo: [
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteUnknown.rawValue, userInfo: [
                     NSURLErrorKey: dest,
                 ])
             }
@@ -1120,7 +1120,7 @@ extension NSString {
     internal func _writeTo(_ url: URL, _ useAuxiliaryFile: Bool, _ enc: UInt) throws {
         var data = Data()
         try _getExternalRepresentation(&data, url, enc)
-        try data.write(to: url, options: useAuxiliaryFile ? .dataWritingAtomic : [])
+        try data.write(to: url, options: useAuxiliaryFile ? .atomic : [])
     }
     
     open func write(to url: URL, atomically useAuxiliaryFile: Bool, encoding enc: UInt) throws {
@@ -1229,7 +1229,7 @@ extension NSString {
 
         let bytePtr = readResult.bytes.bindMemory(to: UInt8.self, capacity: readResult.length)
         guard let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr, readResult.length, CFStringConvertNSStringEncodingToEncoding(enc), true) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileReadInapplicableStringEncodingError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadInapplicableStringEncoding.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to create a string using the specified encoding."
                 ])
         }
@@ -1237,7 +1237,7 @@ extension NSString {
         if String._conditionallyBridgeFromObjectiveC(cf._nsObject, result: &str) {
             self.init(str!)
         } else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.FileReadInapplicableStringEncodingError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadInapplicableStringEncoding.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to bridge CFString to String."
                 ])
         }
@@ -1394,7 +1394,7 @@ extension String {
     }
 }
 
-extension NSString : _CFBridgable, _SwiftBridgable {
+extension NSString : _CFBridgeable, _SwiftBridgeable {
     typealias SwiftType = String
     internal var _cfObject: CFString { return unsafeBitCast(self, to: CFString.self) }
     internal var _swiftObject: String { return String._unconditionallyBridgeFromObjectiveC(self) }
@@ -1404,14 +1404,14 @@ extension NSMutableString {
     internal var _cfMutableObject: CFMutableString { return unsafeBitCast(self, to: CFMutableString.self) }
 }
 
-extension CFString : _NSBridgable, _SwiftBridgable {
+extension CFString : _NSBridgeable, _SwiftBridgeable {
     typealias NSType = NSString
     typealias SwiftType = String
     internal var _nsObject: NSType { return unsafeBitCast(self, to: NSString.self) }
     internal var _swiftObject: String { return _nsObject._swiftObject }
 }
 
-extension String : _NSBridgable, _CFBridgable {
+extension String : _NSBridgeable, _CFBridgeable {
     typealias NSType = NSString
     typealias CFType = CFString
     internal var _nsObject: NSType { return _bridgeToObjectiveC() }

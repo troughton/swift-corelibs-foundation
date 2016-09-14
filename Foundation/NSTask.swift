@@ -100,7 +100,7 @@ open class Task: NSObject {
         Once.lock.synchronized {
             if !Once.done {
                 let thread = Thread {
-                    managerThreadRunLoop = RunLoop.current()
+                    managerThreadRunLoop = RunLoop.current
                     var emptySourceContext = CFRunLoopSourceContext()
                     emptySourceContext.version = 0
                     emptySourceContext.retain = runLoopSourceRetain
@@ -377,7 +377,7 @@ open class Task: NSObject {
 
         close(taskSocketPair[1])
         
-        self.runLoop = RunLoop.current()
+        self.runLoop = RunLoop.current
         self.runLoopSourceContext = CFRunLoopSourceContext(version: 0,
                                                            info: Unmanaged.passUnretained(self).toOpaque(),
                                                            retain: { return runLoopSourceRetain($0) },
@@ -450,7 +450,7 @@ extension Task {
         
         repeat {
             
-        } while( self.running == true && RunLoop.current().run(mode: .defaultRunLoopMode, before: Date(timeIntervalSinceNow: 0.05)) )
+        } while( self.running == true && RunLoop.current.run(mode: .defaultRunLoopMode, before: Date(timeIntervalSinceNow: 0.05)) )
         
         self.runLoop = nil
     }

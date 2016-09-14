@@ -7,6 +7,8 @@
 // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 
+import CoreFoundation
+
 #if os(OSX) || os(iOS)
     import Darwin
 #elseif os(Linux) || CYGWIN
@@ -121,7 +123,7 @@ open class JSONSerialization : NSObject {
             try writer.serializeJSON(container)
         } else {
             if stream {
-                throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                     "NSDebugDescription" : "Top-level object was not NSArray or NSDictionary"
                     ])
             } else {
@@ -163,7 +165,7 @@ open class JSONSerialization : NSObject {
             else if opt.contains(.allowFragments), let (value, _) = try reader.parseValue(0) {
                 return value
             }
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "JSON text did not start with array or object and option to allow fragments not set."
             ])
         }
@@ -172,11 +174,12 @@ open class JSONSerialization : NSObject {
     
     /* Write JSON data into a stream. The stream should be opened and configured. The return value is the number of bytes written to the stream, or 0 on error. All other behavior of this method is the same as the dataWithJSONObject:options:error: method.
      */
-    open class func writeJSONObject(_ obj: Any, toStream stream: NSOutputStream, options opt: WritingOptions) throws -> Int {
+    open class func writeJSONObject(_ obj: Any, toStream stream: OutputStream, options opt: WritingOptions) throws -> Int {
         let jsonData = try _data(withJSONObject: obj, options: opt, stream: true)
-        let jsonNSData = jsonData.bridge()
-        let bytePtr = jsonNSData.bytes.bindMemory(to: UInt8.self, capacity: jsonNSData.length)
-        return stream.write(bytePtr, maxLength: jsonNSData.length)
+        let count = jsonData.count
+        return jsonData.withUnsafeBytes { (bytePtr) -> Int in
+            return stream.write(bytePtr, maxLength: count)
+        }
     }
     
     /* Create a JSON object from JSON data stream. The stream should be opened and configured. All other behavior of this method is the same as the JSONObjectWithData:options:error: method.
@@ -253,6 +256,14 @@ private struct JSONWriter {
     let pretty: Bool
     let writer: (String?) -> Void
     
+    private lazy var _numberformatter: CFNumberFormatter = {
+        let formatter: CFNumberFormatter
+        formatter = CFNumberFormatterCreate(nil, CFLocaleCopyCurrent(), kCFNumberFormatterNoStyle)
+        CFNumberFormatterSetProperty(formatter, kCFNumberFormatterMaxFractionDigits, NSNumber(value: 15))
+        CFNumberFormatterSetFormat(formatter, "0.###############"._cfObject)
+        return formatter
+    }()
+
     init(pretty: Bool = false, writer: @escaping (String?) -> Void) {
         self.pretty = pretty
         self.writer = writer
@@ -276,7 +287,7 @@ private struct JSONWriter {
             try serializeNull(null)
         }
         else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: ["NSDebugDescription" : "Invalid object cannot be serialized"])
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: ["NSDebugDescription" : "Invalid object cannot be serialized"])
         }
     }
 
@@ -310,15 +321,15 @@ private struct JSONWriter {
         writer("\"")
     }
 
-    func serializeNumber(_ num: NSNumber) throws {
+    mutating func serializeNumber(_ num: NSNumber) throws {
         if num.doubleValue.isInfinite || num.doubleValue.isNaN {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: ["NSDebugDescription" : "Number cannot be infinity or NaN"])
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: ["NSDebugDescription" : "Number cannot be infinity or NaN"])
         }
         
         // Cannot detect type information (e.g. bool) as there is no objCType property on NSNumber in Swift
         // So, just print the number
 
-        writer("\(num)")
+        writer(_serializationString(for: num))
     }
 
     mutating func serializeArray(_ array: [Any]) throws {
@@ -369,7 +380,7 @@ private struct JSONWriter {
             if key is String {
                 try serializeString(key as! String)
             } else {
-                throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: ["NSDebugDescription" : "NSDictionary key must be NSString"])
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: ["NSDebugDescription" : "NSDictionary key must be NSString"])
             }
             pretty ? writer(": ") : writer(":")
             try serializeJSON(value)
@@ -401,6 +412,11 @@ private struct JSONWriter {
         for _ in 0..<indent {
             writer(" ")
         }
+    }
+    
+    //[SR-2151] https://bugs.swift.org/browse/SR-2151
+    private mutating func _serializationString(for number: NSNumber) -> String {
+        return CFNumberFormatterCreateStringWithNumber(nil, _numberformatter, number._cfObject)._swiftObject
     }
 }
 
@@ -478,7 +494,7 @@ private struct JSONReader {
             let byteLength = begin.distance(to: end)
             
             guard let chunk = String(data: Data(bytes: buffer.baseAddress!.advanced(by: begin), count: byteLength), encoding: encoding) else {
-                throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                     "NSDebugDescription" : "Unable to convert data to a string using the detected encoding. The data may be corrupt."
                     ])
             }
@@ -512,7 +528,7 @@ private struct JSONReader {
         return { (input: Index) throws -> Index? in
             switch self.source.takeASCII(input) {
             case .none:
-                throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                     "NSDebugDescription" : "Unexpected end of file during JSON parse."
                     ])
             case let (taken, index)? where taken == ascii:
@@ -571,7 +587,7 @@ private struct JSONReader {
                     continue
                 }
                 else {
-                    throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+                    throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                         "NSDebugDescription" : "Invalid escape sequence at position \(source.distanceFromStart(currentIndex))"
                     ])
                 }
@@ -579,14 +595,14 @@ private struct JSONReader {
                 currentIndex = index
             }
         }
-        throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+        throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
             "NSDebugDescription" : "Unexpected end of file during string parse."
         ])
     }
 
     func parseEscapeSequence(_ input: Index) throws -> (String, Index)? {
         guard let (byte, index) = source.takeASCII(input) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Early end of unicode escape sequence around character"
             ])
         }
@@ -617,7 +633,7 @@ private struct JSONReader {
         }
 
         guard let (trailCodeUnit, finalIndex) = try consumeASCIISequence("\\u", input: index).flatMap(parseCodeUnit) , UTF16.isTrailSurrogate(trailCodeUnit) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to convert unicode escape sequence (no low-surrogate code point) to UTF8-encoded character at position \(source.distanceFromStart(input))"
             ])
         }
@@ -756,17 +772,17 @@ private struct JSONReader {
     
     func parseObjectMember(_ input: Index) throws -> (String, Any, Index)? {
         guard let (name, index) = try parseString(input) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Missing object key at location \(source.distanceFromStart(input))"
             ])
         }
         guard let separatorIndex = try consumeStructure(Structure.NameSeparator, input: index) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Invalid separator at location \(source.distanceFromStart(index))"
             ])
         }
         guard let (value, finalIndex) = try parseValue(separatorIndex) else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Invalid value at location \(source.distanceFromStart(separatorIndex))"
             ])
         }
@@ -797,7 +813,7 @@ private struct JSONReader {
                     continue
                 }
             }
-            throw NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.PropertyListReadCorruptError.rawValue, userInfo: [
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: [
                 "NSDebugDescription" : "Badly formed array at location \(source.distanceFromStart(index))"
             ])
         }

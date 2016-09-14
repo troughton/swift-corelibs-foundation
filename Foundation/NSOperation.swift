@@ -17,7 +17,7 @@ private func pthread_main_np() -> Int32 {
 #endif
 #endif
 
-open class Operation: NSObject {
+open class Operation : NSObject {
     let lock = NSLock()
     internal weak var _queue: OperationQueue?
     internal var _cancelled = false
@@ -328,7 +328,8 @@ open class OperationQueue: NSObject {
             }
             let attr: DispatchQueue.Attributes
             if maxConcurrentOperationCount == 1 {
-                attr = [] 
+                attr = []
+                __concurrencyGate = DispatchSemaphore(value: 1)
             } else {
                 attr = .concurrent
                 if maxConcurrentOperationCount != NSOperationQueueDefaultMaxConcurrentOperationCount {
@@ -398,11 +399,13 @@ open class OperationQueue: NSObject {
          execution. The only differential is that the block enqueued to dispatch_async
          is balanced with the number of Operations enqueued to the NSOperationQueue.
          */
+        lock.lock()
         ops.forEach { (operation: Operation) -> Void in
-            lock.lock()
             operation._queue = self
             _operations.insert(operation)
-            lock.unlock()
+        }
+        lock.unlock()
+        ops.forEach { (operation: Operation) -> Void in
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
             if let group = waitGroup {
                 group.enter()
@@ -437,7 +440,7 @@ open class OperationQueue: NSObject {
         lock.unlock()
     }
     
-    open func addOperationWithBlock(_ block: @escaping () -> Void) {
+    open func addOperation(_ block: @escaping () -> Swift.Void) {
         let op = BlockOperation(block: block)
         op.qualityOfService = qualityOfService
         addOperation(op)
@@ -462,7 +465,7 @@ open class OperationQueue: NSObject {
     open var maxConcurrentOperationCount: Int = NSOperationQueueDefaultMaxConcurrentOperationCount
     
     internal var _suspended = false
-    open var suspended: Bool {
+    open var isSuspended: Bool {
         get {
             return _suspended
         }
@@ -538,12 +541,12 @@ open class OperationQueue: NSObject {
     static let OperationQueueKey = DispatchSpecificKey<Unmanaged<OperationQueue>>()
 #endif
 
-    open class func currentQueue() -> OperationQueue? {
+    open class var current: OperationQueue? {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
         let specific = DispatchQueue.getSpecific(key: OperationQueue.OperationQueueKey)
         if specific == nil {
             if pthread_main_np() == 1 {
-                return OperationQueue.mainQueue()
+                return OperationQueue.main
             } else {
                 return nil
             }
@@ -555,7 +558,7 @@ open class OperationQueue: NSObject {
 #endif
     }
     
-    open class func mainQueue() -> OperationQueue {
+    open class var main: OperationQueue {
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
         let specific = DispatchQueue.main.getSpecific(key: OperationQueue.OperationQueueKey)
         if specific == nil {

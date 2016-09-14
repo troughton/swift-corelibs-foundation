@@ -28,12 +28,13 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
         return Int(bitPattern: CFHash(_cfObject))
     }
     
-    open override func isEqual(_ object: AnyObject?) -> Bool {
-        if let date = object as? Date {
+    open override func isEqual(_ value: Any?) -> Bool {
+        if let date = value as? Date {
             return isEqual(to: date)
-        } else {
-            return false
+        } else if let date = value as? NSDate {
+            return isEqual(to: Date(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate))
         }
+        return false
     }
     
     deinit {
@@ -51,7 +52,9 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
         return _timeIntervalSinceReferenceDate
     }
     
-    open class var timeIntervalSinceReferenceDate: TimeInterval { NSUnimplemented() }
+    open class var timeIntervalSinceReferenceDate: TimeInterval {
+        return Date().timeIntervalSinceReferenceDate
+    }
 
     public convenience override init() {
         var tv = timeval()
@@ -68,18 +71,13 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public convenience required init?(coder aDecoder: NSCoder) {
-        if aDecoder.allowsKeyedCoding {
-            let ti = aDecoder.decodeDouble(forKey: "NS.time")
-            self.init(timeIntervalSinceReferenceDate: ti)
-        } else {
-            var ti: TimeInterval = 0.0
-            withUnsafeMutablePointer(to: &ti) { (ptr: UnsafeMutablePointer<Double>) -> Void in
-                aDecoder.decodeValue(ofObjCType: "d", at: UnsafeMutableRawPointer(ptr))
-            }
-            self.init(timeIntervalSinceReferenceDate: ti)
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        let ti = aDecoder.decodeDouble(forKey: "NS.time")
+        self.init(timeIntervalSinceReferenceDate: ti)
     }
-    
+
     open override func copy() -> Any {
         return copy(with: nil)
     }
@@ -93,11 +91,10 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     open func encode(with aCoder: NSCoder) {
-        if aCoder.allowsKeyedCoding {
-            aCoder.encode(_timeIntervalSinceReferenceDate, forKey: "NS.time")
-        } else {
-            NSUnimplemented()
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        aCoder.encode(_timeIntervalSinceReferenceDate, forKey: "NS.time")
     }
 
     /**
@@ -224,14 +221,14 @@ extension NSDate {
     }
 }
 
-extension NSDate: _CFBridgable, _SwiftBridgable {
+extension NSDate: _CFBridgeable, _SwiftBridgeable {
     typealias SwiftType = Date
     var _swiftObject: Date {
         return Date(timeIntervalSinceReferenceDate: timeIntervalSinceReferenceDate)
     }
 }
 
-extension CFDate : _NSBridgable, _SwiftBridgable {
+extension CFDate : _NSBridgeable, _SwiftBridgeable {
     typealias NSType = NSDate
     typealias SwiftType = Date
     
@@ -239,7 +236,7 @@ extension CFDate : _NSBridgable, _SwiftBridgable {
     internal var _swiftObject: Date { return _nsObject._swiftObject }
 }
 
-extension Date : _NSBridgable, _CFBridgable {
+extension Date : _NSBridgeable, _CFBridgeable {
     typealias NSType = NSDate
     typealias CFType = CFDate
     
@@ -279,11 +276,11 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
     public required convenience init?(coder: NSCoder) {
         precondition(coder.allowsKeyedCoding)
         guard let start = coder.decodeObject(of: NSDate.self, forKey: "NS.startDate") else {
-            coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderValueNotFoundError.rawValue, userInfo: nil))
+            coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderValueNotFound.rawValue, userInfo: nil))
             return nil
         }
         guard let end = coder.decodeObject(of: NSDate.self, forKey: "NS.startDate") else {
-            coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: NSCocoaError.CoderValueNotFoundError.rawValue, userInfo: nil))
+            coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderValueNotFound.rawValue, userInfo: nil))
             return nil
         }
         self.init(start: start._swiftObject, end: end._swiftObject)

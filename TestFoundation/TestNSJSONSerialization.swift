@@ -45,7 +45,10 @@ extension TestNSJSONSerialization {
     }
     
     func test_JSONObjectWithData_emptyObject() {
-        let subject = Data(bytes: UnsafeRawPointer([UInt8]([0x7B, 0x7D])), count: 2)
+        var bytes: [UInt8] = [0x7B, 0x7D]
+        let subject = bytes.withUnsafeMutableBufferPointer {
+            return Data(buffer: $0)
+        }
         
         let object = try! JSONSerialization.jsonObject(with: subject, options: []) as? [String:Any]
         XCTAssertEqual(object?.count, 0)
@@ -75,7 +78,7 @@ extension TestNSJSONSerialization {
         ]
         
         for (description, encoded) in subjects {
-            let result = try? JSONSerialization.jsonObject(with: Data(bytes:UnsafeRawPointer(encoded), count: encoded.count), options: [])
+            let result = try? JSONSerialization.jsonObject(with: Data(bytes:encoded, count: encoded.count), options: [])
             XCTAssertNotNil(result, description)
         }
     }
@@ -114,6 +117,8 @@ extension TestNSJSONSerialization {
             ("test_deserialize_badlyFormedArray", test_deserialize_badlyFormedArray),
             ("test_deserialize_invalidEscapeSequence", test_deserialize_invalidEscapeSequence),
             ("test_deserialize_unicodeMissingTrailingSurrogate", test_deserialize_unicodeMissingTrailingSurrogate),
+            ("test_serialize_dictionaryWithDecimal", test_serialize_dictionaryWithDecimal),
+
         ]
     }
     
@@ -621,6 +626,88 @@ extension TestNSJSONSerialization {
         XCTAssertEqual(try trySerialize(array2), "[]")
     }
     
+    //[SR-2151] https://bugs.swift.org/browse/SR-2151
+    //NSJSONSerialization.data(withJSONObject:options) produces illegal JSON code
+    func test_serialize_dictionaryWithDecimal() {
+        
+        //test serialize values less than 1 with maxFractionDigits = 15
+        func excecute_testSetLessThanOne() {
+            //expected : input to be serialized
+            let params  = [
+                           ("0.1",0.1),
+                           ("0.2",0.2),
+                           ("0.3",0.3),
+                           ("0.4",0.4),
+                           ("0.5",0.5),
+                           ("0.6",0.6),
+                           ("0.7",0.7),
+                           ("0.8",0.8),
+                           ("0.9",0.9),
+                           ("0.23456789012345",0.23456789012345),
+
+                           ("-0.1",-0.1),
+                           ("-0.2",-0.2),
+                           ("-0.3",-0.3),
+                           ("-0.4",-0.4),
+                           ("-0.5",-0.5),
+                           ("-0.6",-0.6),
+                           ("-0.7",-0.7),
+                           ("-0.8",-0.8),
+                           ("-0.9",-0.9),
+                           ("-0.23456789012345",-0.23456789012345),
+                           ]
+            for param in params {
+                let testDict = [param.0 : param.1]
+                let str = try? trySerialize(testDict)
+                XCTAssertEqual(str!, "{\"\(param.0)\":\(param.1)}", "serialized value should  have a decimal places and leading zero")
+            }
+        }
+        //test serialize values grater than 1 with maxFractionDigits = 15
+        func excecute_testSetGraterThanOne() {
+            let paramsBove1 = [
+                ("1.1",1.1),
+                ("1.2",1.2),
+                ("1.23456789012345",1.23456789012345),
+                ("-1.1",-1.1),
+                ("-1.2",-1.2),
+                ("-1.23456789012345",-1.23456789012345),
+                ]
+            for param in paramsBove1 {
+                let testDict = [param.0 : param.1]
+                let str = try? trySerialize(testDict)
+                XCTAssertEqual(str!, "{\"\(param.0)\":\(param.1)}", "serialized Double should  have a decimal places and leading value")
+            }
+        }
+
+        //test serialize values for whole integer where the input is in Double format
+        func excecute_testWholeNumbersWithDoubleAsInput() {
+            
+            let paramsWholeNumbers = [
+                ("-1"  ,-1.0),
+                ("0"  ,0.0),
+                ("1"  ,1.0),
+                ]
+            for param in paramsWholeNumbers {
+                let testDict = [param.0 : param.1]
+                let str = try? trySerialize(testDict)
+                XCTAssertEqual(str!, "{\"\(param.0)\":\(NSString(string:param.0).intValue)}", "expect that serialized value should not contain trailing zero or decimal as they are whole numbers ")
+            }
+        }
+        
+        func excecute_testWholeNumbersWithIntInput() {
+            for i  in -10..<10 {
+                let iStr = "\(i)"
+                let testDict = [iStr : i]
+                let str = try? trySerialize(testDict)
+                XCTAssertEqual(str!, "{\"\(iStr)\":\(i)}", "expect that serialized value should not contain trailing zero or decimal as they are whole numbers ")
+            }
+        }
+        excecute_testSetLessThanOne()
+        excecute_testSetGraterThanOne()
+        excecute_testWholeNumbersWithDoubleAsInput()
+        excecute_testWholeNumbersWithIntInput()
+    }
+    
     func test_serialize_null() {
         let arr = [NSNull()]
         XCTAssertEqual(try trySerialize(arr), "[null]")
@@ -775,7 +862,7 @@ extension TestNSJSONSerialization {
         let dict = ["a":["b":1]]
         do {
             let buffer = Array<UInt8>(repeating: 0, count: 20)
-            let outputStream = NSOutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: 20)
+            let outputStream = OutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: 20)
             outputStream.open()
             let result = try JSONSerialization.writeJSONObject(dict, toStream: outputStream, options: [])
             outputStream.close()
@@ -792,7 +879,7 @@ extension TestNSJSONSerialization {
         do {
             let filePath = createTestFile("TestFileOut.txt",_contents: Data(capacity: 128))
             if filePath != nil {
-                let outputStream = NSOutputStream(toFileAtPath: filePath!, append: true)
+                let outputStream = OutputStream(toFileAtPath: filePath!, append: true)
                 outputStream?.open()
                 let result = try JSONSerialization.writeJSONObject(dict, toStream: outputStream!, options: [])
                 outputStream?.close()
@@ -820,7 +907,7 @@ extension TestNSJSONSerialization {
     func test_jsonObjectToOutputStreamInsufficeintBuffer() {
         let dict = ["a":["b":1]]
         let buffer = Array<UInt8>(repeating: 0, count: 10)
-        let outputStream = NSOutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: buffer.count)
+        let outputStream = OutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: buffer.count)
         outputStream.open()
         do {
             let result = try JSONSerialization.writeJSONObject(dict, toStream: outputStream, options: [])
@@ -836,7 +923,7 @@ extension TestNSJSONSerialization {
     func test_invalidJsonObjectToStreamBuffer() {
         let str = "Invalid JSON"
         let buffer = Array<UInt8>(repeating: 0, count: 10)
-        let outputStream = NSOutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: buffer.count)
+        let outputStream = OutputStream(toBuffer: UnsafeMutablePointer(mutating: buffer), capacity: buffer.count)
         outputStream.open()
         XCTAssertThrowsError(try JSONSerialization.writeJSONObject(str, toStream: outputStream, options: []))
     }

@@ -113,32 +113,31 @@ internal class NSConcreteValue : NSValue {
     }
     
     override var description : String {
-        return Data(bytes: self.value, count: self._size).description
+        let boundBytes = self.value.bindMemory(to: UInt8.self, capacity: self._size)
+        return Data(bytes: boundBytes, count: self._size).description
     }
     
     convenience required init?(coder aDecoder: NSCoder) {
-        if !aDecoder.allowsKeyedCoding {
-            NSUnimplemented()
-        } else {
-            guard let type = aDecoder.decodeObject() as? NSString else {
-                return nil
-            }
-            
-            let typep = type._swiftObject
-
-            // FIXME: This will result in reading garbage memory.
-            self.init(bytes: [], objCType: typep)
-            aDecoder.decodeValue(ofObjCType: typep, at: self.value)
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        guard let type = aDecoder.decodeObject() as? NSString else {
+            return nil
+        }
+
+        let typep = type._swiftObject
+
+        // FIXME: This will result in reading garbage memory.
+        self.init(bytes: [], objCType: typep)
+        aDecoder.decodeValue(ofObjCType: typep, at: self.value)
     }
     
     override func encode(with aCoder: NSCoder) {
-        if !aCoder.allowsKeyedCoding {
-            NSUnimplemented()
-        } else {
-            aCoder.encode(String(cString: self.objCType)._bridgeToObjectiveC())
-            aCoder.encodeValue(ofObjCType: self.objCType, at: self.value)
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        aCoder.encode(String(cString: self.objCType)._bridgeToObjectiveC())
+        aCoder.encodeValue(ofObjCType: self.objCType, at: self.value)
     }
     
     private var _size : Int {
@@ -167,8 +166,8 @@ internal class NSConcreteValue : NSValue {
         return memcmp(bytes1, bytes2, self._size) == 0
     }
     
-    override func isEqual(_ object: AnyObject?) -> Bool {
-        if let other = object as? NSConcreteValue {
+    override func isEqual(_ value: Any?) -> Bool {
+        if let other = value as? NSConcreteValue {
             return self._typeInfo == other._typeInfo &&
                    self._isEqualToValue(other)
         } else {

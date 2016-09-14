@@ -32,12 +32,11 @@ internal class __NSCFType : NSObject {
         return Int(bitPattern: CFHash(self))
     }
     
-    override func isEqual(_ object: AnyObject?) -> Bool {
-        if let obj = object {
-            return CFEqual(self, obj)
-        } else {
-            return false
+    override func isEqual(_ value: Any?) -> Bool {
+        if let other = value as? NSObject {
+            return CFEqual(self, other)
         }
+        return false
     }
     
     override var description: String {
@@ -93,8 +92,8 @@ internal func __CFInitializeSwift() {
     
 //    _CFRuntimeBridgeTypeToClass(CFErrorGetTypeID(), unsafeBitCast(NSError.self, UnsafeRawPointer.self))
 //    _CFRuntimeBridgeTypeToClass(CFAttributedStringGetTypeID(), unsafeBitCast(NSMutableAttributedString.self, UnsafeRawPointer.self))
-//    _CFRuntimeBridgeTypeToClass(CFReadStreamGetTypeID(), unsafeBitCast(NSInputStream.self, UnsafeRawPointer.self))
-//    _CFRuntimeBridgeTypeToClass(CFWriteStreamGetTypeID(), unsafeBitCast(NSOutputStream.self, UnsafeRawPointer.self))
+//    _CFRuntimeBridgeTypeToClass(CFReadStreamGetTypeID(), unsafeBitCast(InputStream.self, UnsafeRawPointer.self))
+//    _CFRuntimeBridgeTypeToClass(CFWriteStreamGetTypeID(), unsafeBitCast(OutputStream.self, UnsafeRawPointer.self))
    _CFRuntimeBridgeTypeToClass(CFRunLoopTimerGetTypeID(), unsafeBitCast(Timer.self, to: UnsafeRawPointer.self))
     
     __CFSwiftBridge.NSObject.isEqual = _CFSwiftIsEqual

@@ -41,14 +41,13 @@ open class NSLocale: NSObject, NSCopying, NSSecureCoding {
     }
     
     public required convenience init?(coder aDecoder: NSCoder) {
-        if aDecoder.allowsKeyedCoding {
-            guard let identifier = aDecoder.decodeObject(of: NSString.self, forKey: "NS.identifier") else {
-                return nil
-            }
-            self.init(localeIdentifier: String._unconditionallyBridgeFromObjectiveC(identifier))
-        } else {
-            NSUnimplemented()
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        guard let identifier = aDecoder.decodeObject(of: NSString.self, forKey: "NS.identifier") else {
+            return nil
+        }
+        self.init(localeIdentifier: String._unconditionallyBridgeFromObjectiveC(identifier))
     }
     
     open override func copy() -> Any {
@@ -59,13 +58,20 @@ open class NSLocale: NSObject, NSCopying, NSSecureCoding {
         return self 
     }
     
-    open func encode(with aCoder: NSCoder) {
-        if aCoder.allowsKeyedCoding {
-            let identifier = CFLocaleGetIdentifier(self._cfObject)
-            aCoder.encode(identifier, forKey: "NS.identifier")
-        } else {
-            NSUnimplemented()
+    override open func isEqual(_ object: Any?) -> Bool {
+        guard let locale = object as? NSLocale else {
+            return false
         }
+        
+        return locale.localeIdentifier == localeIdentifier
+    }
+    
+    open func encode(with aCoder: NSCoder) {
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        let identifier = CFLocaleGetIdentifier(self._cfObject)._nsObject
+        aCoder.encode(identifier, forKey: "NS.identifier")
     }
     
     public static var supportsSecureCoding: Bool {
@@ -139,7 +145,7 @@ extension NSLocale {
     open class func components(fromLocaleIdentifier string: String) -> [String : String] {
         var comps = Dictionary<String, String>()
         let values = CFLocaleCreateComponentsFromLocaleIdentifier(kCFAllocatorSystemDefault, string._cfObject)._nsObject
-        values.enumerateKeysAndObjects([]) { (k, v, stop) in
+        values.enumerateKeysAndObjects(options: []) { (k, v, stop) in
             let key = (k as! NSString)._swiftObject
             let value = (v as! NSString)._swiftObject
             comps[key] = value
@@ -243,7 +249,7 @@ public func <(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
 public let NSCurrentLocaleDidChangeNotification: String = "kCFLocaleCurrentLocaleDidChangeNotification"
 
 
-extension CFLocale : _NSBridgable, _SwiftBridgable {
+extension CFLocale : _NSBridgeable, _SwiftBridgeable {
     typealias NSType = NSLocale
     typealias SwiftType = Locale
     internal var _nsObject: NSLocale {
@@ -254,14 +260,14 @@ extension CFLocale : _NSBridgable, _SwiftBridgable {
     }
 }
 
-extension NSLocale : _SwiftBridgable {
+extension NSLocale : _SwiftBridgeable {
     typealias SwiftType = Locale
     internal var _swiftObject: Locale {
         return Locale(reference: self)
     }
 }
 
-extension Locale : _CFBridgable {
+extension Locale : _CFBridgeable {
     typealias CFType = CFLocale
     internal var _cfObject: CFLocale {
         return _bridgeToObjectiveC()._cfObject

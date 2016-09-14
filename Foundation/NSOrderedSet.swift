@@ -32,7 +32,7 @@ open class NSOrderedSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
         return true
     }
     
-    open override func isEqual(_ object: AnyObject?) -> Bool {
+    open override func isEqual(_ object: Any?) -> Bool {
         if let orderedSet = object as? NSOrderedSet {
             return isEqual(to: orderedSet)
         } else {
@@ -118,6 +118,16 @@ open class NSOrderedSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
         let buffer = UnsafeBufferPointer(start: objects, count: cnt)
         for obj in buffer {
             _insertObject(obj)
+        }
+    }
+    
+    internal var allObjects: [Any] {
+        if type(of: self) === NSOrderedSet.self || type(of: self) === NSMutableOrderedSet.self {
+            return _orderedStorage.map { _SwiftValue.fetch($0) }
+        } else {
+            return (0..<count).map { idx in
+                return self[idx]
+            }
         }
     }
 }
@@ -237,7 +247,7 @@ extension NSOrderedSet {
     }
     
     /*@NSCopying*/ 
-    public var reversedOrderedSet: NSOrderedSet { 
+    public var reversed: NSOrderedSet {
         return NSOrderedSet(array: _orderedStorage.map { _SwiftValue.fetch($0) }.reversed())
     }
     
@@ -265,7 +275,7 @@ extension NSOrderedSet {
     open func index(of object: Any, inSortedRange range: NSRange, options opts: NSBinarySearchingOptions = [], usingComparator cmp: (Any, Any) -> ComparisonResult) -> Int { NSUnimplemented() } // binary search
     
     open func sortedArray(comparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] { NSUnimplemented() }
-    open func sortedArray(options opts: SortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] { NSUnimplemented() }
+    open func sortedArray(options opts: NSSortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] { NSUnimplemented() }
     
     public func description(withLocale locale: Locale?) -> String { NSUnimplemented() }
     public func description(withLocale locale: Locale?, indent level: Int) -> String { NSUnimplemented() }
@@ -528,11 +538,11 @@ extension NSMutableOrderedSet {
         sortRange(NSMakeRange(0, count), options: [], usingComparator: cmptr)
     }
 
-    open func sort(options opts: SortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) {
+    open func sort(options opts: NSSortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) {
         sortRange(NSMakeRange(0, count), options: opts, usingComparator: cmptr)
     }
 
-    open func sortRange(_ range: NSRange, options opts: SortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) {
+    open func sortRange(_ range: NSRange, options opts: NSSortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) {
         // The sort options are not available. We use the Array's sorting algorithm. It is not stable neither concurrent.
         guard opts.isEmpty else {
             NSUnimplemented()

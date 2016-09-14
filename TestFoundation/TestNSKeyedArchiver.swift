@@ -41,7 +41,7 @@ public class UserClass : NSObject, NSSecureCoding {
         }
     }
     
-    public override func isEqual(_ object: AnyObject?) -> Bool {
+    public override func isEqual(_ object: Any?) -> Bool {
         if let custom = object as? UserClass {
             return self.ivar == custom.ivar
         } else {
@@ -58,7 +58,7 @@ class TestNSKeyedArchiver : XCTestCase {
             ("test_archive_concrete_value", test_archive_concrete_value),
             ("test_archive_dictionary", test_archive_dictionary),
             ("test_archive_generic_objc", test_archive_generic_objc),
-//            ("test_archive_locale", test_archive_locale),
+            ("test_archive_locale", test_archive_locale),
             ("test_archive_string", test_archive_string),
             ("test_archive_mutable_array", test_archive_mutable_array),
             ("test_archive_mutable_dictionary", test_archive_mutable_dictionary),
@@ -81,7 +81,7 @@ class TestNSKeyedArchiver : XCTestCase {
         XCTAssertTrue(encode(archiver))
         archiver.finishEncoding()
         
-        let unarchiver = NSKeyedUnarchiver(forReadingWithData: data.bridge())
+        let unarchiver = NSKeyedUnarchiver(forReadingWithData: Data._unconditionallyBridgeFromObjectiveC(data))
         XCTAssertTrue(decode(unarchiver))
     }
     

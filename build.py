@@ -19,7 +19,7 @@ if Configuration.current.target.sdk == OSType.Linux:
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -Wl,@./CoreFoundation/linux.ld -lswiftGlibc `${PKG_CONFIG} icu-uc icu-i18n --libs` -Wl,-defsym,__CFConstantStringClassReference=_TMC10Foundation19_NSCFConstantString -Wl,-Bsymbolic '
 	Configuration.current.requires_pkg_config = True
 elif Configuration.current.target.sdk == OSType.FreeBSD:
-	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_FREEBSD -I/usr/local/include -I/usr/local/include/libxml2 '
+	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_FREEBSD -I/usr/local/include -I/usr/local/include/libxml2 -I/usr/local/include/curl '
 	foundation.LDFLAGS = ''
 elif Configuration.current.target.sdk == OSType.MacOSX:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_MACOSX '
@@ -62,23 +62,26 @@ foundation.CFLAGS += " ".join([
 	'-Wno-int-conversion',
 	'-Wno-unused-function',
 	'-I${SYSROOT}/usr/include/libxml2',
+	'-I${SYSROOT}/usr/include/curl',
 	'-I./',
 ])
 
 swift_cflags += [
 	'-I${BUILD_DIR}/Foundation/usr/lib/swift',
 	'-I${SYSROOT}/usr/include',
-	'-I${SYSROOT}/usr/include/libxml2'
+	'-I${SYSROOT}/usr/include/libxml2',
+	'-I${SYSROOT}/usr/include/curl'
 ]
 
 if "XCTEST_BUILD_DIR" in Configuration.current.variables:
 	swift_cflags += [
 		'-I${XCTEST_BUILD_DIR}',
 		'-L${XCTEST_BUILD_DIR}',
-		'-I${SYSROOT}/usr/include/libxml2'
+		'-I${SYSROOT}/usr/include/libxml2',
+		'-I${SYSROOT}/usr/include/curl'
 	]
 
-foundation.LDFLAGS += '-lpthread -ldl -lm -lswiftCore -lxml2 '
+foundation.LDFLAGS += '-lpthread -ldl -lm -lswiftCore -lxml2 -lcurl '
 
 # Configure use of Dispatch in CoreFoundation and Foundation if libdispatch is being built
 if "LIBDISPATCH_SOURCE_DIR" in Configuration.current.variables:
@@ -134,6 +137,7 @@ public = [
 	'CoreFoundation/Collections.subproj/CFArray.h',
 	'CoreFoundation/RunLoop.subproj/CFRunLoop.h',
 	'CoreFoundation/URL.subproj/CFURLAccess.h',
+	'CoreFoundation/URL.subproj/CFURLSessionInterface.h',
 	'CoreFoundation/Locale.subproj/CFDateFormatter.h',
 	'CoreFoundation/RunLoop.subproj/CFMachPort.h',
 	'CoreFoundation/PlugIn.subproj/CFPlugInCOM.h',
@@ -146,6 +150,7 @@ public = [
 	'CoreFoundation/NumberDate.subproj/CFNumber.h',
 	'CoreFoundation/Collections.subproj/CFData.h',
 	'CoreFoundation/String.subproj/CFAttributedString.h',
+	'CoreFoundation/Base.subproj/CoreFoundation_Prefix.h'
 ],
 private = [
 	'CoreFoundation/Base.subproj/ForSwiftFoundationOnly.h',
@@ -280,6 +285,7 @@ sources = CompileSources([
 	'CoreFoundation/String.subproj/CFRegularExpression.c',
 	'CoreFoundation/String.subproj/CFAttributedString.c',
 	'CoreFoundation/String.subproj/CFRunArray.c',
+	'CoreFoundation/URL.subproj/CFURLSessionInterface.c',
 ])
 
 sources.add_dependency(headers)
@@ -378,7 +384,18 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSURLProtocol.swift',
 	'Foundation/NSURLRequest.swift',
 	'Foundation/NSURLResponse.swift',
-	'Foundation/NSURLSession.swift',
+	'Foundation/NSURLSession/Configuration.swift',
+	'Foundation/NSURLSession/EasyHandle.swift',
+	'Foundation/NSURLSession/HTTPBodySource.swift',
+	'Foundation/NSURLSession/HTTPMessage.swift',
+	'Foundation/NSURLSession/MultiHandle.swift',
+	'Foundation/NSURLSession/NSURLSession.swift',
+	'Foundation/NSURLSession/NSURLSessionConfiguration.swift',
+	'Foundation/NSURLSession/NSURLSessionDelegate.swift',
+	'Foundation/NSURLSession/NSURLSessionTask.swift',
+	'Foundation/NSURLSession/TaskRegistry.swift',
+	'Foundation/NSURLSession/TransferState.swift',
+	'Foundation/NSURLSession/libcurlHelpers.swift',
 	'Foundation/NSUserDefaults.swift',
 	'Foundation/NSUUID.swift',
 	'Foundation/NSValue.swift',
@@ -390,6 +407,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSXMLParser.swift',
 	'Foundation/FoundationErrors.swift',
 	'Foundation/URL.swift',
+	'Foundation/UUID.swift',
 	'Foundation/Boxing.swift',
 	'Foundation/ReferenceConvertible.swift',
 	'Foundation/Date.swift',
@@ -417,6 +435,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/Dictionary.swift',
 	'Foundation/Array.swift',
 	'Foundation/Bridging.swift',
+	'Foundation/CGFloat.swift',
 ])
 
 swift_sources.add_dependency(headers)

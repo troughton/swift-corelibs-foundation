@@ -49,12 +49,13 @@ open class NSCharacterSet : NSObject, NSCopying, NSMutableCopying, NSCoding {
         return Int(bitPattern: CFHash(_cfObject))
     }
     
-    open override func isEqual(_ object: AnyObject?) -> Bool {
-        if let cs = object as? NSCharacterSet {
+    open override func isEqual(_ value: Any?) -> Bool {
+        if let cs = value as? CharacterSet {
             return CFEqual(_cfObject, cs._cfObject)
-        } else {
-            return false
+        } else if let cs = value as? NSCharacterSet {
+            return CFEqual(_cfObject, cs._cfObject)
         }
+        return false
     }
     
     open override var description: String {
@@ -319,7 +320,7 @@ open class NSMutableCharacterSet : NSCharacterSet {
     }
 }
 
-extension CharacterSet : _CFBridgable, _NSBridgable {
+extension CharacterSet : _CFBridgeable, _NSBridgeable {
     typealias CFType = CFCharacterSet
     typealias NSType = NSCharacterSet
     internal var _cfObject: CFType {
@@ -330,7 +331,7 @@ extension CharacterSet : _CFBridgable, _NSBridgable {
     }
 }
 
-extension CFCharacterSet : _NSBridgable, _SwiftBridgable {
+extension CFCharacterSet : _NSBridgeable, _SwiftBridgeable {
     typealias NSType = NSCharacterSet
     typealias SwiftType = CharacterSet
     internal var _nsObject: NSType {
@@ -341,7 +342,7 @@ extension CFCharacterSet : _NSBridgable, _SwiftBridgable {
     }
 }
 
-extension NSCharacterSet : _SwiftBridgable {
+extension NSCharacterSet : _SwiftBridgeable {
     typealias SwiftType = CharacterSet
     internal var _swiftObject: SwiftType {
         return CharacterSet(_bridged: self)

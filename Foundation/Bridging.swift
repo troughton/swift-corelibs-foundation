@@ -33,7 +33,7 @@ public protocol _ObjectTypeBridgeable : _ObjectBridgeable {
     static func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> Self
 }
 
-/// - Note: This does not exist currently on Darwin but it is the inverse corrilation to the bridge types such that a 
+/// - Note: This does not exist currently on Darwin but it is the inverse correlation to the bridge types such that a 
 /// reference type can be converted via a callout to a conversion method.
 public protocol _StructTypeBridgeable : _StructBridgeable {
     associatedtype _StructType
@@ -55,17 +55,17 @@ extension _StructTypeBridgeable {
 }
 
 // slated for removal, these are the swift-corelibs-only variant of the _ObjectiveCBridgeable
-internal protocol _CFBridgable {
+internal protocol _CFBridgeable {
     associatedtype CFType
     var _cfObject: CFType { get }
 }
 
-internal protocol _SwiftBridgable {
+internal protocol _SwiftBridgeable {
     associatedtype SwiftType
     var _swiftObject: SwiftType { get }
 }
 
-internal protocol _NSBridgable {
+internal protocol _NSBridgeable {
     associatedtype NSType
     var _nsObject: NSType { get }
 }
@@ -120,19 +120,19 @@ internal final class _SwiftValue : NSObject, NSCopying {
         return ObjectIdentifier(self).hashValue
     }
     
-    override func isEqual(_ object: AnyObject?) -> Bool {
-        guard let other = object else {
-            return false
-        }
-        if let box = other as? _SwiftValue {
-            if let otherHashable = box.value as? AnyHashable,
-                let hashable = value as? AnyHashable {
-                return hashable == otherHashable
+    override func isEqual(_ value: Any?) -> Bool {
+        if let other = value as? _SwiftValue {
+            if self === other {
+                return true
             }
-        }
-        if let otherHashable = other as? AnyHashable,
-            let hashable = value as? AnyHashable {
-            return hashable == otherHashable
+            if let otherHashable = other.value as? AnyHashable,
+               let hashable = self.value as? AnyHashable {
+                return otherHashable == hashable
+            }
+            
+        } else if let otherHashable = value as? AnyHashable,
+                  let hashable = self.value as? AnyHashable {
+            return otherHashable == hashable
         }
         return false
     }

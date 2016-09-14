@@ -139,26 +139,6 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
         self.init(objects: [object], forKeys: [key as! NSObject])
     }
     
-//    public convenience init(dictionary otherDictionary: [NSObject : AnyObject]) {
-//        self.init(dictionary: otherDictionary, copyItems: false)
-//    }
-    
-//    public convenience init(dictionary otherDictionary: [NSObject : AnyObject], copyItems flag: Bool) {
-//        var keys = Array<KeyType>()
-//        var values = Array<AnyObject>()
-//        for key in otherDictionary.keys {
-//            keys.append(key)
-//            var value = otherDictionary[key]
-//            if flag {
-//                if let val = value as? NSObject {
-//                    value = val.copy()
-//                }
-//            }
-//            values.append(value!)
-//        }
-//        self.init(objects: values, forKeys: keys)
-//    }
-    
     public convenience init(objects: [Any], forKeys keys: [NSObject]) {
         let keyBuffer = UnsafeMutablePointer<NSObject>.allocate(capacity: keys.count)
         keyBuffer.initialize(from: keys)
@@ -178,12 +158,13 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
         self.init(objects: otherDictionary.values.map { $0 }, forKeys: otherDictionary.keys.map { _SwiftValue.store($0) })
     }
 
-    open override func isEqual(_ object: AnyObject?) -> Bool {
-        guard let otherDictionary = object as? NSDictionary else {
-            return false
+    open override func isEqual(_ value: Any?) -> Bool {
+        if let other = value as? Dictionary<AnyHashable, Any> {
+            return isEqual(to: other)
+        } else if let other = value as? NSDictionary {
+            return isEqual(to: Dictionary._unconditionallyBridgeFromObjectiveC(other))
         }
-        
-        return self.isEqual(to: Dictionary._unconditionallyBridgeFromObjectiveC(otherDictionary))
+        return false
     }
 
     open override var hash: Int {
@@ -243,7 +224,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     
     open func allKeys(for anObject: Any) -> [Any] {
         var matching = Array<Any>()
-        enumerateKeysAndObjects([]) { key, value, _ in
+        enumerateKeysAndObjects(options: []) { key, value, _ in
             if let val = value as? AnyHashable,
                let obj = anObject as? AnyHashable {
                 if val == obj {
@@ -422,11 +403,11 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     open func write(toFile path: String, atomically useAuxiliaryFile: Bool) -> Bool { NSUnimplemented() }
     open func write(to url: URL, atomically: Bool) -> Bool { NSUnimplemented() } // the atomically flag is ignored if url of a type that cannot be written atomically.
     
-    public func enumerateKeysAndObjects(_ block: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Void) {
-        enumerateKeysAndObjects([], using: block)
+    open func enumerateKeysAndObjects(_ block: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
+        enumerateKeysAndObjects(options: [], using: block)
     }
 
-    public func enumerateKeysAndObjects(_ opts: NSEnumerationOptions = [], using block: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
+    open func enumerateKeysAndObjects(options opts: NSEnumerationOptions = [], using block: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
         let count = self.count
         var keys = [Any]()
         var objects = [Any]()
@@ -444,25 +425,25 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     }
     
     open func keysSortedByValue(comparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] {
-        return keysSortedByValue([], usingComparator: cmptr)
+        return keysSortedByValue(options: [], usingComparator: cmptr)
     }
 
-    open func keysSortedByValue(_ opts: SortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] {
+    open func keysSortedByValue(options opts: NSSortOptions = [], usingComparator cmptr: (Any, Any) -> ComparisonResult) -> [Any] {
         let sorted = allKeys.sorted { lhs, rhs in
             return cmptr(lhs, rhs) == .orderedSame
         }
         return sorted
     }
 
-    open func keysOfEntries(passingTest predicate: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Bool) -> Set<NSObject> {
-        return keysOfEntries([], passingTest: predicate)
+    open func keysOfEntries(passingTest predicate: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Bool) -> Set<AnyHashable> {
+        return keysOfEntries(options: [], passingTest: predicate)
     }
 
-    open func keysOfEntries(_ opts: NSEnumerationOptions = [], passingTest predicate: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Bool) -> Set<NSObject> {
-        var matching = Set<NSObject>()
-        enumerateKeysAndObjects(opts) { key, value, stop in
+    open func keysOfEntries(options opts: NSEnumerationOptions = [], passingTest predicate: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Bool) -> Set<AnyHashable> {
+        var matching = Set<AnyHashable>()
+        enumerateKeysAndObjects(options: opts) { key, value, stop in
             if predicate(key, value, stop) {
-                matching.insert(key as! NSObject)
+                matching.insert(key as! AnyHashable)
             }
         }
         return matching
@@ -485,7 +466,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     }
 }
 
-extension NSDictionary : _CFBridgable, _SwiftBridgable {
+extension NSDictionary : _CFBridgeable, _SwiftBridgeable {
     internal var _cfObject: CFDictionary { return unsafeBitCast(self, to: CFDictionary.self) }
     internal var _swiftObject: Dictionary<AnyHashable, Any> { return Dictionary._unconditionallyBridgeFromObjectiveC(self) }
 }
@@ -494,12 +475,12 @@ extension NSMutableDictionary {
     internal var _cfMutableObject: CFMutableDictionary { return unsafeBitCast(self, to: CFMutableDictionary.self) }
 }
 
-extension CFDictionary : _NSBridgable, _SwiftBridgable {
+extension CFDictionary : _NSBridgeable, _SwiftBridgeable {
     internal var _nsObject: NSDictionary { return unsafeBitCast(self, to: NSDictionary.self) }
     internal var _swiftObject: [AnyHashable: Any] { return _nsObject._swiftObject }
 }
 
-extension Dictionary : _NSBridgable, _CFBridgable {
+extension Dictionary : _NSBridgeable, _CFBridgeable {
     internal var _nsObject: NSDictionary { return _bridgeToObjectiveC() }
     internal var _cfObject: CFDictionary { return _nsObject._cfObject }
 }
@@ -621,6 +602,11 @@ extension NSMutableDictionary {
 }
 
 extension NSDictionary : ExpressibleByDictionaryLiteral { }
+
+extension NSDictionary : CustomReflectable {
+    public var customMirror: Mirror { NSUnimplemented() }
+}
+
 
 extension NSDictionary : _StructTypeBridgeable {
     public typealias _StructType = Dictionary<AnyHashable,Any>
