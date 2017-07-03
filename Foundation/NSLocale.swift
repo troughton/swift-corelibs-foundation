@@ -18,7 +18,7 @@ open class NSLocale: NSObject, NSCopying, NSSecureCoding {
     private var _prefs: UnsafeMutableRawPointer? = nil
 #if os(OSX) || os(iOS)
     private var _lock = pthread_mutex_t()
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux) || os(Android) || CYGWIN
     private var _lock = Int32(0)
 #endif
     private var _nullLocale = false
@@ -27,7 +27,7 @@ open class NSLocale: NSObject, NSCopying, NSSecureCoding {
         return unsafeBitCast(self, to: CFType.self)
     }
     
-    open func object(forKey key: NSLocale.Key) -> AnyObject? {
+    open func object(forKey key: NSLocale.Key) -> Any? {
         return CFLocaleGetValue(_cfObject, key.rawValue._cfObject)
     }
     
@@ -236,17 +236,20 @@ extension NSLocale {
 }
 
 
-public func ==(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
-    return lhs.rawValue == rhs.rawValue
+extension NSLocale.Key {
+    public static func ==(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
+        return lhs.rawValue == rhs.rawValue
+    }
+
+    public static func <(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
+        return lhs.rawValue < rhs.rawValue
+    }
 }
 
-public func <(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
-    return lhs.rawValue < rhs.rawValue
+
+public extension NSLocale {
+    public static let currentLocaleDidChangeNotification = NSNotification.Name(rawValue: "kCFLocaleCurrentLocaleDidChangeNotification")
 }
-
-
-
-public let NSCurrentLocaleDidChangeNotification: String = "kCFLocaleCurrentLocaleDidChangeNotification"
 
 
 extension CFLocale : _NSBridgeable, _SwiftBridgeable {

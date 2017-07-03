@@ -13,10 +13,10 @@ foundation = DynamicLibrary("Foundation")
 
 foundation.GCC_PREFIX_HEADER = 'CoreFoundation/Base.subproj/CoreFoundation_Prefix.h'
 
-swift_cflags = []
+swift_cflags = ['-DDEPLOYMENT_RUNTIME_SWIFT']
 if Configuration.current.target.sdk == OSType.Linux:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -DCF_CHARACTERSET_DATA_DIR="CoreFoundation/CharacterSets"'
-	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -Wl,@./CoreFoundation/linux.ld -lswiftGlibc `${PKG_CONFIG} icu-uc icu-i18n --libs` -Wl,-defsym,__CFConstantStringClassReference=_TMC10Foundation19_NSCFConstantString -Wl,-Bsymbolic '
+	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -Wl,@./CoreFoundation/linux.ld -lswiftGlibc `${PKG_CONFIG} icu-uc icu-i18n --libs` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN -Wl,-Bsymbolic '
 	Configuration.current.requires_pkg_config = True
 elif Configuration.current.target.sdk == OSType.FreeBSD:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_FREEBSD -I/usr/local/include -I/usr/local/include/libxml2 -I/usr/local/include/curl '
@@ -26,7 +26,7 @@ elif Configuration.current.target.sdk == OSType.MacOSX:
 	foundation.LDFLAGS = '-licucore -twolevel_namespace -Wl,-alias_list,CoreFoundation/Base.subproj/DarwinSymbolAliases -sectcreate __UNICODE __csbitmaps CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap -sectcreate __UNICODE __properties CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data -sectcreate __UNICODE __data CoreFoundation/CharacterSets/CFUnicodeData-L.mapping -segprot __UNICODE r r '
 elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.target.environ == EnvironmentType.Cygnus:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -mcmodel=large '
-	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftGlibc `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_TMC10Foundation19_NSCFConstantString,--allow-multiple-definition '
+	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftGlibc `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
 	swift_cflags += ['-DCYGWIN']
 
 if Configuration.current.build_mode == Configuration.Debug:
@@ -81,7 +81,16 @@ if "XCTEST_BUILD_DIR" in Configuration.current.variables:
 		'-I${SYSROOT}/usr/include/curl'
 	]
 
-foundation.LDFLAGS += '-lpthread -ldl -lm -lswiftCore -lxml2 -lcurl '
+triple = Configuration.current.target.triple
+if triple.endswith("-linux-gnu") or triple == "armv7-none-linux-androideabi":
+	foundation.LDFLAGS += '-lcurl '
+
+if triple == "armv7-none-linux-androideabi":
+	foundation.LDFLAGS += '-llog '
+else:
+	foundation.LDFLAGS += '-lpthread '
+
+foundation.LDFLAGS += '-ldl -lm -lswiftCore -lxml2 '
 
 # Configure use of Dispatch in CoreFoundation and Foundation if libdispatch is being built
 if "LIBDISPATCH_SOURCE_DIR" in Configuration.current.variables:
@@ -150,7 +159,8 @@ public = [
 	'CoreFoundation/NumberDate.subproj/CFNumber.h',
 	'CoreFoundation/Collections.subproj/CFData.h',
 	'CoreFoundation/String.subproj/CFAttributedString.h',
-	'CoreFoundation/Base.subproj/CoreFoundation_Prefix.h'
+	'CoreFoundation/Base.subproj/CoreFoundation_Prefix.h',
+	'CoreFoundation/AppServices.subproj/CFNotificationCenter.h'
 ],
 private = [
 	'CoreFoundation/Base.subproj/ForSwiftFoundationOnly.h',
@@ -192,6 +202,8 @@ private = [
 	'CoreFoundation/StringEncodings.subproj/CFICUConverters.h',
 	'CoreFoundation/String.subproj/CFRegularExpression.h',
 	'CoreFoundation/String.subproj/CFRunArray.h',
+	'CoreFoundation/Locale.subproj/CFDateFormatter_Private.h',
+	'CoreFoundation/Locale.subproj/CFLocale_Private.h',
 ],
 project = [
 ])
@@ -301,6 +313,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSCache.swift',
 	'Foundation/NSCalendar.swift',
 	'Foundation/NSCFArray.swift',
+	'Foundation/NSCFBoolean.swift',
 	'Foundation/NSCFDictionary.swift',
 	'Foundation/NSCFSet.swift',
 	'Foundation/NSCFString.swift',
@@ -326,7 +339,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSFileManager.swift',
 	'Foundation/NSFormatter.swift',
 	'Foundation/NSGeometry.swift',
-	'Foundation/NSHost.swift',
+	'Foundation/Host.swift',
 	'Foundation/NSHTTPCookie.swift',
 	'Foundation/NSHTTPCookieStorage.swift',
 	'Foundation/NSIndexPath.swift',
@@ -352,11 +365,13 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSPathUtilities.swift',
 	'Foundation/NSPersonNameComponents.swift',
 	'Foundation/NSPersonNameComponentsFormatter.swift',
+	'Foundation/NSPlatform.swift',
 	'Foundation/NSPort.swift',
 	'Foundation/NSPortMessage.swift',
 	'Foundation/NSPredicate.swift',
 	'Foundation/NSProcessInfo.swift',
-	'Foundation/NSProgress.swift',
+	'Foundation/Progress.swift',
+	'Foundation/ProgressFraction.swift',
 	'Foundation/NSPropertyList.swift',
 	'Foundation/NSRange.swift',
 	'Foundation/NSRegularExpression.swift',
@@ -369,7 +384,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSString.swift',
 	'Foundation/NSStringAPI.swift',
 	'Foundation/NSSwiftRuntime.swift',
-	'Foundation/NSTask.swift',
+	'Foundation/Process.swift',
 	'Foundation/NSTextCheckingResult.swift',
 	'Foundation/NSThread.swift',
 	'Foundation/NSTimer.swift',
@@ -435,6 +450,8 @@ foundation_tests_resources = CopyResources('TestFoundation', [
     'TestFoundation/Resources/NSURLTestData.plist',
     'TestFoundation/Resources/Test.plist',
     'TestFoundation/Resources/NSStringTestData.txt',
+    'TestFoundation/Resources/NSString-UTF16-BE-data.txt',
+    'TestFoundation/Resources/NSString-UTF16-LE-data.txt',
     'TestFoundation/Resources/NSXMLDocumentTestData.xml',
     'TestFoundation/Resources/PropertyList-1.0.dtd',
     'TestFoundation/Resources/NSXMLDTDTestData.xml',
@@ -453,7 +470,11 @@ foundation_tests_resources = CopyResources('TestFoundation', [
 # TODO: Probably this should be another 'product', but for now it's simply a phase
 foundation_tests = SwiftExecutable('TestFoundation', [
 	'TestFoundation/main.swift',
+        'TestFoundation/HTTPServer.swift',
+        'Foundation/ProgressFraction.swift',
 ] + glob.glob('./TestFoundation/Test*.swift')) # all TestSomething.swift are considered sources to the test project in the TestFoundation directory
+
+Configuration.current.extra_ld_flags += ' -L'+Configuration.current.variables["LIBDISPATCH_BUILD_DIR"]+'/src/.libs'
 
 foundation_tests.add_dependency(foundation_tests_resources)
 foundation.add_phase(foundation_tests_resources)
@@ -489,7 +510,7 @@ build install: phony | ${BUILD_DIR}/.install
 """
 extra_script += """
 rule RunTestFoundation
-    command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
+    command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/../lldb-${OS}-${ARCH}/bin/lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
     description = Building Tests
 
 build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation

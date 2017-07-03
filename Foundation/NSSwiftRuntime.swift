@@ -14,8 +14,14 @@ import CoreFoundation
 // This mimics the behavior of the swift sdk overlay on Darwin
 #if os(OSX) || os(iOS)
 @_exported import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux) || os(Android) || CYGWIN
 @_exported import Glibc
+#endif
+
+#if os(Android) // shim required for bzero
+@_transparent func bzero(_ ptr: UnsafeMutableRawPointer, _ size: size_t) {
+    memset(ptr, 0, size)
+}
 #endif
 
 public typealias ObjCBool = Bool
@@ -33,10 +39,8 @@ internal class __NSCFType : NSObject {
     }
     
     override func isEqual(_ value: Any?) -> Bool {
-        if let other = value as? NSObject {
-            return CFEqual(self, other)
-        }
-        return false
+        guard let other = value as? NSObject else { return false }
+        return CFEqual(self, other)
     }
     
     override var description: String {
@@ -54,6 +58,12 @@ internal func _CFSwiftGetTypeID(_ cf: AnyObject) -> CFTypeID {
 }
 
 
+
+internal func _CFSwiftCopyWithZone(_ cf: CFTypeRef, _ zone: CFTypeRef?) -> Unmanaged<CFTypeRef> {
+    return Unmanaged<CFTypeRef>.passRetained((cf as! NSObject).copy() as! NSObject)
+}
+
+
 internal func _CFSwiftGetHash(_ cf: AnyObject) -> CFHashCode {
     return CFHashCode(bitPattern: (cf as! NSObject).hash)
 }
@@ -66,7 +76,7 @@ internal func _CFSwiftIsEqual(_ cf1: AnyObject, cf2: AnyObject) -> Bool {
 // Ivars in _NSCF* types must be zeroed via an unsafe accessor to avoid deinit of potentially unsafe memory to accces as an object/struct etc since it is stored via a foreign object graph
 internal func _CFZeroUnsafeIvars<T>(_ arg: inout T) {
     withUnsafeMutablePointer(to: &arg) { (ptr: UnsafeMutablePointer<T>) -> Void in
-        bzero(unsafeBitCast(ptr, to: UnsafeMutableRawPointer.self), MemoryLayout<T>.size)
+        bzero(UnsafeMutableRawPointer(ptr), MemoryLayout<T>.size)
     }
 }
 
@@ -80,6 +90,7 @@ internal func __CFInitializeSwift() {
     _CFRuntimeBridgeTypeToClass(CFArrayGetTypeID(), unsafeBitCast(_NSCFArray.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFDictionaryGetTypeID(), unsafeBitCast(_NSCFDictionary.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFSetGetTypeID(), unsafeBitCast(_NSCFSet.self, to: UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(CFBooleanGetTypeID(), unsafeBitCast(__NSCFBoolean.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFNumberGetTypeID(), unsafeBitCast(NSNumber.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFDataGetTypeID(), unsafeBitCast(NSData.self, to: UnsafeRawPointer.self))
     _CFRuntimeBridgeTypeToClass(CFDateGetTypeID(), unsafeBitCast(NSDate.self, to: UnsafeRawPointer.self))
@@ -91,7 +102,7 @@ internal func __CFInitializeSwift() {
     _CFRuntimeBridgeTypeToClass(_CFKeyedArchiverUIDGetTypeID(), unsafeBitCast(_NSKeyedArchiverUID.self, to: UnsafeRawPointer.self))
     
 //    _CFRuntimeBridgeTypeToClass(CFErrorGetTypeID(), unsafeBitCast(NSError.self, UnsafeRawPointer.self))
-//    _CFRuntimeBridgeTypeToClass(CFAttributedStringGetTypeID(), unsafeBitCast(NSMutableAttributedString.self, UnsafeRawPointer.self))
+    _CFRuntimeBridgeTypeToClass(CFAttributedStringGetTypeID(), unsafeBitCast(NSMutableAttributedString.self, to: UnsafeRawPointer.self))
 //    _CFRuntimeBridgeTypeToClass(CFReadStreamGetTypeID(), unsafeBitCast(InputStream.self, UnsafeRawPointer.self))
 //    _CFRuntimeBridgeTypeToClass(CFWriteStreamGetTypeID(), unsafeBitCast(OutputStream.self, UnsafeRawPointer.self))
    _CFRuntimeBridgeTypeToClass(CFRunLoopTimerGetTypeID(), unsafeBitCast(Timer.self, to: UnsafeRawPointer.self))
@@ -99,7 +110,23 @@ internal func __CFInitializeSwift() {
     __CFSwiftBridge.NSObject.isEqual = _CFSwiftIsEqual
     __CFSwiftBridge.NSObject.hash = _CFSwiftGetHash
     __CFSwiftBridge.NSObject._cfTypeID = _CFSwiftGetTypeID
+    __CFSwiftBridge.NSObject.copyWithZone = _CFSwiftCopyWithZone
     
+    __CFSwiftBridge.NSSet.count = _CFSwiftSetGetCount
+    __CFSwiftBridge.NSSet.countForKey = _CFSwiftSetGetCountOfValue
+    __CFSwiftBridge.NSSet.containsObject = _CFSwiftSetContainsValue
+    __CFSwiftBridge.NSSet.__getValue = _CFSwiftSetGetValue
+    __CFSwiftBridge.NSSet.getValueIfPresent = _CFSwiftSetGetValueIfPresent
+    __CFSwiftBridge.NSSet.getObjects = _CFSwiftSetGetValues
+    __CFSwiftBridge.NSSet.copy = _CFSwiftSetCreateCopy
+    __CFSwiftBridge.NSSet.__apply = _CFSwiftSetApplyFunction
+    __CFSwiftBridge.NSSet.member = _CFSwiftSetMember
+    
+    __CFSwiftBridge.NSMutableSet.addObject = _CFSwiftSetAddValue
+    __CFSwiftBridge.NSMutableSet.replaceObject = _CFSwiftSetReplaceValue
+    __CFSwiftBridge.NSMutableSet.setObject = _CFSwiftSetSetValue
+    __CFSwiftBridge.NSMutableSet.removeObject = _CFSwiftSetRemoveValue
+    __CFSwiftBridge.NSMutableSet.removeAllObjects = _CFSwiftSetRemoveAllValues
     
     __CFSwiftBridge.NSArray.count = _CFSwiftArrayGetCount
     __CFSwiftBridge.NSArray.objectAtIndex = _CFSwiftArrayGetValueAtIndex
@@ -123,6 +150,7 @@ internal func __CFInitializeSwift() {
     __CFSwiftBridge.NSDictionary.countForObject = _CFSwiftDictionaryGetCountOfValue
     __CFSwiftBridge.NSDictionary.getObjects = _CFSwiftDictionaryGetValuesAndKeys
     __CFSwiftBridge.NSDictionary.__apply = _CFSwiftDictionaryApplyFunction
+    __CFSwiftBridge.NSDictionary.copy = _CFSwiftDictionaryCreateCopy
     
     __CFSwiftBridge.NSMutableDictionary.__addObject = _CFSwiftDictionaryAddValue
     __CFSwiftBridge.NSMutableDictionary.replaceObject = _CFSwiftDictionaryReplaceValue
@@ -182,7 +210,19 @@ internal func __CFInitializeSwift() {
     __CFSwiftBridge.NSCharacterSet.hasMemberInPlane = _CFSwiftCharacterSetHasMemberInPlane
     __CFSwiftBridge.NSCharacterSet.invertedSet = _CFSwiftCharacterSetInverted
     
-    __CFDefaultEightBitStringEncoding = UInt32(kCFStringEncodingUTF8)
+    __CFSwiftBridge.NSMutableCharacterSet.addCharactersInRange = _CFSwiftMutableSetAddCharactersInRange
+    __CFSwiftBridge.NSMutableCharacterSet.removeCharactersInRange = _CFSwiftMutableSetRemoveCharactersInRange
+    __CFSwiftBridge.NSMutableCharacterSet.addCharactersInString = _CFSwiftMutableSetAddCharactersInString
+    __CFSwiftBridge.NSMutableCharacterSet.removeCharactersInString = _CFSwiftMutableSetRemoveCharactersInString
+    __CFSwiftBridge.NSMutableCharacterSet.formUnionWithCharacterSet = _CFSwiftMutableSetFormUnionWithCharacterSet
+    __CFSwiftBridge.NSMutableCharacterSet.formIntersectionWithCharacterSet = _CFSwiftMutableSetFormIntersectionWithCharacterSet
+    __CFSwiftBridge.NSMutableCharacterSet.invert = _CFSwiftMutableSetInvert
+    
+    __CFSwiftBridge.NSNumber._cfNumberGetType = _CFSwiftNumberGetType
+    __CFSwiftBridge.NSNumber._getValue = _CFSwiftNumberGetValue
+    __CFSwiftBridge.NSNumber.boolValue = _CFSwiftNumberGetBoolValue
+    
+//    __CFDefaultEightBitStringEncoding = UInt32(kCFStringEncodingUTF8)
 }
 
 public func === (lhs: AnyClass, rhs: AnyClass) -> Bool {

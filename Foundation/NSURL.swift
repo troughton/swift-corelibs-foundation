@@ -257,11 +257,8 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     }
     
     open override func isEqual(_ object: Any?) -> Bool {
-        if let url = object as? NSURL {
-            return CFEqual(_cfObject, url._cfObject)
-        } else {
-            return false
-        }
+        guard let other = object as? NSURL else { return false }
+        return CFEqual(_cfObject, other._cfObject)
     }
     
     open override var description: String {
@@ -306,6 +303,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     public init(fileURLWithPath path: String, isDirectory isDir: Bool, relativeTo baseURL: URL?) {
         super.init()
+        
         let thePath = _standardizedPath(path)
         if thePath.length > 0 {
             
@@ -340,17 +338,25 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
         self.init(fileURLWithPath: path, isDirectory: isDir, relativeTo: nil)
     }
 
-    public convenience init(fileURLWithPath path: String) {
-        let thePath = _standardizedPath(path)
+    public init(fileURLWithPath path: String) {
+        let thePath: String
+        let pathString = NSString(string: path)
+        if !pathString.isAbsolutePath {
+            thePath = pathString.standardizingPath
+        } else {
+            thePath = path
+        }
 
         var isDir : Bool = false
         if thePath.hasSuffix("/") {
             isDir = true
         } else {
-            let _ = FileManager.default.fileExists(atPath: path, isDirectory: &isDir)
+            if !FileManager.default.fileExists(atPath: path, isDirectory: &isDir) {
+                isDir = false
+            }
         }
-
-        self.init(fileURLWithPath: thePath, isDirectory: isDir, relativeTo: nil)
+        super.init()
+        _CFURLInitWithFileSystemPathRelativeToBase(_cfObject, thePath._cfObject, kCFURLPOSIXPathStyle, isDir, nil)
     }
     
     public convenience init(fileURLWithFileSystemRepresentation path: UnsafePointer<Int8>, isDirectory isDir: Bool, relativeTo baseURL: URL?) {
@@ -496,7 +502,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     open var password: String? {
         let absoluteURL = CFURLCopyAbsoluteURL(_cfObject)
-#if os(Linux) || CYGWIN
+#if os(Linux) || os(Android) || CYGWIN
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, kCFURLComponentPassword, nil)
 #else
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, .password, nil)
@@ -604,8 +610,26 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     */
     /// - Experiment: This is a draft API currently under consideration for official import into Foundation as a suitable alternative
     /// - Note: Since this API is under consideration it may be either removed or revised in the near future
+    // TODO: should be `checkResourceIsReachableAndReturnError` with autoreleased error parameter.
+    // Currently Autoreleased pointers is not supported on Linux.
     open func checkResourceIsReachable() throws -> Bool {
-        NSUnimplemented()
+        guard isFileURL,
+            let path = path else {
+                throw NSError(domain: NSCocoaErrorDomain,
+                              code: CocoaError.Code.fileNoSuchFile.rawValue)
+                //return false
+        }
+        
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw NSError(domain: NSCocoaErrorDomain,
+                          code: CocoaError.Code.fileReadNoSuchFile.rawValue,
+                          userInfo: [
+                            "NSURL" : self,
+                            "NSFilePath" : path])
+            //return false
+        }
+        
+        return true
     }
 
     /* Returns a file path URL that refers to the same resource as a specified URL. File path URLs use a file system style path. An error will occur if the url parameter is not a file URL. A file reference URL's resource must exist and be reachable to be converted to a file path URL. Symbol is present in iOS 4, but performs no operation.
@@ -910,11 +934,31 @@ open class NSURLQueryItem : NSObject, NSSecureCoding, NSCopying {
     }
     
     required public init?(coder aDecoder: NSCoder) {
-        NSUnimplemented()
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        
+        let encodedName = aDecoder.decodeObject(forKey: "NS.name") as! NSString
+        self.name = encodedName._swiftObject
+        
+        let encodedValue = aDecoder.decodeObject(forKey: "NS.value") as? NSString
+        self.value = encodedValue?._swiftObject
     }
     
     open func encode(with aCoder: NSCoder) {
-        NSUnimplemented()
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        
+        aCoder.encode(self.name._bridgeToObjectiveC(), forKey: "NS.name")
+        aCoder.encode(self.value?._bridgeToObjectiveC(), forKey: "NS.value")
+    }
+    
+    open override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? NSURLQueryItem else { return false }
+        return other === self
+                || (other.name == self.name
+                    && other.value == self.value)
     }
     
     open let name: String
@@ -924,39 +968,27 @@ open class NSURLQueryItem : NSObject, NSSecureCoding, NSCopying {
 open class NSURLComponents: NSObject, NSCopying {
     private let _components : CFURLComponentsRef!
     
+     deinit {
+        if let component = _components {
+            __CFURLComponentsDeallocate(component)
+        }
+    }
+
     open override func copy() -> Any {
         return copy(with: nil)
     }
 
     open override func isEqual(_ object: Any?) -> Bool {
-        if let other = object as? NSURLComponents {
-            if scheme != other.scheme {
-                return false
-            }
-            if user != other.user {
-                return false
-            }
-            if password != other.password {
-                return false
-            }
-            if host != other.host {
-                return false
-            }
-            if port != other.port {
-                return false
-            }
-            if path != other.path {
-                return false
-            }
-            if query != other.query {
-                return false
-            }
-            if fragment != other.fragment {
-                return false
-            }
-            return true
-        }
-        return false
+        guard let other = object as? NSURLComponents else { return false }
+        return self === other
+            || (scheme == other.scheme
+                && user == other.user
+                && password == other.password
+                && host == other.host
+                && port == other.port
+                && path == other.path
+                && query == other.query
+                && fragment == other.fragment)
     }
 
     open func copy(with zone: NSZone? = nil) -> Any {
@@ -1224,8 +1256,9 @@ open class NSURLComponents: NSObject, NSCopying {
                 
                 return (0..<count).map { idx in
                     let oneEntry = unsafeBitCast(CFArrayGetValueAtIndex(queryArray, idx), to: NSDictionary.self)
-                    let entryName = oneEntry.object(forKey: "name"._cfObject) as! String
-                    let entryValue = oneEntry.object(forKey: "value"._cfObject) as? String
+                    let swiftEntry = oneEntry._swiftObject 
+                    let entryName = swiftEntry["name"] as! String
+                    let entryValue = swiftEntry["value"] as? String
                     return URLQueryItem(name: entryName, value: entryValue)
                 }
             } else {

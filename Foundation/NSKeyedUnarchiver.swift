@@ -38,7 +38,7 @@ open class NSKeyedUnarchiver : NSCoder {
     
     private enum Stream {
         case data(Data)
-        case stream(InputStream)
+        case stream(CFReadStream)
     }
     
     private var _stream : Stream
@@ -51,7 +51,7 @@ open class NSKeyedUnarchiver : NSCoder {
     private var _classes : Dictionary<UInt32, AnyClass> = [:]
     private var _cache : Array<_NSKeyedArchiverUID> = []
     private var _allowedClasses : Array<[AnyClass]> = []
-    private var _error : NSError? = nil
+    private var _error : Error? = nil
     
     override open var error: Error? {
         return _error
@@ -74,14 +74,14 @@ open class NSKeyedUnarchiver : NSCoder {
             return nil
         }
         
-        let keyedUnarchiver = NSKeyedUnarchiver(stream: Stream.stream(unsafeBitCast(readStream, to: InputStream.self)))
+        defer { CFReadStreamClose(readStream) }
+        
+        let keyedUnarchiver = NSKeyedUnarchiver(stream: Stream.stream(readStream))
         do {
             try root = keyedUnarchiver.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)
             keyedUnarchiver.finishDecoding()
         } catch {
         }
-        
-        CFReadStreamClose(readStream)
         
         return root
     }
@@ -96,9 +96,9 @@ open class NSKeyedUnarchiver : NSCoder {
         
         do {
             try _readPropertyList()
-        } catch let error as NSError {
-            failWithError(error)
         } catch {
+            failWithError(error)
+            self._error = error
         }
     }
   
@@ -113,13 +113,8 @@ open class NSKeyedUnarchiver : NSCoder {
         switch self._stream {
         case .data(let data):
             try plist = PropertyListSerialization.propertyList(from: data, options: [], format: &format)
-            break
-        case .stream(let inputStream):
-            try plist = PropertyListSerialization.propertyList(with: unsafeBitCast(inputStream, to: CFReadStream.self),
-                                                                           length: 0,
-                                                                           options: [],
-                                                                           format: &format)
-            break
+        case .stream(let readStream):
+            try plist = PropertyListSerialization.propertyList(with: readStream, options: [], format: &format)
         }
         
         guard let unwrappedPlist = plist as? Dictionary<String, Any> else {
@@ -375,7 +370,7 @@ open class NSKeyedUnarchiver : NSCoder {
             unwrappedDelegate.unarchiver(self, willReplace: object, with: replacement)
         }
         
-        self._replacementMap[object as! AnyHashable] = replacement
+        self._replacementMap[_SwiftValue.store(object)] = replacement
     }
     
     private func _decodingError(_ code: CocoaError.Code, withDescription description: String) -> NSError {
@@ -392,7 +387,7 @@ open class NSKeyedUnarchiver : NSCoder {
         }
         
         // check replacement cache
-        object = self._replacementMap[decodedObject as! AnyHashable]
+        object = self._replacementMap[_SwiftValue.store(decodedObject)]
         if object != nil {
             return object
         }
@@ -418,7 +413,7 @@ open class NSKeyedUnarchiver : NSCoder {
         
         if self.requiresSecureCoding && !supportsSecureCoding {
             // FIXME should this be a fatal error?
-            fatalError("Archiver \(self) requires secure coding but class \(classToConstruct) does not support it")
+            fatalError("Archiver \(self) requires secure coding but class \(classToConstruct as Optional) does not support it")
         }
         
         return supportsSecureCoding
@@ -489,9 +484,8 @@ open class NSKeyedUnarchiver : NSCoder {
             }
         } else {
             // reference to a non-container object
-            // FIXME remove these special cases
-            if let str = dereferencedObject as? String {
-                object = str._bridgeToObjectiveC()
+            if let bridgedObject = dereferencedObject as? _ObjectBridgeable {
+                object = bridgedObject._bridgeToAnyObject()
             } else {
                 object = dereferencedObject
             }
@@ -505,8 +499,7 @@ open class NSKeyedUnarchiver : NSCoder {
      */
     private func _decodeObject(forKey key: String?) throws -> Any? {
         guard let objectRef : Any? = _objectInCurrentDecodingContext(forKey: key) else {
-            throw _decodingError(CocoaError.coderValueNotFound,
-                                 withDescription: "No value found for key \(key). The data may be corrupt.")
+            throw _decodingError(CocoaError.coderValueNotFound, withDescription: "No value found for key \(key as Optional). The data may be corrupt.")
         }
         
         return try _decodeObject(objectRef!)
@@ -549,10 +542,9 @@ open class NSKeyedUnarchiver : NSCoder {
             try _decodeArrayOfObjectsForKey(key) { object in
                 array.append(object)
             }
-        } catch let error as NSError {
+        } catch {
             failWithError(error)
             self._error = error
-        } catch {
         }
         
         return array
@@ -614,10 +606,9 @@ open class NSKeyedUnarchiver : NSCoder {
     open override func decodeObject(forKey key: String) -> Any? {
         do {
             return try _decodeObject(forKey: key)
-        } catch let error as NSError {
+        } catch {
             failWithError(error)
             self._error = error
-        } catch {
         }
         return nil
     }
@@ -630,10 +621,9 @@ open class NSKeyedUnarchiver : NSCoder {
                 defer { self._allowedClasses.removeLast() }
                 
                 return try _decodeObject(forKey: key)
-            } catch let error as NSError {
+            } catch {
                 failWithError(error)
                 self._error = error
-            } catch {
             }
         }        
         return nil
@@ -667,10 +657,9 @@ open class NSKeyedUnarchiver : NSCoder {
     open override func decodeObject() -> Any? {
         do {
             return try _decodeObject(forKey: nil)
-        } catch let error as NSError {
+        } catch {
             failWithError(error)
             self._error = error
-        } catch {
         }
         
         return nil
@@ -680,17 +669,17 @@ open class NSKeyedUnarchiver : NSCoder {
         return _decodeObject(of: NSPropertyListClasses)
     }
     
-    open override func decodePropertyListForKey(_ key: String) -> Any? {
+    open override func decodePropertyList(forKey key: String) -> Any? {
         return decodeObject(of: NSPropertyListClasses, forKey:key)
     }
     
     /**
-        Note that unlike decodePropertyListForKey(), _decodePropertyListForKey() decodes
-        a property list in the current decoding context rather than as an object. It's
-        also able to return value types.
+        Note that unlike decodePropertyList(forKey:), _decodePropertyListForKey() decodes
+        a property list in the current decoding context rather than as an object. It also 
+        is able to return value types.
      */
-    internal override func _decodePropertyListForKey(_ key: String) -> Any {
-        return _decodeValue(forKey: key)!
+    internal override func _decodePropertyListForKey(_ key: String) -> Any? {
+        return _decodeValue(forKey: key)
     }
     
     open override func decodeBool(forKey key: String) -> Bool {
@@ -756,70 +745,57 @@ open class NSKeyedUnarchiver : NSCoder {
         case .ID:
             if let ns = decodeObject() {
                 // TODO: Pretty sure this is not 100% correct
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Any>.self).pointee = ns
+                addr.assumingMemoryBound(to: Any.self).pointee = ns
             }
-            break
         case .Class:
             if let ns = decodeObject() as? NSString {
                 if let nsClass = NSClassFromString(String._unconditionallyBridgeFromObjectiveC(ns)) {
-                    unsafeBitCast(addr, to: UnsafeMutablePointer<AnyClass>.self).pointee = nsClass
+                    addr.assumingMemoryBound(to: AnyClass.self).pointee = nsClass
                 }
             }
-            break
         case .Char:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<CChar>.self).pointee = ns.int8Value
+                addr.assumingMemoryBound(to: CChar.self).pointee = ns.int8Value
             }
-            break
         case .UChar:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<UInt8>.self).pointee = ns.uint8Value
+                addr.assumingMemoryBound(to: UInt8.self).pointee = ns.uint8Value
             }
-            break
         case .Int, .Long:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Int32>.self).pointee = ns.int32Value
+                addr.assumingMemoryBound(to: Int32.self).pointee = ns.int32Value
             }
-            break
         case .UInt, .ULong:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<UInt32>.self).pointee = ns.uint32Value
+                addr.assumingMemoryBound(to: UInt32.self).pointee = ns.uint32Value
             }
-            break
         case .LongLong:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Int64>.self).pointee = ns.int64Value
+                addr.assumingMemoryBound(to: Int64.self).pointee = ns.int64Value
             }
-            break
         case .ULongLong:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<UInt64>.self).pointee = ns.uint64Value
+                addr.assumingMemoryBound(to: UInt64.self).pointee = ns.uint64Value
             }
-            break
         case .Float:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Float>.self).pointee = ns.floatValue
+                addr.assumingMemoryBound(to: Float.self).pointee = ns.floatValue
             }
-            break
         case .Double:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Double>.self).pointee = ns.doubleValue
+                addr.assumingMemoryBound(to: Double.self).pointee = ns.doubleValue
             }
-            break
         case .Bool:
             if let ns : NSNumber = _decodeValue() {
-                unsafeBitCast(addr, to: UnsafeMutablePointer<Bool>.self).pointee = ns.boolValue
+                addr.assumingMemoryBound(to: Bool.self).pointee = ns.boolValue
             }
-            break
         case .CharPtr:
             if let ns = decodeObject() as? NSString {
                 let string = ns.utf8String! // XXX leaky
-                unsafeBitCast(addr, to: UnsafeMutablePointer<UnsafePointer<Int8>>.self).pointee = string
+                addr.assumingMemoryBound(to: UnsafePointer<Int8>.self).pointee = string
             }
-            break
         default:
             fatalError("NSKeyedUnarchiver.decodeValueOfObjCType: unknown type encoding ('\(type.rawValue)')")
-            break
         }
     }
     
@@ -887,15 +863,9 @@ open class NSKeyedUnarchiver : NSCoder {
     }
 
     open class func unarchiveTopLevelObjectWithData(_ data: Data) throws -> Any? {
-        var root : Any? = nil
-        
         let keyedUnarchiver = NSKeyedUnarchiver(forReadingWithData: data)
-        do {
-            try root = keyedUnarchiver.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)
-            keyedUnarchiver.finishDecoding()
-        } catch {
-        }
-        
+        let root = try keyedUnarchiver.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)
+        keyedUnarchiver.finishDecoding()
         return root
     }
 }

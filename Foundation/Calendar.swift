@@ -83,12 +83,20 @@ public struct Calendar : Hashable, Equatable, ReferenceConvertible, _MutableBoxi
         case timeZone
     }
     
-    /// Returns the user's current calendar. This calendar does not track changes that the user makes to their preferences.
+    /// Returns the user's current calendar.
+    ///
+    /// This calendar does not track changes that the user makes to their preferences.
     public static var current: Calendar {
         return Calendar(adoptingReference: __NSCalendarCurrent(), autoupdating: false)
     }
     
+    /// A Calendar that tracks changes to user's preferred calendar.
+    ///
+    /// If mutated, this calendar will no longer track the user's preferred calendar.
+    ///
+    /// - note: The autoupdating Calendar will only compare equal to another autoupdating Calendar.
     public static var autoupdatingCurrent: Calendar {
+        // swift-corelibs-foundation does not yet support autoupdating, but we can return the current calendar (which will not change).
         return Calendar(adoptingReference: __NSCalendarCurrent(), autoupdating: true)
     }
 
@@ -584,7 +592,7 @@ public struct Calendar : Hashable, Equatable, ReferenceConvertible, _MutableBoxi
     ///
     /// - parameter date1: A date to compare.
     /// - parameter date2: A date to compare.
-    /// - parameter: component: A granularity to compare. For example, pass `.hour` to check if two dates are in the same hour.
+    /// - parameter component: A granularity to compare. For example, pass `.hour` to check if two dates are in the same hour.
     public func compare(_ date1: Date, to date2: Date, toGranularity component: Component) -> ComparisonResult {
         return _handle.map { $0.compare(date1, to: date2, toUnitGranularity: Calendar._toCalendarUnit([component])) }
     }
@@ -1124,15 +1132,35 @@ public struct Calendar : Hashable, Equatable, ReferenceConvertible, _MutableBoxi
 }
 
 extension Calendar : CustomDebugStringConvertible, CustomStringConvertible, CustomReflectable {
+    private var _kindDescription : String {
+        if self == .autoupdatingCurrent {
+            return "autoupdatingCurrent"
+        } else if self == .current {
+            return "current"
+        } else {
+            return "fixed"
+        }
+    }
+    
     public var description: String {
-        return _handle.map { $0.description }
+        return "\(identifier) (\(_kindDescription))"
     }
     
     public var debugDescription: String {
-        return _handle.map { $0.debugDescription }
+        return "\(identifier) (\(_kindDescription))"
     }
     
-    public var customMirror: Mirror { NSUnimplemented() }
+    public var customMirror: Mirror {
+        let children: [(label: String?, value: Any)] = [
+            (label: "identifier", value: identifier),
+            (label: "kind", value: _kindDescription),
+            (label: "locale", value: locale as Any),
+            (label: "timeZone", value: timeZone),
+            (label: "firstWeekDay", value: firstWeekday),
+            (label: "minimumDaysInFirstWeek", value: minimumDaysInFirstWeek)
+        ]
+        return Mirror(self, children: children, displayStyle: Mirror.DisplayStyle.struct)
+    }
 }
 
 extension Calendar: _ObjectTypeBridgeable {

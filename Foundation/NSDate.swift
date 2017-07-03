@@ -29,12 +29,14 @@ open class NSDate : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     open override func isEqual(_ value: Any?) -> Bool {
-        if let date = value as? Date {
-            return isEqual(to: date)
-        } else if let date = value as? NSDate {
-            return isEqual(to: Date(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate))
+        switch value {
+        case let other as Date:
+            return isEqual(to: other)
+        case let other as NSDate:
+            return isEqual(to: Date(timeIntervalSinceReferenceDate: other.timeIntervalSinceReferenceDate))
+        default:
+            return false
         }
-        return false
     }
     
     deinit {
@@ -274,7 +276,9 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
     
     
     public required convenience init?(coder: NSCoder) {
-        precondition(coder.allowsKeyedCoding)
+        guard coder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
         guard let start = coder.decodeObject(of: NSDate.self, forKey: "NS.startDate") else {
             coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderValueNotFound.rawValue, userInfo: nil))
             return nil
@@ -304,7 +308,9 @@ open class NSDateInterval : NSObject, NSCopying, NSSecureCoding {
     }
     
     open func encode(with aCoder: NSCoder) {
-        precondition(aCoder.allowsKeyedCoding)
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
         aCoder.encode(startDate._nsObject, forKey: "NS.startDate")
         aCoder.encode(endDate._nsObject, forKey: "NS.endDate")
     }

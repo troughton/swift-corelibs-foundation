@@ -25,7 +25,9 @@ class TestNSRegularExpression : XCTestCase {
         return [
             ("test_simpleRegularExpressions", test_simpleRegularExpressions),
             ("test_regularExpressionReplacement", test_regularExpressionReplacement),
-            ("test_complexRegularExpressions", test_complexRegularExpressions)
+            ("test_complexRegularExpressions", test_complexRegularExpressions),
+            ("test_Equal", test_Equal),
+            ("test_NSCoding", test_NSCoding),
         ]
     }
     
@@ -33,7 +35,7 @@ class TestNSRegularExpression : XCTestCase {
         do {
             let str = NSString(string: searchString)
             var range = NSMakeRange(0, str.length)
-            let regex = try RegularExpression(pattern: patternString, options: [])
+            let regex = try NSRegularExpression(pattern: patternString)
             do {
                 let lookingRange = regex.rangeOfFirstMatch(in: searchString, options: .anchored, range: range)
                 let matchRange = regex.rangeOfFirstMatch(in: searchString, options: [], range: range)
@@ -158,13 +160,13 @@ class TestNSRegularExpression : XCTestCase {
         simpleRegularExpressionTestWithPattern(".*\\Ax", target:"xyz", looking:true, match:false)
         simpleRegularExpressionTestWithPattern(".*\\Ax", target:" xyz", looking:false, match:false)
         simpleRegularExpressionTestWithPattern("\\\\\\|\\(\\)\\[\\{\\~\\$\\*\\+\\?\\.", target:"\\|()[{~$*+?.", looking:true, match:true)
-        simpleRegularExpressionTestWithPattern(RegularExpression.escapedPattern(for: "+\\{}[].^$?#<=!&*()"), target:"+\\{}[].^$?#<=!&*()", looking:true, match:true)
-        simpleRegularExpressionTestWithPattern(RegularExpression.escapedPattern(for: "+\\{}[].^$?#<=!&*()"), target:"+\\{}[].^$?#<=!&*() abc", looking:true, match:false)
+        simpleRegularExpressionTestWithPattern(NSRegularExpression.escapedPattern(for: "+\\{}[].^$?#<=!&*()"), target:"+\\{}[].^$?#<=!&*()", looking:true, match:true)
+        simpleRegularExpressionTestWithPattern(NSRegularExpression.escapedPattern(for: "+\\{}[].^$?#<=!&*()"), target:"+\\{}[].^$?#<=!&*() abc", looking:true, match:false)
     }
     
-    func replaceRegularExpressionTest(_ patternString: String, _ patternOptions: RegularExpression.Options, _ searchString: String, _ searchOptions: NSMatchingOptions, _ searchRange: NSRange, _ templ: String, _ numberOfMatches: Int, _ result: String, file: StaticString = #file, line: UInt = #line) {
+    func replaceRegularExpressionTest(_ patternString: String, _ patternOptions: NSRegularExpression.Options, _ searchString: String, _ searchOptions: NSMatchingOptions, _ searchRange: NSRange, _ templ: String, _ numberOfMatches: Int, _ result: String, file: StaticString = #file, line: UInt = #line) {
         do {
-            let regex = try RegularExpression(pattern: patternString, options: patternOptions)
+            let regex = try NSRegularExpression(pattern: patternString, options: patternOptions)
             let mutableString = NSMutableString(string: searchString)
             let matchCount = regex.replaceMatches(in: mutableString, options: searchOptions, range: searchRange, withTemplate: templ)
             let replacedString = regex.stringByReplacingMatches(in: searchString, options: searchOptions, range: searchRange, withTemplate: templ)
@@ -185,8 +187,8 @@ class TestNSRegularExpression : XCTestCase {
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), "*$2*", 1, "This this is ** way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), "*$10*", 1, "This this is *the0* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), "*$*", 1, "This this is *$* way.")
-        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), RegularExpression.escapedTemplate(for: "*$1*"), 1, "This this is *$1* way.")
-        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), RegularExpression.escapedTemplate(for: "*\\$1*"), 1, "This this is *\\$1* way.")
+        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), NSRegularExpression.escapedTemplate(for: "*$1*"), 1, "This this is *$1* way.")
+        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), NSRegularExpression.escapedTemplate(for: "*\\$1*"), 1, "This this is *\\$1* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), "*\\$1*", 1, "This this is *$1* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", [], "This this is the the way.", [], NSMakeRange(0, 25), "*\\\\\\$1*", 1, "This this is *\\$1* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "$0", 2, "This this is the the way.")
@@ -195,17 +197,17 @@ class TestNSRegularExpression : XCTestCase {
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "*$2*", 2, "** is ** way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "*$10*", 2, "*This0* is *the0* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "*$*", 2, "*$* is *$* way.")
-        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), RegularExpression.escapedTemplate(for: "*$1*"), 2, "*$1* is *$1* way.")
-        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), RegularExpression.escapedTemplate(for: "*\\$1*"), 2, "*\\$1* is *\\$1* way.")
+        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), NSRegularExpression.escapedTemplate(for: "*$1*"), 2, "*$1* is *$1* way.")
+        replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), NSRegularExpression.escapedTemplate(for: "*\\$1*"), 2, "*\\$1* is *\\$1* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "*\\$1*", 2, "*$1* is *$1* way.")
         replaceRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "This this is the the way.", [], NSMakeRange(0, 25), "*\\\\\\$1*", 2, "*\\$1* is *\\$1* way.")
         replaceRegularExpressionTest("([1-9]a)([1-9]b)([1-9]c)([1-9]d)([1-9]e)([1-9]f)", [], "9a3b4c8d3e1f,9a3b4c8d3e1f", [], NSMakeRange(0,25), "$2$4 is your key", 2, "3b8d is your key,3b8d is your key")
         replaceRegularExpressionTest("([1-9]a)([1-9]b)([1-9]c)([1-9]d)([1-9]e)([1-9]f)([1-9]z)", [], "9a3b4c8d3e1f2z,9a3b4c8d3e1f2z", [], NSMakeRange(0,29), "$2$4$1 is your key", 2, "3b8d9a is your key,3b8d9a is your key")
     }
     
-    func complexRegularExpressionTest(_ patternString: String, _ patternOptions: RegularExpression.Options, _ searchString: String, _ searchOptions: NSMatchingOptions, _ searchRange: NSRange, _ numberOfMatches: Int, _ firstMatchOverallRange: NSRange, _ firstMatchFirstCaptureRange: NSRange, _ firstMatchLastCaptureRange: NSRange, file: StaticString = #file, line: UInt = #line) {
+    func complexRegularExpressionTest(_ patternString: String, _ patternOptions: NSRegularExpression.Options, _ searchString: String, _ searchOptions: NSMatchingOptions, _ searchRange: NSRange, _ numberOfMatches: Int, _ firstMatchOverallRange: NSRange, _ firstMatchFirstCaptureRange: NSRange, _ firstMatchLastCaptureRange: NSRange, file: StaticString = #file, line: UInt = #line) {
         do {
-            let regex = try RegularExpression(pattern: patternString, options: patternOptions)
+            let regex = try NSRegularExpression(pattern: patternString, options: patternOptions)
             let matches = regex.matches(in: searchString, options: searchOptions, range: searchRange)
             let matchCount = regex.numberOfMatches(in: searchString, options: searchOptions, range: searchRange)
             let firstResult = regex.firstMatch(in: searchString, options: searchOptions, range: searchRange)
@@ -247,8 +249,8 @@ class TestNSRegularExpression : XCTestCase {
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "xThis this is the theway.", [], NSMakeRange(1, 20), 2, NSMakeRange(1, 9), NSMakeRange(1, 4), NSMakeRange(1, 4))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "xThis this is the theway.", .withTransparentBounds, NSMakeRange(1, 20), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         
-        complexRegularExpressionTest(RegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
-        complexRegularExpressionTest(RegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
+        complexRegularExpressionTest(NSRegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
+        complexRegularExpressionTest(NSRegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .ignoreMetacharacters, "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .ignoreMetacharacters, "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         
@@ -282,8 +284,8 @@ class TestNSRegularExpression : XCTestCase {
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "xThis this is the theway.", [], NSMakeRange(1, 20), 2, NSMakeRange(1, 9), NSMakeRange(1, 4), NSMakeRange(1, 4))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .caseInsensitive, "xThis this is the theway.", .withTransparentBounds, NSMakeRange(1, 20), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         
-        complexRegularExpressionTest(RegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
-        complexRegularExpressionTest(RegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
+        complexRegularExpressionTest(NSRegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
+        complexRegularExpressionTest(NSRegularExpression.escapedPattern(for: "\\b(th[a-z]+) \\1\\b"), [], "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .ignoreMetacharacters, "This this is the the way.", [], NSMakeRange(0, 25), 0, NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("\\b(th[a-z]+) \\1\\b", .ignoreMetacharacters, "x\\b(th[a-z]+) \\1\\by", [], NSMakeRange(0, 19), 1, NSMakeRange(1, 17), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         
@@ -316,5 +318,38 @@ class TestNSRegularExpression : XCTestCase {
         complexRegularExpressionTest("(a|b)x|123|(c|d)y", [], "903847123", [], NSMakeRange(0, 9), 1, NSMakeRange(6, 3), NSMakeRange(NSNotFound, 0), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("(a|b)x|123|(c|d)y", [], "axcy", [], NSMakeRange(0, 4), 2, NSMakeRange(0, 2), NSMakeRange(0, 1), NSMakeRange(NSNotFound, 0))
         complexRegularExpressionTest("(a|b)x|123|(c|d)y", [], "cya", [], NSMakeRange(0, 3), 1, NSMakeRange(0, 2), NSMakeRange(NSNotFound, 0), NSMakeRange(0, 1))
+    }
+    
+    func test_Equal() {
+        var regularExpressionA = try! NSRegularExpression(pattern: "[a-z]+", options: [])
+        var regularExpressionB = try! NSRegularExpression(pattern: "[a-z]+", options: [])
+        XCTAssertTrue(regularExpressionA == regularExpressionB)
+        XCTAssertFalse(regularExpressionA === regularExpressionB)
+        
+        regularExpressionA = try! NSRegularExpression(pattern: "[a-z]+", options: .caseInsensitive)
+        regularExpressionB = try! NSRegularExpression(pattern: "[a-z]+", options: .caseInsensitive)
+        XCTAssertTrue(regularExpressionA == regularExpressionB)
+        XCTAssertFalse(regularExpressionA === regularExpressionB)
+        
+        regularExpressionA = try! NSRegularExpression(pattern: "[a-z]+", options: [.caseInsensitive, .allowCommentsAndWhitespace])
+        regularExpressionB = try! NSRegularExpression(pattern: "[a-z]+", options: [.caseInsensitive, .allowCommentsAndWhitespace])
+        XCTAssertTrue(regularExpressionA == regularExpressionB)
+        XCTAssertFalse(regularExpressionA === regularExpressionB)
+        
+        regularExpressionA = try! NSRegularExpression(pattern: "[a-z]+", options: .caseInsensitive)
+        regularExpressionB = try! NSRegularExpression(pattern: "[a-z]+", options: [.caseInsensitive, .allowCommentsAndWhitespace])
+        XCTAssertFalse(regularExpressionA == regularExpressionB)
+        XCTAssertFalse(regularExpressionA === regularExpressionB)
+        
+        regularExpressionA = try! NSRegularExpression(pattern: "[a-y]+", options: .caseInsensitive)
+        regularExpressionB = try! NSRegularExpression(pattern: "[a-z]+", options: .caseInsensitive)
+        XCTAssertFalse(regularExpressionA == regularExpressionB)
+        XCTAssertFalse(regularExpressionA === regularExpressionB)
+    }
+    
+    func test_NSCoding() {
+        let regularExpressionA = try! NSRegularExpression(pattern: "[a-z]+", options: [.caseInsensitive, .allowCommentsAndWhitespace])
+        let regularExpressionB = NSKeyedUnarchiver.unarchiveObject(with: NSKeyedArchiver.archivedData(withRootObject: regularExpressionA)) as! NSRegularExpression
+        XCTAssertEqual(regularExpressionA, regularExpressionB, "Archived then unarchived `NSRegularExpression` must be equal.")
     }
 }

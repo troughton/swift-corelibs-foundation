@@ -20,7 +20,9 @@ class TestNSURLCredential : XCTestCase {
     
     static var allTests: [(String, (TestNSURLCredential) -> () throws -> Void)] {
         return [
-                   ("test_construction", test_construction)
+                   ("test_construction", test_construction),
+                   ("test_copy", test_copy),
+                   ("test_NSCoding", test_NSCoding)
         ]
     }
     
@@ -31,5 +33,17 @@ class TestNSURLCredential : XCTestCase {
         XCTAssertEqual(credential.password, "swiftPassword")
         XCTAssertEqual(credential.persistence, URLCredential.Persistence.forSession)
         XCTAssertEqual(credential.hasPassword, true)
+    }
+
+    func test_copy() {
+        let credential = URLCredential(user: "swiftUser", password: "swiftPassword", persistence: .forSession)
+        let copy = credential.copy() as! URLCredential
+        XCTAssertTrue(copy.isEqual(credential))
+    }
+    
+    func test_NSCoding() {
+        let credentialA = URLCredential(user: "swiftUser", password: "swiftPassword", persistence: .forSession)
+        let credentialB = NSKeyedUnarchiver.unarchiveObject(with: NSKeyedArchiver.archivedData(withRootObject: credentialA)) as! URLCredential
+        XCTAssertEqual(credentialA, credentialB, "Archived then unarchived url credential must be equal.")
     }
 }

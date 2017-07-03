@@ -12,7 +12,7 @@
 
 import CoreFoundation
 
-extension RegularExpression {
+extension NSRegularExpression {
     public struct Options : OptionSet {
         public let rawValue : UInt
         public init(rawValue: UInt) { self.rawValue = rawValue }
@@ -27,7 +27,7 @@ extension RegularExpression {
     }
 }
 
-open class RegularExpression: NSObject, NSCopying, NSCoding {
+open class NSRegularExpression: NSObject, NSCopying, NSCoding {
     internal var _internal: _CFRegularExpression
     
     open override func copy() -> Any {
@@ -39,17 +39,43 @@ open class RegularExpression: NSObject, NSCopying, NSCoding {
     }
     
     open func encode(with aCoder: NSCoder) {
-        NSUnimplemented()
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        
+        aCoder.encode(self.pattern._nsObject, forKey: "NSPattern")
+        aCoder.encode(self.options.rawValue._bridgeToObjectiveC(), forKey: "NSOptions")
     }
     
-    public required init?(coder aDecoder: NSCoder) {
-        NSUnimplemented()
+    public required convenience init?(coder aDecoder: NSCoder) {
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        
+        guard let pattern = aDecoder.decodeObject(forKey: "NSPattern") as? NSString,
+            let options = aDecoder.decodeObject(forKey: "NSOptions") as? NSNumber else {
+                return nil
+        }
+        
+        do {
+            try self.init(pattern: pattern._swiftObject, options: Options(rawValue: options.uintValue))
+        } catch {
+            return nil
+        }
+    }
+    
+    open override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? NSRegularExpression else { return false }
+        
+        return self === other
+            || (self.pattern == other.pattern
+                && self.options == other.options)
     }
     
     /* An instance of NSRegularExpression is created from a regular expression pattern and a set of options.  If the pattern is invalid, nil will be returned and an NSError will be returned by reference.  The pattern syntax currently supported is that specified by ICU.
     */
     
-    public init(pattern: String, options: Options) throws {
+    public init(pattern: String, options: Options = []) throws {
         var error: Unmanaged<CFError>?
 #if os(OSX) || os(iOS)
         let opt =  _CFRegularExpressionOptions(rawValue: options.rawValue)
@@ -112,9 +138,9 @@ public struct NSMatchingFlags : OptionSet {
 }
 
 internal class _NSRegularExpressionMatcher {
-    var regex: RegularExpression
-    var block: (TextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Void
-    init(regex: RegularExpression, block: @escaping (TextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Void) {
+    var regex: NSRegularExpression
+    var block: (NSTextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Void
+    init(regex: NSRegularExpression, block: @escaping (NSTextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Void) {
         self.regex = regex
         self.block = block
     }
@@ -133,7 +159,7 @@ internal func _NSRegularExpressionMatch(_ context: UnsafeMutableRawPointer?, ran
         })
     } else {
         let result = ranges!.withMemoryRebound(to: NSRange.self, capacity: count) { rangePtr in
-            TextCheckingResult.regularExpressionCheckingResultWithRanges(rangePtr, count: count, regularExpression: matcher.regex)
+            NSTextCheckingResult.regularExpressionCheckingResultWithRanges(rangePtr, count: count, regularExpression: matcher.regex)
         }
 #if os(OSX) || os(iOS)
         let flags = NSMatchingFlags(rawValue: options.rawValue)
@@ -146,12 +172,12 @@ internal func _NSRegularExpressionMatch(_ context: UnsafeMutableRawPointer?, ran
     }
 }
 
-extension RegularExpression {
+extension NSRegularExpression {
     
     /* The fundamental matching method on NSRegularExpression is a block iterator.  There are several additional convenience methods, for returning all matches at once, the number of matches, the first match, or the range of the first match.  Each match is specified by an instance of NSTextCheckingResult (of type NSTextCheckingTypeRegularExpression) in which the overall match range is given by the range property (equivalent to range at:0) and any capture group ranges are given by range at: for indexes from 1 to numberOfCaptureGroups.  {NSNotFound, 0} is used if a particular capture group does not participate in the match.
     */
     
-    public func enumerateMatches(in string: String, options: NSMatchingOptions, range: NSRange, using block: @escaping (TextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
+    public func enumerateMatches(in string: String, options: NSMatchingOptions, range: NSRange, using block: @escaping (NSTextCheckingResult?, NSMatchingFlags, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
         let matcher = _NSRegularExpressionMatcher(regex: self, block: block)
         withExtendedLifetime(matcher) { (m: _NSRegularExpressionMatcher) -> Void in
 #if os(OSX) || os(iOS)
@@ -163,9 +189,9 @@ extension RegularExpression {
         }
     }
     
-    public func matches(in string: String, options: NSMatchingOptions, range: NSRange) -> [TextCheckingResult] {
-        var matches = [TextCheckingResult]()
-        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: TextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
+    public func matches(in string: String, options: NSMatchingOptions, range: NSRange) -> [NSTextCheckingResult] {
+        var matches = [NSTextCheckingResult]()
+        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: NSTextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
             if let match = result {
                 matches.append(match)
             }
@@ -182,9 +208,9 @@ extension RegularExpression {
         return count
     }
     
-    public func firstMatch(in string: String, options: NSMatchingOptions, range: NSRange) -> TextCheckingResult? {
-        var first: TextCheckingResult?
-        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: TextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
+    public func firstMatch(in string: String, options: NSMatchingOptions, range: NSRange) -> NSTextCheckingResult? {
+        var first: NSTextCheckingResult?
+        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: NSTextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
             first = result
             stop.pointee = true
         }
@@ -193,7 +219,7 @@ extension RegularExpression {
     
     public func rangeOfFirstMatch(in string: String, options: NSMatchingOptions, range: NSRange) -> NSRange {
         var firstRange = NSMakeRange(NSNotFound, 0)
-        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: TextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
+        enumerateMatches(in: string, options: options.subtracting(.reportProgress).subtracting(.reportCompletion), range: range) { (result: NSTextCheckingResult?, flags: NSMatchingFlags, stop: UnsafeMutablePointer<ObjCBool>) in
             if let match = result {
                 firstRange = match.range
             } else {
@@ -214,7 +240,7 @@ NSMatchingAnchored, NSMatchingWithTransparentBounds, and NSMatchingWithoutAnchor
 NSRegularExpression is designed to be immutable and threadsafe, so that a single instance can be used in matching operations on multiple threads at once.  However, the string on which it is operating should not be mutated during the course of a matching operation (whether from another thread or from within the block used in the iteration).
 */
 
-extension RegularExpression {
+extension NSRegularExpression {
     
     /* NSRegularExpression also provides find-and-replace methods for both immutable and mutable strings.  The replacement is treated as a template, with $0 being replaced by the contents of the matched range, $1 by the contents of the first capture group, and so on.  Additional digits beyond the maximum required to represent the number of capture groups will be treated as ordinary characters, as will a $ not followed by digits.  Backslash will escape both $ and itself.
     */
@@ -251,12 +277,12 @@ extension RegularExpression {
         var count = 0
         var offset = 0
         for result in results {
-            var currentRnage = result.range
+            var currentRange = result.range
             let replacement = replacementString(for: result, in: string._swiftObject, offset: offset, template: templ)
-            currentRnage.location += offset
+            currentRange.location += offset
             
-            string.replaceCharacters(in: currentRnage, with: replacement)
-            offset += replacement.length - currentRnage.length
+            string.replaceCharacters(in: currentRange, with: replacement)
+            offset += replacement.length - currentRange.length
             count += 1
         }
         return count
@@ -264,7 +290,7 @@ extension RegularExpression {
     
     /* For clients implementing their own replace functionality, this is a method to perform the template substitution for a single result, given the string from which the result was matched, an offset to be added to the location of the result in the string (for example, in case modifications to the string moved the result since it was matched), and a replacement template.
     */
-    public func replacementString(for result: TextCheckingResult, in string: String, offset: Int, template templ: String) -> String {
+    public func replacementString(for result: NSTextCheckingResult, in string: String, offset: Int, template templ: String) -> String {
         // ??? need to consider what happens if offset takes range out of bounds due to replacement
         struct once {
             static let characterSet = CharacterSet(charactersIn: "\\$")

@@ -27,7 +27,7 @@ open class NSLock: NSObject, NSLocking {
 #else
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
 #endif
-
+    
     public override init() {
         pthread_mutex_init(mutex, nil)
     }
@@ -115,7 +115,7 @@ open class NSConditionLock : NSObject, NSLocking {
 
     open func lock(before limit: Date) -> Bool {
         _cond.lock()
-        while _thread == nil {
+        while _thread != nil {
             if !_cond.wait(until: limit) {
                 _cond.unlock()
                 return false

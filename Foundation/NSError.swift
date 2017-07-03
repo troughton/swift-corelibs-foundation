@@ -62,34 +62,20 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public required init?(coder aDecoder: NSCoder) {
-        if aDecoder.allowsKeyedCoding {
-            _code = aDecoder.decodeInteger(forKey: "NSCode")
-            _domain = aDecoder.decodeObject(of: NSString.self, forKey: "NSDomain")!._swiftObject
-            if let info = aDecoder.decodeObject(of: [NSSet.self, NSDictionary.self, NSArray.self, NSString.self, NSNumber.self, NSData.self, NSURL.self], forKey: "NSUserInfo") as? NSDictionary {
-                var filteredUserInfo = [String : Any]()
-                // user info must be filtered so that the keys are all strings
-                info.enumerateKeysAndObjects(options: []) {
-                    if let key = $0.0 as? NSString {
-                        filteredUserInfo[key._swiftObject] = $0.1
-                    }
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        _code = aDecoder.decodeInteger(forKey: "NSCode")
+        _domain = aDecoder.decodeObject(of: NSString.self, forKey: "NSDomain")!._swiftObject
+        if let info = aDecoder.decodeObject(of: [NSSet.self, NSDictionary.self, NSArray.self, NSString.self, NSNumber.self, NSData.self, NSURL.self], forKey: "NSUserInfo") as? NSDictionary {
+            var filteredUserInfo = [String : Any]()
+            // user info must be filtered so that the keys are all strings
+            info.enumerateKeysAndObjects(options: []) {
+                if let key = $0.0 as? NSString {
+                    filteredUserInfo[key._swiftObject] = $0.1
                 }
-                _userInfo = filteredUserInfo
             }
-        } else {
-            var codeValue: Int32 = 0
-            aDecoder.decodeValue(ofObjCType: "i", at: &codeValue)
-            _code = Int(codeValue)
-            _domain = (aDecoder.decodeObject() as? NSString)!._swiftObject
-            if let info = aDecoder.decodeObject() as? NSDictionary {
-                var filteredUserInfo = [String : Any]()
-                // user info must be filtered so that the keys are all strings
-                info.enumerateKeysAndObjects(options: []) {
-                    if let key = $0.0 as? NSString {
-                        filteredUserInfo[key._swiftObject] = $0.1
-                    }
-                }
-                _userInfo = filteredUserInfo
-            }
+            _userInfo = filteredUserInfo
         }
     }
     
@@ -98,16 +84,12 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     open func encode(with aCoder: NSCoder) {
-        if aCoder.allowsKeyedCoding {
-            aCoder.encode(_domain._bridgeToObjectiveC(), forKey: "NSDomain")
-            aCoder.encode(Int32(_code), forKey: "NSCode")
-            aCoder.encode(_userInfo?._bridgeToObjectiveC(), forKey: "NSUserInfo")
-        } else {
-            var codeValue: Int32 = Int32(self._code)
-            aCoder.encodeValue(ofObjCType: "i", at: &codeValue)
-            aCoder.encode(self._domain._bridgeToObjectiveC())
-            aCoder.encode(self._userInfo?._bridgeToObjectiveC())
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        aCoder.encode(_domain._bridgeToObjectiveC(), forKey: "NSDomain")
+        aCoder.encode(Int32(_code), forKey: "NSCode")
+        aCoder.encode(_userInfo?._bridgeToObjectiveC(), forKey: "NSUserInfo")
     }
     
     open override func copy() -> Any {
@@ -162,14 +144,14 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
         return userInfo[NSHelpAnchorErrorKey] as? String
     }
     
-    internal typealias NSErrorProvider = (_ error: NSError, _ key: String) -> AnyObject?
-    internal static var userInfoProviders = [String: NSErrorProvider]()
+    internal typealias UserInfoProvider = (_ error: Error, _ key: String) -> Any?
+    internal static var userInfoProviders = [String: UserInfoProvider]()
     
-    open class func setUserInfoValueProvider(forDomain errorDomain: String, provider: (/* @escaping */ (NSError, String) -> AnyObject?)?) {
+    open class func setUserInfoValueProvider(forDomain errorDomain: String, provider: (/* @escaping */ (Error, String) -> Any?)?) {
         NSError.userInfoProviders[errorDomain] = provider
     }
 
-    open class func userInfoValueProvider(forDomain errorDomain: String) -> ((NSError, String) -> AnyObject?)? {
+    open class func userInfoValueProvider(forDomain errorDomain: String) -> ((Error, String) -> Any?)? {
         return NSError.userInfoProviders[errorDomain]
     }
     
@@ -187,11 +169,8 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
     
     override open func isEqual(_ object: Any?) -> Bool {
         // Pulled from NSObject itself; this works on all platforms.
-        if let obj = object as? NSError {
-            return obj === self
-        }
-        
-        return false
+        guard let obj = object as? NSError else { return false }
+        return obj === self
     }
 }
 
@@ -240,9 +219,9 @@ public extension LocalizedError {
 /// NSErrorRecoveryAttempting, which is used by NSError when it
 /// attempts recovery from an error.
 class _NSErrorRecoveryAttempter {
-    func attemptRecovery(fromError nsError: NSError,
+    func attemptRecovery(fromError error: Error,
         optionIndex recoveryOptionIndex: Int) -> Bool {
-        let error = nsError as Error as! RecoverableError
+        let error = error as! RecoverableError
         return error.attemptRecovery(optionIndex: recoveryOptionIndex)
   }
 }
@@ -306,7 +285,8 @@ public extension Error where Self : CustomNSError {
 public extension Error {
     /// Retrieve the localized description for this error.
     var localizedDescription: String {
-        return NSError(domain: _domain, code: _code, userInfo: nil).localizedDescription
+        let defaultUserInfo = _swift_Foundation_getErrorDefaultUserInfo(self) as! [String : Any]
+        return NSError(domain: _domain, code: _code, userInfo: defaultUserInfo).localizedDescription
     }
 }
 
@@ -397,8 +377,8 @@ extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: SignedIn
 }
 
 public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: SignedInteger {
-    public final var _domain: String { return Self._nsErrorDomain }
-    public final var _code: Int { return Int(rawValue.toIntMax()) }
+    public var _domain: String { return Self._nsErrorDomain }
+    public var _code: Int { return Int(rawValue.toIntMax()) }
     
     public init?(rawValue: RawValue) {
         self = unsafeBitCast(rawValue, to: Self.self)
@@ -412,7 +392,7 @@ public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: S
         self.init(rawValue: RawValue(IntMax(_bridgedNSError.code)))
     }
     
-    public final var hashValue: Int { return _code }
+    public var hashValue: Int { return _code }
 }
 
 // Allow two bridged NSError types to be compared.
@@ -423,8 +403,8 @@ extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: Unsigned
 }
 
 public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: UnsignedInteger {
-    public final var _domain: String { return Self._nsErrorDomain }
-    public final var _code: Int {
+    public var _domain: String { return Self._nsErrorDomain }
+    public var _code: Int {
         return Int(bitPattern: UInt(rawValue.toUIntMax()))
     }
     
@@ -440,7 +420,7 @@ public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: U
         self.init(rawValue: RawValue(UIntMax(UInt(_bridgedNSError.code))))
     }
     
-    public final var hashValue: Int { return _code }
+    public var hashValue: Int { return _code }
 }
 
 /// Describes a raw representable type that is bridged to a particular
@@ -639,7 +619,7 @@ public struct CocoaError : _BridgedStoredNSError {
 
 public extension CocoaError {
     private var _nsUserInfo: [AnyHashable : Any] {
-        return NSError(domain: _domain, code: _code, userInfo: nil).userInfo
+        return _nsError.userInfo
     }
 
     /// The file path associated with the error, if any.
@@ -820,7 +800,7 @@ public struct URLError : _BridgedStoredNSError {
 
 public extension URLError {
     private var _nsUserInfo: [AnyHashable : Any] {
-        return NSError(domain: _domain, code: _code, userInfo: nil).userInfo
+        return _nsError.userInfo
     }
 
     /// The URL which caused a load to fail.

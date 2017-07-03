@@ -26,17 +26,15 @@ open class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCodi
             NSRequiresConcreteImplementation()
         }
         let value = _SwiftValue.store(object)
-        if _storage.contains(value) {
-            return object // this is not exactly the same behavior, but it is reasonably close
-        }
-        return nil
+        guard let idx = _storage.index(of: value) else { return nil }
+        return _storage[idx]
     }
     
     open func objectEnumerator() -> NSEnumerator {
         guard type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self || type(of: self) === NSCountedSet.self else {
             NSRequiresConcreteImplementation()
         }
-        return NSGeneratorEnumerator(_storage.map { _SwiftValue.fetch($0) }.makeIterator())
+        return NSGeneratorEnumerator(_storage.map { _SwiftValue.fetch(nonOptional: $0) }.makeIterator())
     }
 
     public convenience override init() {
@@ -53,22 +51,10 @@ open class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCodi
     }
     
     public required convenience init?(coder aDecoder: NSCoder) {
-        if !aDecoder.allowsKeyedCoding {
-            var cnt: UInt32 = 0
-            // We're stuck with (int) here (rather than unsigned int)
-            // because that's the way the code was originally written, unless
-            // we go to a new version of the class, which has its own problems.
-            withUnsafeMutablePointer(to: &cnt) { (ptr: UnsafeMutablePointer<UInt32>) -> Void in
-                aDecoder.decodeValue(ofObjCType: "i", at: UnsafeMutableRawPointer(ptr))
-            }
-            let objects = UnsafeMutablePointer<AnyObject>.allocate(capacity: Int(cnt))
-            for idx in 0..<cnt {
-                objects.advanced(by: Int(idx)).initialize(to: aDecoder.decodeObject() as! NSObject)
-            }
-            self.init(objects: objects, count: Int(cnt))
-            objects.deinitialize(count: Int(cnt))
-            objects.deallocate(capacity: Int(cnt))
-        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
             let objects = aDecoder._decodeArrayOfObjectsForKey("NS.objects")
             self.init(array: objects as! [NSObject])
         } else {
@@ -128,12 +114,14 @@ open class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCodi
     }
 
     open override func isEqual(_ value: Any?) -> Bool {
-        if let other = value as? Set<AnyHashable> {
+        switch value {
+        case let other as Set<AnyHashable>:
             return isEqual(to: other)
-        } else if let other = value as? NSSet {
+        case let other as NSSet:
             return isEqual(to: Set._unconditionallyBridgeFromObjectiveC(other))
+        default:
+            return false
         }
-        return false
     }
 
     open override var hash: Int {
@@ -164,7 +152,7 @@ open class NSSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCodi
                 }
             })
         } else {
-            self.init(array: set.map { $0 })
+            self.init(array: Array(set))
         }
     }
 }
@@ -180,7 +168,7 @@ extension NSSet {
     
     open var allObjects: [Any] {
         if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
-            return _storage.map { _SwiftValue.fetch($0) }
+            return _storage.map { _SwiftValue.fetch(nonOptional: $0) }
         } else {
             let enumerator = objectEnumerator()
             var items = [Any]()
@@ -233,7 +221,7 @@ extension NSSet {
     open func addingObjects(from other: Set<AnyHashable>) -> Set<AnyHashable> {
         var result = Set<AnyHashable>(minimumCapacity: Swift.max(count, other.count))
         if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
-            result.formUnion(_storage.map { _SwiftValue.fetch($0) as! AnyHashable })
+            result.formUnion(_storage.map { _SwiftValue.fetch(nonOptional: $0) as! AnyHashable })
         } else {
             for case let obj as NSObject in self {
                 _ = result.insert(obj)
@@ -245,7 +233,7 @@ extension NSSet {
     open func addingObjects(from other: [Any]) -> Set<AnyHashable> {
         var result = Set<AnyHashable>(minimumCapacity: count)
         if type(of: self) === NSSet.self || type(of: self) === NSMutableSet.self {
-            result.formUnion(_storage.map { _SwiftValue.fetch($0) as! AnyHashable })
+            result.formUnion(_storage.map { _SwiftValue.fetch(nonOptional: $0) as! AnyHashable })
         } else {
             for case let obj as AnyHashable in self {
                 result.insert(obj)
@@ -296,6 +284,10 @@ extension NSSet : _CFBridgeable, _SwiftBridgeable {
 extension CFSet : _NSBridgeable, _SwiftBridgeable {
     internal var _nsObject: NSSet { return unsafeBitCast(self, to: NSSet.self) }
     internal var _swiftObject: Set<NSObject> { return _nsObject._swiftObject }
+}
+
+extension NSMutableSet {
+    internal var _cfMutableObject: CFMutableSet { return unsafeBitCast(self, to: CFMutableSet.self) }
 }
 
 extension Set : _NSBridgeable, _CFBridgeable {
@@ -431,7 +423,7 @@ open class NSCountedSet : NSMutableSet {
     }
 
     public convenience init(set: Set<AnyHashable>) {
-        self.init(array: set.map { $0 })
+        self.init(array: Array(set))
     }
 
     public required convenience init?(coder: NSCoder) { NSUnimplemented() }

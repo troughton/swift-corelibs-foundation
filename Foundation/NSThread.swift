@@ -89,8 +89,8 @@ open class Thread : NSObject {
         var ti = end_at - start_at
         let end_ut = start_ut + ti
         while (0.0 < ti) {
-            var __ts__ = timespec(tv_sec: LONG_MAX, tv_nsec: 0)
-            if ti < Double(LONG_MAX) {
+            var __ts__ = timespec(tv_sec: Int.max, tv_nsec: 0)
+            if ti < Double(Int.max) {
                 var integ = 0.0
                 let frac: Double = withUnsafeMutablePointer(to: &integ) { integp in
                     return modf(ti, integp)
@@ -110,8 +110,8 @@ open class Thread : NSObject {
         let start_ut = CFGetSystemUptime()
         let end_ut = start_ut + ti
         while 0.0 < ti {
-            var __ts__ = timespec(tv_sec: LONG_MAX, tv_nsec: 0)
-            if ti < Double(LONG_MAX) {
+            var __ts__ = timespec(tv_sec: Int.max, tv_nsec: 0)
+            if ti < Double(Int.max) {
                 var integ = 0.0
                 let frac: Double = withUnsafeMutablePointer(to: &integ) { integp in
                     return modf(ti, integp)
@@ -133,7 +133,7 @@ open class Thread : NSObject {
     internal var _main: (Void) -> Void = {}
 #if os(OSX) || os(iOS) || CYGWIN
     private var _thread: pthread_t? = nil
-#elseif os(Linux)
+#elseif os(Linux) || os(Android)
     private var _thread = pthread_t()
 #endif
 #if CYGWIN
@@ -144,7 +144,7 @@ open class Thread : NSObject {
     internal var _status = _NSThreadStatus.initialized
     internal var _cancelled = false
     /// - Note: this differs from the Darwin implementation in that the keys must be Strings
-    open var threadDictionary = [String : AnyObject]()
+    open var threadDictionary = [String : Any]()
     
     internal init(thread: pthread_t) {
         // Note: even on Darwin this is a non-optional pthread_t; this is only used for valid threads, which are never null pointers.
@@ -191,7 +191,11 @@ open class Thread : NSObject {
     }
     
     open var name: String? {
-        NSUnimplemented()
+        didSet {
+            if _thread == Thread.current._thread {
+                _CFThreadSetName(name)
+            }
+        }
     }
 
     open var stackSize: Int {
@@ -246,7 +250,7 @@ open class Thread : NSObject {
 }
 
 extension NSNotification.Name {
-    public static let NSWillBecomeMultiThreaded = NSNotification.Name(rawValue: "") // NSUnimplemented
-    public static let NSDidBecomeSingleThreaded = NSNotification.Name(rawValue: "") // NSUnimplemented
-    public static let NSThreadWillExit = NSNotification.Name(rawValue: "") // NSUnimplemented
+    public static let NSWillBecomeMultiThreaded = NSNotification.Name(rawValue: "NSWillBecomeMultiThreadedNotification")
+    public static let NSDidBecomeSingleThreaded = NSNotification.Name(rawValue: "NSDidBecomeSingleThreadedNotification")
+    public static let NSThreadWillExit = NSNotification.Name(rawValue: "NSThreadWillExitNotification")
 }

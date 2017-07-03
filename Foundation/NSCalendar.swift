@@ -53,7 +53,7 @@ extension NSCalendar {
         public static let ethiopicAmeteMihret = NSCalendar.Identifier("ethiopic")
         public static let ethiopicAmeteAlem = NSCalendar.Identifier("ethiopic-amete-alem")
         public static let hebrew = NSCalendar.Identifier("hebrew")
-        public static let ISO8601 = NSCalendar.Identifier("")
+        public static let ISO8601 = NSCalendar.Identifier("iso8601")
         public static let indian = NSCalendar.Identifier("indian")
         public static let islamic = NSCalendar.Identifier("islamic")
         public static let islamicCivil = NSCalendar.Identifier("islamic-civil")
@@ -112,12 +112,14 @@ extension NSCalendar {
     }
 }
 
-public func ==(_ lhs: NSCalendar.Identifier, _ rhs: NSCalendar.Identifier) -> Bool {
-    return lhs.rawValue == rhs.rawValue
-}
+extension NSCalendar.Identifier {
+    public static func ==(_ lhs: NSCalendar.Identifier, _ rhs: NSCalendar.Identifier) -> Bool {
+        return lhs.rawValue == rhs.rawValue
+    }
 
-public func <(_ lhs: NSCalendar.Identifier, _ rhs: NSCalendar.Identifier) -> Bool {
-    return lhs.rawValue < rhs.rawValue
+    public static func <(_ lhs: NSCalendar.Identifier, _ rhs: NSCalendar.Identifier) -> Bool {
+        return lhs.rawValue < rhs.rawValue
+    }
 }
 
 open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
@@ -223,15 +225,14 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
     }
     
     open override func isEqual(_ value: Any?) -> Bool {
-        if let cal = value as? Calendar {
-            return CFEqual(_cfObject, cal._cfObject)
-        } else if let cal = value as? NSCalendar {
-            if cal === self {
-                return true
-            }
-            return CFEqual(_cfObject, cal._cfObject)
+        switch value {
+        case let other as Calendar:
+            return CFEqual(_cfObject, other._cfObject)
+        case let other as NSCalendar:
+            return other === self || CFEqual(_cfObject, other._cfObject)
+        default:
+            return false
         }
-        return false
     }
     
     open override var description: String {
@@ -461,7 +462,7 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
         _convert(comps.weekday, type: "E", vector: &vector, compDesc: &compDesc)
         _convert(comps.weekdayOrdinal, type: "F", vector: &vector, compDesc: &compDesc)
         _convert(comps.month, type: "M", vector: &vector, compDesc: &compDesc)
-        _convert(comps.isLeapMonth, type: "L", vector: &vector, compDesc: &compDesc)
+        _convert(comps.isLeapMonth, type: "l", vector: &vector, compDesc: &compDesc)
         _convert(comps.day, type: "d", vector: &vector, compDesc: &compDesc)
         _convert(comps.hour, type: "H", vector: &vector, compDesc: &compDesc)
         _convert(comps.minute, type: "m", vector: &vector, compDesc: &compDesc)
@@ -579,7 +580,7 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
     
     open func date(byAdding comps: DateComponents, to date: Date, options opts: Options = []) -> Date? {
         var (vector, compDesc) = _convert(comps)
-        var at: CFAbsoluteTime = 0.0
+        var at: CFAbsoluteTime = date.timeIntervalSinceReferenceDate
         
         let res: Bool = withUnsafeMutablePointer(to: &at) { t in
             return vector.withUnsafeMutableBufferPointer { (vectorBuffer: inout UnsafeMutableBufferPointer<Int32>) in
@@ -603,8 +604,7 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
             }
 
             return vector.withUnsafeMutableBufferPointer { (vecBuffer: inout UnsafeMutableBufferPointer<UnsafeMutablePointer<Int32>>) in
-                _CFCalendarGetComponentDifferenceV(_cfObject, startingDate.timeIntervalSinceReferenceDate, resultDate.timeIntervalSinceReferenceDate, CFOptionFlags(opts.rawValue), compDesc, vecBuffer.baseAddress!, Int32(vector.count))
-                return false
+                return _CFCalendarGetComponentDifferenceV(_cfObject, startingDate.timeIntervalSinceReferenceDate, resultDate.timeIntervalSinceReferenceDate, CFOptionFlags(opts.rawValue), compDesc, vecBuffer.baseAddress!, Int32(vector.count))
             }
         }
         if res {
@@ -974,7 +974,7 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
     This API reports if the date is within a weekend period, as defined by the calendar and calendar's locale.
     */
     open func isDateInWeekend(_ date: Date) -> Bool {
-        return _CFCalendarIsWeekend(_cfObject, date.timeIntervalSinceReferenceDate)
+        return _CFCalendarIsWeekend(_cfObject, date.timeIntervalSince1970)
     }
     
     /// Revised API for avoiding usage of AutoreleasingUnsafeMutablePointer.
@@ -1242,7 +1242,7 @@ open class NSCalendar : NSObject, NSCopying, NSSecureCoding {
 // with distributed notifications.
 
 extension NSNotification.Name {
-    public static let NSCalendarDayChanged = NSNotification.Name(rawValue: "") // NSUnimplemented
+    public static let NSCalendarDayChanged = NSNotification.Name(rawValue: "NSCalendarDayChangedNotification")
 }
 
 // This is a just used as an extensible struct, basically;
@@ -1263,7 +1263,7 @@ extension NSNotification.Name {
 // or quantities of the units.
 // When you create a new one of these, all values begin Undefined.
 
-public var NSDateComponentUndefined: Int = LONG_MAX
+public var NSDateComponentUndefined: Int = Int.max
 
 open class NSDateComponents : NSObject, NSCopying, NSSecureCoding {
     internal var _calendar: Calendar?
@@ -1313,61 +1313,26 @@ open class NSDateComponents : NSObject, NSCopying, NSSecureCoding {
     }
     
     open override func isEqual(_ object: Any?) -> Bool {
-        if let other = object as? NSDateComponents {
-            if era != other.era {
-                return false
-            }
-            if year != other.year {
-                return false
-            }
-            if quarter != other.quarter {
-                return false
-            }
-            if month != other.month {
-                return false
-            }
-            if day != other.day {
-                return false
-            }
-            if hour != other.hour {
-                return false
-            }
-            if minute != other.minute {
-                return false
-            }
-            if second != other.second {
-                return false
-            }
-            if nanosecond != other.nanosecond {
-                return false
-            }
-            if weekOfYear != other.weekOfYear {
-                return false
-            }
-            if weekOfMonth != other.weekOfMonth {
-                return false
-            }
-            if yearForWeekOfYear != other.yearForWeekOfYear {
-                return false
-            }
-            if weekday != other.weekday {
-                return false
-            }
-            if weekdayOrdinal != other.weekdayOrdinal {
-                return false
-            }
-            if isLeapMonth != other.isLeapMonth {
-                return false
-            }
-            if calendar != other.calendar {
-                return false
-            }
-            if timeZone != other.timeZone {
-                return false
-            }
-            return true
-        }
-        return false
+        guard let other = object as? NSDateComponents else { return false }
+        
+        return self === other
+            || (era == other.era
+                && year == other.year
+                && quarter == other.quarter
+                && month == other.month
+                && day == other.day
+                && hour == other.hour
+                && minute == other.minute
+                && second == other.second
+                && nanosecond == other.nanosecond
+                && weekOfYear == other.weekOfYear
+                && weekOfMonth == other.weekOfMonth
+                && yearForWeekOfYear == other.yearForWeekOfYear
+                && weekday == other.weekday
+                && weekdayOrdinal == other.weekdayOrdinal
+                && isLeapMonth == other.isLeapMonth
+                && calendar == other.calendar
+                && timeZone == other.timeZone)
     }
     
     public convenience required init?(coder aDecoder: NSCoder) {
@@ -1619,52 +1584,36 @@ open class NSDateComponents : NSObject, NSCopying, NSSecureCoding {
         switch unit {
             case NSCalendar.Unit.era:
                 era = value
-                break
             case NSCalendar.Unit.year:
                 year = value
-                break
             case NSCalendar.Unit.month:
                 month = value
-                break
             case NSCalendar.Unit.day:
                 day = value
-                break
             case NSCalendar.Unit.hour:
                 hour = value
-                break
             case NSCalendar.Unit.minute:
                 minute = value
-                break
             case NSCalendar.Unit.second:
                 second = value
-                break
             case NSCalendar.Unit.nanosecond:
                 nanosecond = value
-                break
             case NSCalendar.Unit.weekday:
                 weekday = value
-                break
             case NSCalendar.Unit.weekdayOrdinal:
                 weekdayOrdinal = value
-                break
             case NSCalendar.Unit.quarter:
                 quarter = value
-                break
             case NSCalendar.Unit.weekOfMonth:
                 weekOfMonth = value
-                break
             case NSCalendar.Unit.weekOfYear:
                 weekOfYear = value
-                break
             case NSCalendar.Unit.yearForWeekOfYear:
                 yearForWeekOfYear = value
-                break
             case NSCalendar.Unit.calendar:
                 print(".Calendar cannot be set via \(#function)")
-                break
             case NSCalendar.Unit.timeZone:
                 print(".TimeZone cannot be set via \(#function)")
-                break
             default:
                 break
         }

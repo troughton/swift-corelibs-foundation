@@ -153,7 +153,7 @@ public enum ComparisonResult : Int {
 }
 
 /* Note: QualityOfService enum is available on all platforms, but it may not be implemented on all platforms. */
-public enum NSQualityOfService : Int {
+public enum QualityOfService : Int {
     
     /* UserInteractive QoS is used for work directly involved in providing an interactive UI such as processing events or drawing to the screen. */
     case userInteractive
@@ -196,6 +196,9 @@ internal func NSRequiresConcreteImplementation(_ fn: String = #function, file: S
 }
 
 internal func NSUnimplemented(_ fn: String = #function, file: StaticString = #file, line: UInt = #line) -> Never {
+    #if os(Android)
+    NSLog("\(fn) is not yet implemented. \(file):\(line)")
+    #endif
     fatalError("\(fn) is not yet implemented", file: file, line: line)
 }
 
@@ -266,10 +269,8 @@ public func NSClassFromString(_ aClassName: String) -> AnyClass? {
             return nil
         }
         aClassNameWithPrefix = _SwiftFoundationModuleName + "." + aClassName
-        break
     case 2:
         aClassNameWithPrefix = aClassName
-        break
     default:
         NSLog("*** NSClassFromString(\(aClassName)): nested class names not yet supported")
         return nil

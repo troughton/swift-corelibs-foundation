@@ -27,7 +27,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
             NSRequiresConcreteImplementation()
         }
         if let val = _storage[_SwiftValue.store(aKey)] {
-            return _SwiftValue.fetch(val)
+            return _SwiftValue.fetch(nonOptional: val)
         }
         return nil
     }
@@ -37,7 +37,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
             NSRequiresConcreteImplementation()
         }
         
-        return NSGeneratorEnumerator(_storage.keys.map { _SwiftValue.fetch($0) }.makeIterator())
+        return NSGeneratorEnumerator(_storage.keys.map { _SwiftValue.fetch(nonOptional: $0) }.makeIterator())
     }
     
     public override convenience init() {
@@ -54,27 +54,10 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     }
     
     public required convenience init?(coder aDecoder: NSCoder) {
-        if !aDecoder.allowsKeyedCoding {
-            var cnt: UInt32 = 0
-            // We're stuck with (int) here (rather than unsigned int)
-            // because that's the way the code was originally written, unless
-            // we go to a new version of the class, which has its own problems.
-            withUnsafeMutablePointer(to: &cnt) { (ptr: UnsafeMutablePointer<UInt32>) -> Void in
-                aDecoder.decodeValue(ofObjCType: "i", at: UnsafeMutableRawPointer(ptr))
-            }
-            let keys = UnsafeMutablePointer<NSObject>.allocate(capacity: Int(cnt))
-            let objects = UnsafeMutablePointer<AnyObject>.allocate(capacity: Int(cnt))
-            for idx in 0..<cnt {
-                keys.advanced(by: Int(idx)).initialize(to: aDecoder.decodeObject()! as! NSObject)
-                objects.advanced(by: Int(idx)).initialize(to: aDecoder.decodeObject()! as! NSObject)
-            }
-            self.init(objects: UnsafePointer<AnyObject>(objects), forKeys: UnsafePointer<NSObject>(keys), count: Int(cnt))
-            keys.deinitialize(count: Int(cnt))
-            keys.deallocate(capacity: Int(cnt))
-            objects.deinitialize(count: Int(cnt))
-            objects.deallocate(capacity: Int(cnt))
-            
-        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.objects") {
             let keys = aDecoder._decodeArrayOfObjectsForKey("NS.keys").map() { return $0 as! NSObject }
             let objects = aDecoder._decodeArrayOfObjectsForKey("NS.objects")
             self.init(objects: objects as! [NSObject], forKeys: keys)
@@ -155,16 +138,18 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     }
     
     public convenience init(dictionary otherDictionary: [AnyHashable : Any]) {
-        self.init(objects: otherDictionary.values.map { $0 }, forKeys: otherDictionary.keys.map { _SwiftValue.store($0) })
+        self.init(objects: Array(otherDictionary.values), forKeys: otherDictionary.keys.map { _SwiftValue.store($0) })
     }
 
     open override func isEqual(_ value: Any?) -> Bool {
-        if let other = value as? Dictionary<AnyHashable, Any> {
+        switch value {
+        case let other as Dictionary<AnyHashable, Any>:
             return isEqual(to: other)
-        } else if let other = value as? NSDictionary {
+        case let other as NSDictionary:
             return isEqual(to: Dictionary._unconditionallyBridgeFromObjectiveC(other))
+        default:
+            return false
         }
-        return false
     }
 
     open override var hash: Int {
@@ -173,7 +158,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
 
     open var allKeys: [Any] {
         if type(of: self) === NSDictionary.self || type(of: self) === NSMutableDictionary.self {
-            return _storage.keys.map { $0 }
+            return Array(_storage.keys)
         } else {
             var keys = [Any]()
             let enumerator = keyEnumerator()
@@ -186,7 +171,7 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     
     open var allValues: [Any] {
         if type(of: self) === NSDictionary.self || type(of: self) === NSMutableDictionary.self {
-            return _storage.values.map { $0 }
+            return Array(_storage.values)
         } else {
             var values = [Any]()
             let enumerator = keyEnumerator()
@@ -203,8 +188,8 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     open func getObjects(_ objects: inout [Any], andKeys keys: inout [Any], count: Int) {
         if type(of: self) === NSDictionary.self || type(of: self) === NSMutableDictionary.self {
             for (key, value) in _storage {
-                keys.append(_SwiftValue.fetch(key))
-                objects.append(_SwiftValue.fetch(value))
+                keys.append(_SwiftValue.fetch(nonOptional: key))
+                objects.append(_SwiftValue.fetch(nonOptional: value))
             }
         } else {
             
@@ -248,8 +233,55 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
     open override var description: String {
         return description(withLocale: nil)
     }
+    
+    private func getDescription(of object: Any) -> String? {
+        switch object {
+        case is NSArray.Type:
+            return (object as! NSArray).description(withLocale: nil, indent: 1)
+        case is NSDecimalNumber.Type:
+            return (object as! NSDecimalNumber).description(withLocale: nil)
+        case is NSDate.Type:
+            return (object as! NSDate).description(with: nil)
+        case is NSOrderedSet.Type:
+            return (object as! NSOrderedSet).description(withLocale: nil)
+        case is NSSet.Type:
+            return (object as! NSSet).description(withLocale: nil)
+        case is NSDictionary.Type:
+            return (object as! NSDictionary).description(withLocale: nil)
+        default:
+            if let hashableObject = object as? Dictionary<AnyHashable, Any> {
+                return hashableObject._nsObject.description(withLocale: nil, indent: 1)
+            } else {
+                return nil
+            }
+        }
+    }
 
-    open var descriptionInStringsFileFormat: String { NSUnimplemented() }
+    open var descriptionInStringsFileFormat: String {
+        var lines = [String]()
+        for key in self.allKeys {
+            let line = NSMutableString(capacity: 0)
+            line.append("\"")
+            if let descriptionByType = getDescription(of: key) {
+                line.append(descriptionByType)
+            } else {
+                line.append("\(key)")
+            }
+            line.append("\"")
+            line.append(" = ")
+            line.append("\"")
+            let value = self.object(forKey: key)!
+            if let descriptionByTypeValue = getDescription(of: value) {
+                line.append(descriptionByTypeValue)
+            } else {
+                line.append("\(value)")
+            }
+            line.append("\"")
+            line.append(";")
+            lines.append(line._bridgeToSwift())
+        }
+        return lines.joined(separator: "\n")
+    }
 
     /// Returns a string object that represents the contents of the dictionary,
     /// formatted as a property list.
@@ -315,11 +347,14 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
             } else if object is NSSet {
                 line += (object as! NSSet).description(withLocale: locale)
             } else {
-                line += "\(object)"
+                if let hashableObject = object as? Dictionary<AnyHashable, Any> {
+                    line += hashableObject._nsObject.description(withLocale: nil, indent: level+1)
+                } else {
+                    line += "\(object)"
+                }
             }
 
             line += ";"
-
             lines.append(line)
         }
 
@@ -400,8 +435,20 @@ open class NSDictionary : NSObject, NSCopying, NSMutableCopying, NSSecureCoding,
         return objects
     }
     
-    open func write(toFile path: String, atomically useAuxiliaryFile: Bool) -> Bool { NSUnimplemented() }
-    open func write(to url: URL, atomically: Bool) -> Bool { NSUnimplemented() } // the atomically flag is ignored if url of a type that cannot be written atomically.
+    open func write(toFile path: String, atomically useAuxiliaryFile: Bool) -> Bool {
+        return write(to: URL(fileURLWithPath: path), atomically: useAuxiliaryFile)
+    }
+    
+    // the atomically flag is ignored if url of a type that cannot be written atomically.
+    open func write(to url: URL, atomically: Bool) -> Bool {
+        do {
+            let pListData = try PropertyListSerialization.data(fromPropertyList: self, format: PropertyListSerialization.PropertyListFormat.xml, options: 0)
+            try pListData.write(to: url, options: atomically ? .atomic : [])
+            return true
+        } catch {
+            return false
+        }
+    }
     
     open func enumerateKeysAndObjects(_ block: (Any, Any, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
         enumerateKeysAndObjects(options: [], using: block)
@@ -518,8 +565,20 @@ open class NSMutableDictionary : NSDictionary {
         super.init(objects: objects, forKeys: keys, count: cnt)
     }
     
-    public convenience init?(contentsOfFile path: String) { NSUnimplemented() }
-    public convenience init?(contentsOfURL url: URL) { NSUnimplemented() }
+    public convenience init?(contentsOfFile path: String) {
+        self.init(contentsOfURL: URL(fileURLWithPath: path))
+    }
+    
+    public convenience init?(contentsOfURL url: URL) {
+        do {
+            guard let plistDoc = try? Data(contentsOf: url) else { return nil }
+            let plistDict = try PropertyListSerialization.propertyList(from: plistDoc, options: [], format: nil) as? Dictionary<AnyHashable,Any>
+            guard let plistDictionary = plistDict else { return nil }
+            self.init(dictionary: plistDictionary)
+        } catch {
+            return nil
+        }
+    }
 }
 
 extension NSMutableDictionary {
@@ -587,7 +646,7 @@ extension NSDictionary {
     As for any usage of hashing, is recommended that the keys have a well-distributed implementation of -hash, and the hash codes must satisfy the hash/isEqual: invariant.
     Keys with duplicate hash codes are allowed, but will cause lower performance and increase memory usage.
     */
-    open class func sharedKeySet(forKeys keys: [NSCopying]) -> AnyObject { NSUnimplemented() }
+    open class func sharedKeySet(forKeys keys: [NSCopying]) -> Any { NSUnimplemented() }
 }
 
 extension NSMutableDictionary {
@@ -598,7 +657,7 @@ extension NSMutableDictionary {
     If keyset is nil, an exception is thrown.
     If keyset is not an object returned by +sharedKeySetForKeys:, an exception is thrown.
     */
-    public convenience init(sharedKeySet keyset: AnyObject) { NSUnimplemented() }
+    public convenience init(sharedKeySet keyset: Any) { NSUnimplemented() }
 }
 
 extension NSDictionary : ExpressibleByDictionaryLiteral { }

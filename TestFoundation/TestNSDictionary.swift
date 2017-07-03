@@ -30,6 +30,8 @@ class TestNSDictionary : XCTestCase {
             ("test_equality", test_equality),
             ("test_copying", test_copying),
             ("test_mutableCopying", test_mutableCopying),
+            ("test_writeToFile", test_writeToFile),
+            ("test_initWithContentsOfFile", test_initWithContentsOfFile),
         ]
     }
         
@@ -44,9 +46,8 @@ class TestNSDictionary : XCTestCase {
     func test_description() {
         let d1: NSDictionary = [ "foo": "bar", "baz": "qux"]
         XCTAssertEqual(d1.description, "{\n    baz = qux;\n    foo = bar;\n}")
-        let _: NSDictionary = ["1" : ["1" : ["1" : "1"]]]
-        // Disabled since it emits AnyHashable in the description for now...
-        // XCTAssertEqual(d2.description, "{\n    1 =     {\n        1 =         {\n            1 = 1;\n        };\n    };\n}")
+        let d2: NSDictionary = ["1" : ["1" : ["1" : "1"]]]
+        XCTAssertEqual(d2.description, "{\n    1 =     {\n        1 =         {\n            1 = 1;\n        };\n    };\n}")
     }
 
     func test_HeterogeneousConstruction() {
@@ -160,6 +161,70 @@ class TestNSDictionary : XCTestCase {
         XCTAssertTrue(type(of: dictMutableCopy2) === NSMutableDictionary.self)
         XCTAssertFalse(dictMutableCopy2 === dictMutableCopy1)
         XCTAssertTrue(dictMutableCopy2 == dictMutableCopy1)
+    }
+
+    func test_writeToFile() {
+        let testFilePath = createTestFile("TestFileOut.txt", _contents: Data(capacity: 256))
+        if let _ = testFilePath {
+            let d1: NSDictionary = [ "foo": "bar", "baz": "qux"]
+            let isWritten = d1.write(toFile: testFilePath!, atomically: true)
+            if isWritten {
+                do {
+                    let plistDoc = try XMLDocument(contentsOf: URL(fileURLWithPath: testFilePath!, isDirectory: false), options: [])
+                    XCTAssert(plistDoc.rootElement()?.name == "plist")
+                    let plist = try PropertyListSerialization.propertyList(from: plistDoc.xmlData, options: [], format: nil) as! [String: Any]
+                    XCTAssert((plist["foo"] as? String) == d1["foo"] as? String)
+                    XCTAssert((plist["baz"] as? String) == d1["baz"] as? String)
+                } catch {
+                    XCTFail("Failed to read and parse XMLDocument")
+                }
+            } else {
+                XCTFail("Write to file failed")
+            }
+            removeTestFile(testFilePath!)
+        } else {
+            XCTFail("Temporary file creation failed")
+        }
+    }
+    
+    func test_initWithContentsOfFile() {
+        let testFilePath = createTestFile("TestFileOut.txt", _contents: Data(capacity: 256))
+        if let _ = testFilePath {
+            let d1: NSDictionary = ["Hello":["world":"again"]]
+            let isWritten = d1.write(toFile: testFilePath!, atomically: true)
+            if(isWritten) {
+                let dict = NSMutableDictionary.init(contentsOfFile: testFilePath!)
+                XCTAssert(dict == d1)
+            } else {
+                XCTFail("Write to file failed")
+            }
+            removeTestFile(testFilePath!)
+        } else {
+            XCTFail("Temporary file creation failed")
+        }
+    }
+
+    private func createTestFile(_ path: String, _contents: Data) -> String? {
+        let tempDir = NSTemporaryDirectory() + "TestFoundation_Playground_" + NSUUID().uuidString + "/"
+        do {
+            try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: false, attributes: nil)
+            if FileManager.default.createFile(atPath: tempDir + "/" + path, contents: _contents,
+                                              attributes: nil) {
+                return tempDir + path
+            } else {
+                return nil
+            }
+        } catch _ {
+            return nil
+        }
+    }
+    
+    private func removeTestFile(_ location: String) {
+        do {
+            try FileManager.default.removeItem(atPath: location)
+        } catch _ {
+            
+        }
     }
 
 }

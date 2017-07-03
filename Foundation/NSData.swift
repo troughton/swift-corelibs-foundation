@@ -94,6 +94,10 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         }
     }
     
+    internal func _providesConcreteBacking() -> Bool {
+        return type(of: self) === NSData.self || type(of: self) === NSMutableData.self
+    }
+    
     override open var _cfTypeID: CFTypeID {
         return CFDataGetTypeID()
     }
@@ -166,19 +170,19 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         } else {
             let session = URLSession(configuration: URLSessionConfiguration.default)
             let cond = NSCondition()
-            var resError: NSError?
+            var resError: Error?
             var resData: Data?
-            let task = session.dataTask(with: url, completionHandler: { (data: Data?, response: URLResponse?, error: NSError?) -> Void in
+            let task = session.dataTask(with: url, completionHandler: { data, response, error in
                 resData = data
                 resError = error
                 cond.broadcast()
             })
             task.resume()
             cond.wait()
-            if resData == nil {
+            guard let data = resData else {
                 throw resError!
             }
-            self.init(data: resData!)
+            self.init(data: data)
         }
     }
     
@@ -217,7 +221,12 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     }
     
     open var bytes: UnsafeRawPointer {
-        return UnsafeRawPointer(CFDataGetBytePtr(_cfObject))
+        guard let bytePtr = CFDataGetBytePtr(_cfObject) else {
+            //This could occure on empty data being encoded.
+            //TODO: switch with nil when signature is fixed
+            return UnsafeRawPointer(bitPattern: 0x7f00dead)! //would not result in 'nil unwrapped optional'
+        }
+        return UnsafeRawPointer(bytePtr)
     }
 
     
@@ -228,6 +237,12 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     }
     
     open override func isEqual(_ value: Any?) -> Bool {
+        if let data = value as? Data {
+            return isEqual(to: data)
+        } else if let data = value as? NSData {
+            return isEqual(to: data._swiftObject)
+        }
+        
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
         if let data = value as? DispatchData {
             if data.count != length {
@@ -239,11 +254,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             }
         }
 #endif
-        if let data = value as? Data {
-            return isEqual(to: data)
-        } else if let data = value as? NSData {
-            return isEqual(to: data._swiftObject)
-        }
+        
         return false
     }
     open func isEqual(to other: Data) -> Bool {
@@ -317,13 +328,10 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     }
     
     public required convenience init?(coder aDecoder: NSCoder) {
-        if !aDecoder.allowsKeyedCoding {
-            if let data = aDecoder.decodeData() {
-                self.init(data: data)
-            } else {
-                return nil
-            }
-        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.data") {
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.data") {
             guard let data = aDecoder._decodePropertyListForKey("NS.data") as? NSData else {
                 return nil
             }
@@ -426,7 +434,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             repeat {
                 #if os(OSX) || os(iOS)
                     bytesWritten = Darwin.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
-                #elseif os(Linux) || CYGWIN
+                #elseif os(Linux) || os(Android) || CYGWIN
                     bytesWritten = Glibc.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
                 #endif
             } while (bytesWritten < 0 && errno == EINTR)
@@ -447,7 +455,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             // Preserve permissions.
             var info = stat()
             if lstat(path, &info) == 0 {
-                mode = info.st_mode
+                mode = mode_t(info.st_mode)
             } else if errno != ENOENT && errno != ENAMETOOLONG {
                 throw _NSErrorWithErrno(errno, reading: false, path: path)
             }
@@ -792,13 +800,13 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             if options.contains(.endLineWithLineFeed) { separator.append(10) }
             
             //if the kind of line ending to insert is not specified, the default line ending is Carriage Return + Line Feed.
-            if separator.count == 0 {separator = [13,10]}
+            if separator.isEmpty { separator = [13,10] }
             
             return (lineLength,separator)
         }()
         
         var currentLineCount = 0
-        let appendByteToResult : (UInt8) -> () = {
+        let appendByteToResult : (UInt8) -> Void = {
             result.append($0)
             currentLineCount += 1
             if let options = lineOptions, currentLineCount == options.lineLength {
@@ -942,10 +950,8 @@ open class NSMutableData : NSData {
     }
     
     open func replaceBytes(in range: NSRange, withBytes replacementBytes: UnsafeRawPointer?, length replacementLength: Int) {
-        if let replacementBytes = replacementBytes {
-            let bytePtr = replacementBytes.bindMemory(to: UInt8.self, capacity: replacementLength)
-            CFDataReplaceBytes(_cfMutableObject, CFRangeMake(range.location, range.length), bytePtr, replacementLength)
-        }
+        let bytePtr = replacementBytes?.bindMemory(to: UInt8.self, capacity: replacementLength)
+        CFDataReplaceBytes(_cfMutableObject, CFRangeMake(range.location, range.length), bytePtr, replacementLength)
     }
 }
 

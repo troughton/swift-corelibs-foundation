@@ -156,7 +156,7 @@ internal extension String {
 
 public extension NSString {
     
-    public var absolutePath: Bool {
+    public var isAbsolutePath: Bool {
         return hasPrefix("~") || hasPrefix("/")
     }
     
@@ -470,7 +470,7 @@ public extension NSString {
     }
     
     internal func _longestCommonPrefix(_ strings: [String], caseSensitive: Bool) -> String? {
-        guard strings.count > 0 else {
+        guard !strings.isEmpty else {
             return nil
         }
         

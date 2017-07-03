@@ -101,10 +101,10 @@ extension NSString {
     }
 }
 
-internal func _createRegexForPattern(_ pattern: String, _ options: RegularExpression.Options) -> RegularExpression? {
+internal func _createRegexForPattern(_ pattern: String, _ options: NSRegularExpression.Options) -> NSRegularExpression? {
     struct local {
-        static let __NSRegularExpressionCache: NSCache<NSString, RegularExpression> = {
-            let cache = NSCache<NSString, RegularExpression>()
+        static let __NSRegularExpressionCache: NSCache<NSString, NSRegularExpression> = {
+            let cache = NSCache<NSString, NSRegularExpression>()
             cache.name = "NSRegularExpressionCache"
             cache.countLimit = 10
             return cache
@@ -115,7 +115,7 @@ internal func _createRegexForPattern(_ pattern: String, _ options: RegularExpres
         return regex
     }
     do {
-        let regex = try RegularExpression(pattern: pattern, options: options)
+        let regex = try NSRegularExpression(pattern: pattern, options: options)
         local.__NSRegularExpressionCache.setObject(regex, forKey: key._nsObject)
         return regex
     } catch {
@@ -196,10 +196,10 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
     }
     
     public convenience required init?(coder aDecoder: NSCoder) {
-        if !aDecoder.allowsKeyedCoding {
-            aDecoder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderReadCorrupt.rawValue, userInfo: ["NSDebugDescription": "NSUUID cannot be decoded by non-keyed coders"]))
-            return nil
-        } else if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.string") {
+        guard aDecoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        if type(of: aDecoder) == NSKeyedUnarchiver.self || aDecoder.containsValue(forKey: "NS.string") {
             let str = aDecoder._decodePropertyListForKey("NS.string") as! String
             self.init(string: str)
         } else {
@@ -274,7 +274,7 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
         self.init(string: CFStringCreateWithCString(kCFAllocatorSystemDefault, nullTerminatedCString, CFStringConvertNSStringEncodingToEncoding(encoding))._swiftObject)
     }
     
-    internal var _fastCStringContents: UnsafePointer<Int8>? {
+    internal func _fastCStringContents(_ nullTerminated: Bool) -> UnsafePointer<Int8>? {
         if type(of: self) == NSString.self || type(of: self) == NSMutableString.self {
             if _storage._core.isASCII {
                 return unsafeBitCast(_storage._core.startASCII, to: UnsafePointer<Int8>.self)
@@ -346,7 +346,49 @@ extension NSString {
             let start = _storage.utf16.startIndex
             let min = start.advanced(by: range.location)
             let max = start.advanced(by: range.location + range.length)
-            return String(_storage.utf16[min..<max])!
+            if let substr = String(_storage.utf16[min..<max]) {
+                return substr
+            }
+            //If we come here, then the range has created unpaired surrogates on either end.
+            //An unpaired surrogate is replaced by OXFFFD - the Unicode Replacement Character.
+            //The CRLF ("\r\n") sequence is also treated like a surrogate pair, but its constinuent
+            //characters "\r" and "\n" can exist outside the pair!
+
+            let replacementCharacter = String(describing: UnicodeScalar(0xFFFD)!)
+            let CR: UInt16 = 13  //carriage return
+            let LF: UInt16 = 10  //new line
+
+            //make sure the range is of non-zero length
+            guard range.length > 0 else { return "" }
+
+            //if the range is pointing to a single unpaired surrogate
+            if range.length == 1 {
+                switch _storage.utf16[min] {
+                case CR: return "\r"
+                case LF: return "\n"
+                default: return replacementCharacter
+                }
+            }
+
+            //set the prefix and suffix characters
+            let prefix = _storage.utf16[min] == LF ? "\n" : replacementCharacter
+            let suffix = _storage.utf16[max.advanced(by: -1)] == CR ? "\r" : replacementCharacter
+
+            //if the range breaks a surrogate pair at the beginning of the string
+            if let substrSuffix = String(_storage.utf16[min.advanced(by: 1)..<max]) {
+                return prefix + substrSuffix
+            }
+
+            //if the range breaks a surrogate pair at the end of the string
+            if let substrPrefix = String(_storage.utf16[min..<max.advanced(by: -1)]) {
+                return substrPrefix + suffix
+            }
+
+            //the range probably breaks surrogate pairs at both the ends
+            guard min.advanced(by: 1) <= max.advanced(by: -1) else { return prefix + suffix }
+
+            let substr =  String(_storage.utf16[min.advanced(by: 1)..<max.advanced(by: -1)])!
+            return prefix + substr + suffix
         } else {
             let buff = UnsafeMutablePointer<unichar>.allocate(capacity: range.length)
             getCharacters(buff, range: range)
@@ -369,7 +411,7 @@ extension NSString {
         return compare(string, options: mask, range: compareRange, locale: nil)
     }
     
-    public func compare(_ string: String, options mask: CompareOptions, range compareRange: NSRange, locale: AnyObject?) -> ComparisonResult {
+    public func compare(_ string: String, options mask: CompareOptions, range compareRange: NSRange, locale: Any?) -> ComparisonResult {
         var res: CFComparisonResult
         if let loc = locale {
             res = CFStringCompareWithOptionsAndLocale(_cfObject, string._cfObject, CFRange(compareRange), mask._cfValue(true), (loc as! NSLocale)._cfObject)
@@ -487,7 +529,7 @@ extension NSString {
     
     internal func _rangeOfRegularExpressionPattern(regex pattern: String, options mask: CompareOptions, range searchRange: NSRange, locale: Locale?) -> NSRange {
         var matchedRange = NSMakeRange(NSNotFound, 0)
-        let regexOptions: RegularExpression.Options = mask.contains(.caseInsensitive) ? .caseInsensitive : []
+        let regexOptions: NSRegularExpression.Options = mask.contains(.caseInsensitive) ? .caseInsensitive : []
         let matchingOptions: NSMatchingOptions = mask.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             matchedRange = regex.rangeOfFirstMatch(in: _swiftObject, options: matchingOptions, range: searchRange)
@@ -817,7 +859,7 @@ extension NSString {
 
             return data
         }
-        return nil
+        return Data()
     }
     
     public func data(using encoding: UInt) -> Data? {
@@ -1008,8 +1050,10 @@ extension NSString {
     open func trimmingCharacters(in set: CharacterSet) -> String {
         let len = length
         var buf = _NSStringBuffer(string: self, start: 0, end: len)
-        while !buf.isAtEnd && set.contains(UnicodeScalar(buf.currentCharacter)!) {
-            buf.advance()
+        while !buf.isAtEnd,
+            let character = UnicodeScalar(buf.currentCharacter),
+            set.contains(character) {
+                buf.advance()
         }
         
         let startOfNonTrimmedRange = buf.location // This points at the first char not in the set
@@ -1018,8 +1062,10 @@ extension NSString {
             return ""
         } else if startOfNonTrimmedRange < len - 1 {
             buf.location = len - 1
-            while set.contains(UnicodeScalar(buf.currentCharacter)!) && buf.location >= startOfNonTrimmedRange {
-                buf.rewind()
+            while let character = UnicodeScalar(buf.currentCharacter),
+                set.contains(character),
+                buf.location >= startOfNonTrimmedRange {
+                    buf.rewind()
             }
             let endOfNonTrimmedRange = buf.location
             return substring(with: NSMakeRange(startOfNonTrimmedRange, endOfNonTrimmedRange + 1 - startOfNonTrimmedRange))
@@ -1054,7 +1100,7 @@ extension NSString {
     }
     
     internal func _stringByReplacingOccurrencesOfRegularExpressionPattern(_ pattern: String, withTemplate replacement: String, options: CompareOptions, range: NSRange) -> String {
-        let regexOptions: RegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
+        let regexOptions: NSRegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
         let matchingOptions: NSMatchingOptions = options.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             return regex.stringByReplacingMatches(in: _swiftObject, options: matchingOptions, range: range, withTemplate: replacement)
@@ -1179,15 +1225,19 @@ extension NSString {
     }
     
     public convenience init?(data: Data, encoding: UInt) {
+        if data.isEmpty {
+            self.init("")
+        } else {
         guard let cf = data.withUnsafeBytes({ (bytes: UnsafePointer<UInt8>) -> CFString? in
             return CFStringCreateWithBytes(kCFAllocatorDefault, bytes, data.count, CFStringConvertNSStringEncodingToEncoding(encoding), true)
         }) else { return nil }
         
-        var str: String?
-        if String._conditionallyBridgeFromObjectiveC(cf._nsObject, result: &str) {
-            self.init(str!)
-        } else {
-            return nil
+            var str: String?
+            if String._conditionallyBridgeFromObjectiveC(cf._nsObject, result: &str) {
+                self.init(str!)
+            } else {
+                return nil
+            }
         }
     }
     
@@ -1248,7 +1298,33 @@ extension NSString {
     }
     
     public convenience init(contentsOf url: URL, usedEncoding enc: UnsafeMutablePointer<UInt>?) throws {
-        NSUnimplemented()    
+        let readResult = try NSData(contentsOf: url, options:[])
+
+        let bytePtr = readResult.bytes.bindMemory(to: UInt8.self, capacity:readResult.length)
+        if readResult.length >= 2 && bytePtr[0] == 254 && bytePtr[1] == 255 {
+          enc?.pointee = String.Encoding.utf16BigEndian.rawValue
+        }
+        else if readResult.length >= 2 && bytePtr[0] == 255 && bytePtr[1] == 254 {
+          enc?.pointee = String.Encoding.utf16LittleEndian.rawValue
+        }
+        else {
+          //Need to work on more conditions. This should be the default
+          enc?.pointee = String.Encoding.utf8.rawValue
+        }
+
+        guard let enc = enc, let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr, readResult.length, CFStringConvertNSStringEncodingToEncoding(enc.pointee), true) else {
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadInapplicableStringEncoding.rawValue, userInfo: [
+                "NSDebugDescription" : "Unable to create a string using the specified encoding."
+                ])
+        }
+        var str: String?
+        if String._conditionallyBridgeFromObjectiveC(cf._nsObject, result: &str) {
+            self.init(str!)
+        } else {
+            throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadInapplicableStringEncoding.rawValue, userInfo: [
+                "NSDebugDescription" : "Unable to bridge CFString to String."
+                ])
+        }    
     }
     
     public convenience init(contentsOfFile path: String, usedEncoding enc: UnsafeMutablePointer<UInt>?) throws {
@@ -1264,10 +1340,9 @@ open class NSMutableString : NSString {
             NSRequiresConcreteImplementation()
         }
 
-        // this is incorrectly calculated for grapheme clusters that have a size greater than a single unichar
-        let start = _storage.startIndex
-        let min = _storage.index(start, offsetBy: range.location)
-        let max = _storage.index(start, offsetBy: range.location + range.length)
+        let start = _storage.utf16.startIndex
+        let min = _storage.utf16.index(start, offsetBy: range.location).samePosition(in: _storage)!
+        let max = _storage.utf16.index(start, offsetBy: range.location + range.length).samePosition(in: _storage)!
         _storage.replaceSubrange(min..<max, with: aString)
     }
     
@@ -1341,7 +1416,7 @@ extension NSMutableString {
     }
     
     internal func _replaceOccurrencesOfRegularExpressionPattern(_ pattern: String, withTemplate replacement: String, options: CompareOptions, range searchRange: NSRange) -> Int {
-        let regexOptions: RegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
+        let regexOptions: NSRegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
         let matchingOptions: NSMatchingOptions = options.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             return regex.replaceMatches(in: self, options: matchingOptions, range: searchRange, withTemplate: replacement)
@@ -1421,22 +1496,29 @@ extension String : _NSBridgeable, _CFBridgeable {
 #if !(os(OSX) || os(iOS))
 extension String {
     public func hasPrefix(_ prefix: String) -> Bool {
+        if prefix.isEmpty {
+            return true
+        }
+
         let cfstring = self._cfObject
         let range = CFRangeMake(0, CFStringGetLength(cfstring))
         let opts = CFStringCompareFlags(
             kCFCompareAnchored | kCFCompareNonliteral)
-        
         return CFStringFindWithOptions(cfstring, prefix._cfObject,
-                                       range, opts, nil)
+                                   range, opts, nil)
     }
     
     public func hasSuffix(_ suffix: String) -> Bool {
+        if suffix.isEmpty {
+            return true
+        }
+
         let cfstring = self._cfObject
         let range = CFRangeMake(0, CFStringGetLength(cfstring))
         let opts = CFStringCompareFlags(
             kCFCompareAnchored | kCFCompareBackwards | kCFCompareNonliteral)
         return CFStringFindWithOptions(cfstring, suffix._cfObject,
-                                       range, opts, nil)
+                                   range, opts, nil)
     }
 }
 #endif

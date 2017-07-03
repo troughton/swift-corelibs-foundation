@@ -18,6 +18,11 @@ import CoreFoundation
 
 open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     internal var buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
+
+    deinit {
+         buffer.deinitialize()
+         buffer.deallocate(capacity: 16)
+    }
     
     public override init() {
         _cf_uuid_generate_random(buffer)
@@ -25,6 +30,10 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     
     public convenience init?(uuidString string: String) {
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
+        defer {
+            buffer.deinitialize()
+            buffer.deallocate(capacity: 16)
+        }
         if _cf_uuid_parse(string, buffer) != 0 {
             return nil
         }
@@ -32,7 +41,7 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public init(uuidBytes bytes: UnsafePointer<UInt8>) {
-        memcpy(unsafeBitCast(buffer, to: UnsafeMutableRawPointer.self), UnsafeRawPointer(bytes), 16)
+        memcpy(UnsafeMutableRawPointer(buffer), UnsafeRawPointer(bytes), 16)
     }
     
     open func getBytes(_ uuid: UnsafeMutablePointer<UInt8>) {
@@ -41,6 +50,10 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     
     open var uuidString: String {
         let strPtr = UnsafeMutablePointer<Int8>.allocate(capacity: 37)
+        defer {
+            strPtr.deinitialize()
+            strPtr.deallocate(capacity: 37)
+        }
         _cf_uuid_unparse_upper(buffer, strPtr)
         return String(cString: strPtr)
     }
@@ -58,24 +71,23 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public convenience required init?(coder: NSCoder) {
-        if coder.allowsKeyedCoding {
-            let decodedData : Data? = coder.withDecodedUnsafeBufferPointer(forKey: "NS.uuidbytes") {
-                guard let buffer = $0 else { return nil }
-                return Data(buffer: buffer)
-            }
-
-            guard let data = decodedData else { return nil }
-            guard data.count == 16 else { return nil }
-            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
-            data.copyBytes(to: buffer, count: 16)
-            self.init(uuidBytes: buffer)
-        } else {
-            // NSUUIDs cannot be decoded by non-keyed coders
-            coder.failWithError(NSError(domain: NSCocoaErrorDomain, code: CocoaError.coderReadCorrupt.rawValue, userInfo: [
-                                "NSDebugDescription": "NSUUID cannot be decoded by non-keyed coders"
-                                ]))
-            return nil
+        guard coder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
         }
+        let decodedData : Data? = coder.withDecodedUnsafeBufferPointer(forKey: "NS.uuidbytes") {
+            guard let buffer = $0 else { return nil }
+            return Data(buffer: buffer)
+        }
+
+        guard let data = decodedData else { return nil }
+        guard data.count == 16 else { return nil }
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 16)
+        defer {
+            buffer.deinitialize()
+            buffer.deallocate(capacity: 16)
+        }
+        data.copyBytes(to: buffer, count: 16)
+        self.init(uuidBytes: buffer)
     }
     
     open func encode(with aCoder: NSCoder) {
@@ -83,7 +95,8 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     open override func isEqual(_ value: Any?) -> Bool {
-        if let other = value as? UUID {
+        switch value {
+        case let other as UUID:
             return other.uuid.0 == buffer[0] &&
                 other.uuid.1 == buffer[1] &&
                 other.uuid.2 == buffer[2] &&
@@ -100,13 +113,11 @@ open class NSUUID : NSObject, NSCopying, NSSecureCoding, NSCoding {
                 other.uuid.13 == buffer[13] &&
                 other.uuid.14 == buffer[14] &&
                 other.uuid.15 == buffer[15]
-        } else if let other = value as? NSUUID {
-            if other === self {
-                return true
-            }
-            return _cf_uuid_compare(buffer, other.buffer) == 0
+        case let other as NSUUID:
+            return other === self || _cf_uuid_compare(buffer, other.buffer) == 0
+        default:
+            return false
         }
-        return false
     }
     
     open override var hash: Int {

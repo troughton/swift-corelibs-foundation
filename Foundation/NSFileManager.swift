@@ -13,6 +13,12 @@
     import Glibc
 #endif
 
+#if os(Android) // struct stat.st_mode is UInt32
+internal func &(left: UInt32, right: mode_t) -> mode_t {
+    return mode_t(left) & right
+}
+#endif
+
 import CoreFoundation
 
 open class FileManager : NSObject {
@@ -119,14 +125,14 @@ open class FileManager : NSObject {
         for attribute in attributes.keys {
             if attribute == .posixPermissions {
                 guard let number = attributes[attribute] as? NSNumber else {
-                    fatalError("Can't set file permissions to \(attributes[attribute])")
+                    fatalError("Can't set file permissions to \(attributes[attribute] as Any?)")
                 }
                 #if os(OSX) || os(iOS)
                     let modeT = number.uint16Value
-                #elseif os(Linux) || CYGWIN
+                #elseif os(Linux) || os(Android) || CYGWIN
                     let modeT = number.uint32Value
                 #endif
-                if chmod(path, modeT) != 0 {
+                if chmod(path, mode_t(modeT)) != 0 {
                     fatalError("errno \(errno)")
                 }
             } else {
@@ -246,13 +252,13 @@ open class FileManager : NSObject {
                 }
                 #if os(OSX) || os(iOS)
                     let tempEntryType = entryType
-                #elseif os(Linux) || CYGWIN
-                    let tempEntryType = Int(entryType)
+                #elseif os(Linux) || os(Android) || CYGWIN
+                    let tempEntryType = Int32(entryType)
                 #endif
-                        
-                if tempEntryType == DT_DIR {
+
+                if tempEntryType == Int32(DT_DIR) {
                     let subPath: String = path + "/" + entryName
-                            
+
                     let entries =  try subpathsOfDirectory(atPath: subPath)
                     contents.append(contentsOf: entries.map({file in "\(entryName)/\(file)"}))
                 }
@@ -268,7 +274,6 @@ open class FileManager : NSObject {
      
         This method replaces fileAttributesAtPath:traverseLink:.
      */
-    /// - Experiment: Note that the return type of this function is different than on Darwin Foundation (Any instead of AnyObject). This is likely to change once we have a more complete story for bridging in place.
     open func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
         var s = stat()
         guard lstat(path, &s) == 0 else {
@@ -279,6 +284,8 @@ open class FileManager : NSObject {
 
 #if os(OSX) || os(iOS)
         let ti = (TimeInterval(s.st_mtimespec.tv_sec) - kCFAbsoluteTimeIntervalSince1970) + (1.0e-9 * TimeInterval(s.st_mtimespec.tv_nsec))
+#elseif os(Android)
+        let ti = (TimeInterval(s.st_mtime) - kCFAbsoluteTimeIntervalSince1970) + (1.0e-9 * TimeInterval(s.st_mtime_nsec))
 #else
         let ti = (TimeInterval(s.st_mtim.tv_sec) - kCFAbsoluteTimeIntervalSince1970) + (1.0e-9 * TimeInterval(s.st_mtim.tv_nsec))
 #endif
@@ -298,7 +305,7 @@ open class FileManager : NSObject {
         let grd = getgrgid(s.st_gid)
         if grd != nil && grd!.pointee.gr_name != nil {
             let name = String(cString: grd!.pointee.gr_name)
-            result[.groupOwnerAccountID] = name
+            result[.groupOwnerAccountName] = name
         }
 
         var type : FileAttributeType
@@ -361,11 +368,27 @@ open class FileManager : NSObject {
             throw _NSErrorWithErrno(errno, reading: true, path: path)
         }
         
-        return self.string(withFileSystemRepresentation: buf, length: len)
+        return self.string(withFileSystemRepresentation: buf, length: Int(len))
     }
     
     open func copyItem(atPath srcPath: String, toPath dstPath: String) throws {
-        NSUnimplemented()
+        guard
+            let attrs = try? attributesOfItem(atPath: srcPath),
+            let fileType = attrs[.type] as? FileAttributeType
+            else {
+                return
+        }
+        if fileType == .typeDirectory {
+            try createDirectory(atPath: dstPath, withIntermediateDirectories: false, attributes: nil)
+            let subpaths = try subpathsOfDirectory(atPath: srcPath)
+            for subpath in subpaths {
+                try copyItem(atPath: srcPath + "/" + subpath, toPath: dstPath + "/" + subpath)
+            }
+        } else {
+            if createFile(atPath: dstPath, contents: contents(atPath: srcPath), attributes: nil) == false {
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteUnknown.rawValue, userInfo: [NSFilePathErrorKey : NSString(string: dstPath)])
+            }
+        }
     }
     
     open func moveItem(atPath srcPath: String, toPath dstPath: String) throws {
@@ -492,6 +515,7 @@ open class FileManager : NSObject {
         return result
     }
     
+    @discardableResult
     open func changeCurrentDirectoryPath(_ path: String) -> Bool {
         return chdir(path) == 0
     }
@@ -688,9 +712,15 @@ extension FileManager {
 }
 
 extension FileManager {
-    open var homeDirectoryForCurrentUser: URL { NSUnimplemented() }
+    open var homeDirectoryForCurrentUser: URL {
+        return homeDirectory(forUser: CFCopyUserName().takeRetainedValue()._swiftObject)!
+    }
     open var temporaryDirectory: URL { NSUnimplemented() }
-    open func homeDirectory(forUser userName: String) -> URL? { NSUnimplemented() }
+    open func homeDirectory(forUser userName: String) -> URL? {
+        guard !userName.isEmpty else { return nil }
+        guard let url = CFCopyHomeDirectoryURLForUser(userName._cfObject) else { return nil }
+        return  url.takeRetainedValue()._swiftObject
+    }
 }
 
 extension FileManager {
@@ -777,19 +807,19 @@ public struct FileAttributeKey : RawRepresentable, Equatable, Hashable, Comparab
     public static let posixPermissions = FileAttributeKey(rawValue: "NSFilePosixPermissions")
     public static let systemNumber = FileAttributeKey(rawValue: "NSFileSystemNumber")
     public static let systemFileNumber = FileAttributeKey(rawValue: "NSFileSystemFileNumber")
-    public static let extensionHidden = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let hfsCreatorCode = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let hfsTypeCode = FileAttributeKey(rawValue: "") // NSUnimplemented
+    public static let extensionHidden = FileAttributeKey(rawValue: "NSFileExtensionHidden")
+    public static let hfsCreatorCode = FileAttributeKey(rawValue: "NSFileHFSCreatorCode")
+    public static let hfsTypeCode = FileAttributeKey(rawValue: "NSFileHFSTypeCode")
     public static let immutable = FileAttributeKey(rawValue: "NSFileImmutable")
     public static let appendOnly = FileAttributeKey(rawValue: "NSFileAppendOnly")
-    public static let creationDate = FileAttributeKey(rawValue: "") // NSUnimplemented
+    public static let creationDate = FileAttributeKey(rawValue: "NSFileCreationDate")
     public static let ownerAccountID = FileAttributeKey(rawValue: "NSFileOwnerAccountID")
     public static let groupOwnerAccountID = FileAttributeKey(rawValue: "NSFileGroupOwnerAccountID")
-    public static let busy = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let systemSize = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let systemFreeSize = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let systemNodes = FileAttributeKey(rawValue: "") // NSUnimplemented
-    public static let systemFreeNodes = FileAttributeKey(rawValue: "") // NSUnimplemented
+    public static let busy = FileAttributeKey(rawValue: "NSFileBusy")
+    public static let systemSize = FileAttributeKey(rawValue: "NSFileSystemSize")
+    public static let systemFreeSize = FileAttributeKey(rawValue: "NSFileSystemFreeSize")
+    public static let systemNodes = FileAttributeKey(rawValue: "NSFileSystemNodes")
+    public static let systemFreeNodes = FileAttributeKey(rawValue: "NSFileSystemFreeNodes")
 }
 
 public struct FileAttributeType : RawRepresentable, Equatable, Hashable, Comparable {
@@ -958,14 +988,14 @@ extension FileManager {
     internal class NSURLDirectoryEnumerator : DirectoryEnumerator {
         var _url : URL
         var _options : FileManager.DirectoryEnumerationOptions
-        var _errorHandler : ((URL, NSError) -> Bool)?
+        var _errorHandler : ((URL, Error) -> Bool)?
         var _stream : UnsafeMutablePointer<FTS>? = nil
         var _current : UnsafeMutablePointer<FTSENT>? = nil
-        var _rootError : NSError? = nil
+        var _rootError : Error? = nil
         var _gotRoot : Bool = false
         
         // See @escaping comments above.
-        init(url: URL, options: FileManager.DirectoryEnumerationOptions, errorHandler: (/* @escaping */ (URL, NSError) -> Bool)?) {
+        init(url: URL, options: FileManager.DirectoryEnumerationOptions, errorHandler: (/* @escaping */ (URL, Error) -> Bool)?) {
             _url = url
             _options = options
             _errorHandler = errorHandler

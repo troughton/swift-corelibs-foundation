@@ -7,16 +7,17 @@
 // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 
-
 #if DEPLOYMENT_RUNTIME_OBJC || os(Linux)
-import Foundation
-import XCTest
+    import Foundation
+    import XCTest
 #else
-import SwiftFoundation
-import SwiftXCTest
+    import SwiftFoundation
+    import SwiftXCTest
 #endif
 
 class TestURLSession : XCTestCase {
+
+    var serverPort: Int = -1
 
     static var allTests: [(String, (TestURLSession) -> () throws -> Void)] {
         return [
@@ -24,27 +25,68 @@ class TestURLSession : XCTestCase {
             ("test_dataTaskWithURLRequest", test_dataTaskWithURLRequest),
             ("test_dataTaskWithURLCompletionHandler", test_dataTaskWithURLCompletionHandler),
             ("test_dataTaskWithURLRequestCompletionHandler", test_dataTaskWithURLRequestCompletionHandler),
-//            ("test_downloadTaskWithURL", test_downloadTaskWithURL),
-//            ("test_downloadTaskWithURLRequest", test_downloadTaskWithURLRequest),
-//            ("test_downloadTaskWithRequestAndHandler", test_downloadTaskWithRequestAndHandler),
-//            ("test_downloadTaskWithURLAndHandler", test_downloadTaskWithURLAndHandler),
-            
+            ("test_downloadTaskWithURL", test_downloadTaskWithURL),
+            ("test_downloadTaskWithURLRequest", test_downloadTaskWithURLRequest),
+            ("test_downloadTaskWithRequestAndHandler", test_downloadTaskWithRequestAndHandler),
+            ("test_downloadTaskWithURLAndHandler", test_downloadTaskWithURLAndHandler),
+            ("test_finishTaskAndInvalidate", test_finishTasksAndInvalidate),
+            ("test_taskError", test_taskError),
+            ("test_taskCopy", test_taskCopy),
+            ("test_cancelTask", test_cancelTask),
+            ("test_taskTimeout", test_taskTimeout),
+            ("test_verifyRequestHeaders", test_verifyRequestHeaders),
         ]
     }
 
+    private func runServer(with condition: ServerSemaphore, startDelay: TimeInterval? = nil, sendDelay: TimeInterval? = nil, bodyChunks: Int? = nil) throws {
+        let start = 21961
+        for port in start...(start+100) { //we must find at least one port to bind
+            do {
+                serverPort = port
+                let test = try TestURLSessionServer(port: UInt16(port), startDelay: startDelay, sendDelay: sendDelay, bodyChunks: bodyChunks)
+                try test.start(started: condition)
+                try test.readAndRespond()
+                test.stop()
+            } catch let e as ServerError {
+                if e.operation == "bind" { continue }
+                throw e
+            }
+        }
+    }
+
     func test_dataTaskWithURL() {
-        let urlString = "https://restcountries.eu/rest/v1/name/Nepal?fullText=true"
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/Nepal"
         let url = URL(string: urlString)!
-        let d = DataTask(with: expectation(description: "data task"))                         
+        let d = DataTask(with: expectation(description: "data task"))
         d.run(with: url)
         waitForExpectations(timeout: 12)
         if !d.error {
             XCTAssertEqual(d.capital, "Kathmandu", "test_dataTaskWithURLRequest returned an unexpected result")
         }
     }
-    
+
     func test_dataTaskWithURLCompletionHandler() {
-        let urlString = "https://restcountries.eu/rest/v1/name/USA?fullText=true"
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/USA"
         let url = URL(string: urlString)!
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
@@ -52,21 +94,15 @@ class TestURLSession : XCTestCase {
         let expect = expectation(description: "URL test with completion handler")
         var expectedResult = "unknown"
         let task = session.dataTask(with: url) { data, response, error in
-            if let e = error {
-                XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+            if let e = error as? URLError {
+                XCTAssertEqual(e.code, .timedOut, "Unexpected error code")
                 expect.fulfill()
                 return
             }
 
             let httpResponse = response as! HTTPURLResponse?
-            XCTAssertEqual(200, httpResponse!.statusCode, "HTTP response code is not 200") 
-            do {
-                let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                let arr = json as? Array<Any>
-                let first = arr![0]
-                let result = first as? [String : Any]
-                expectedResult = result!["capital"] as! String
-            } catch { }
+            XCTAssertEqual(200, httpResponse!.statusCode, "HTTP response code is not 200")
+            expectedResult = String(data: data!, encoding: String.Encoding.utf8)!
             XCTAssertEqual("Washington, D.C.", expectedResult, "Did not receive expected value")
             expect.fulfill()
         }
@@ -75,9 +111,19 @@ class TestURLSession : XCTestCase {
     }
 
     func test_dataTaskWithURLRequest() {
-        let urlString = "https://restcountries.eu/rest/v1/name/Peru?fullText=true"
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/Peru"
         let urlRequest = URLRequest(url: URL(string: urlString)!)
-        let d = DataTask(with: expectation(description: "data task"))     
+        let d = DataTask(with: expectation(description: "data task"))
         d.run(with: urlRequest)
         waitForExpectations(timeout: 12)
         if !d.error {
@@ -86,7 +132,17 @@ class TestURLSession : XCTestCase {
     }
 
     func test_dataTaskWithURLRequestCompletionHandler() {
-        let urlString = "https://restcountries.eu/rest/v1/name/Italy?fullText=true"
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/Italy"
         let urlRequest = URLRequest(url: URL(string: urlString)!)
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
@@ -94,20 +150,14 @@ class TestURLSession : XCTestCase {
         let expect = expectation(description: "URL test with completion handler")
         var expectedResult = "unknown"
         let task = session.dataTask(with: urlRequest) { data, response, error in
-            if let e = error {
-                XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+            if let e = error as? URLError {
+                XCTAssertEqual(e.code, .timedOut, "Unexpected error code")
                 expect.fulfill()
                 return
             }
             let httpResponse = response as! HTTPURLResponse?
             XCTAssertEqual(200, httpResponse!.statusCode, "HTTP response code is not 200")
-            do {
-                let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                let arr = json as? Array<Any>
-                let first = arr![0]
-                let result = first as? [String : Any]
-                expectedResult = result!["capital"] as! String
-            } catch { }
+            expectedResult = String(data: data!, encoding: String.Encoding.utf8)!
             XCTAssertEqual("Rome", expectedResult, "Did not receive expected value")
             expect.fulfill()
         }
@@ -116,30 +166,60 @@ class TestURLSession : XCTestCase {
     }
 
     func test_downloadTaskWithURL() {
-        let urlString = "https://swift.org/LICENSE.txt"
-        let url = URL(string: urlString)!   
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/country.txt"
+        let url = URL(string: urlString)!
         let d = DownloadTask(with: expectation(description: "download task with delegate"))
         d.run(with: url)
         waitForExpectations(timeout: 12)
     }
 
     func test_downloadTaskWithURLRequest() {
-       let urlString = "https://swift.org/LICENSE.txt"
-       let urlRequest = URLRequest(url: URL(string: urlString)!)
-       let d = DownloadTask(with: expectation(description: "download task with delegate"))
-       d.run(with: urlRequest)
-       waitForExpectations(timeout: 12)
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let urlString = "http://127.0.0.1:\(serverPort)/country.txt"
+        let urlRequest = URLRequest(url: URL(string: urlString)!)
+        let d = DownloadTask(with: expectation(description: "download task with delegate"))
+        d.run(with: urlRequest)
+        waitForExpectations(timeout: 12)
     }
 
     func test_downloadTaskWithRequestAndHandler() {
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         let expect = expectation(description: "download task with handler")
-        let req = URLRequest(url: URL(string: "https://swift.org/LICENSE.txt")!)
+        let req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/country.txt")!)
         let task = session.downloadTask(with: req) { (_, _, error) -> Void in
-            if let e = error {
-                XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+            if let e = error as? URLError {
+                XCTAssertEqual(e.code, .timedOut, "Unexpected error code")
             }
             expect.fulfill()
         }
@@ -148,31 +228,174 @@ class TestURLSession : XCTestCase {
     }
 
     func test_downloadTaskWithURLAndHandler() {
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         let expect = expectation(description: "download task with handler")
-        let req = URLRequest(url: URL(string: "https://swift.org/LICENSE.txt")!)
+        let req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/country.txt")!)
         let task = session.downloadTask(with: req) { (_, _, error) -> Void in
-            if let e = error {
-                XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+            if let e = error as? URLError {
+                XCTAssertEqual(e.code, .timedOut, "Unexpected error code")
             }
             expect.fulfill()
         }
         task.resume()
         waitForExpectations(timeout: 12)
     }
+
+    func test_finishTasksAndInvalidate() {
+        let invalidateExpectation = expectation(description: "URLSession wasn't invalidated")
+        let delegate = SessionDelegate(invalidateExpectation: invalidateExpectation)
+        let url = URL(string: "http://127.0.0.1:\(serverPort)/Nepal")!
+        let session = URLSession(configuration: URLSessionConfiguration.default,
+                                 delegate: delegate, delegateQueue: nil)
+        let completionExpectation = expectation(description: "dataTask completion block wasn't called")
+        let task = session.dataTask(with: url) { _ in
+            completionExpectation.fulfill()
+        }
+        task.resume()
+        session.finishTasksAndInvalidate()
+        waitForExpectations(timeout: 12)
+    }
+
+    func test_taskError() {
+        let url = URL(string: "http://127.0.0.1:\(serverPort)/Nepal")!
+        let session = URLSession(configuration: URLSessionConfiguration.default,
+                                 delegate: nil,
+                                 delegateQueue: nil)
+        let completionExpectation = expectation(description: "dataTask completion block wasn't called")
+        let task = session.dataTask(with: url) { result in
+            let error = result.2 as? URLError
+            XCTAssertNotNil(error)
+            XCTAssertEqual(error?.code, .badURL)
+            completionExpectation.fulfill()
+        }
+        //should result in Bad URL error
+        task.resume()
+
+        waitForExpectations(timeout: 5) { error in
+            XCTAssertNil(error)
+
+            XCTAssertNotNil(task.error)
+            XCTAssertEqual((task.error as? URLError)?.code, .badURL)
+        }
+    }
+
+    func test_taskCopy() {
+        let url = URL(string: "http://127.0.0.1:\(serverPort)/Nepal")!
+        let session = URLSession(configuration: URLSessionConfiguration.default,
+                                 delegate: nil,
+                                 delegateQueue: nil)
+        let task = session.dataTask(with: url)
+
+        XCTAssert(task.isEqual(task.copy()))
+    }
+
+    func test_cancelTask() {
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let url = URL(string: "http://127.0.0.1:\(serverPort)/Peru")!
+        let d = DataTask(with: expectation(description: "Task to be canceled"))
+        d.cancelExpectation = expectation(description: "URLSessionTask wasn't canceled")
+        d.run(with: url)
+        d.cancel()
+        waitForExpectations(timeout: 12)
+    }
+
+    func test_verifyRequestHeaders() {
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 5
+        let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
+        var expect = expectation(description: "download task with handler")
+        var req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/requestHeaders")!)
+        let headers = ["header1": "value1"]
+        req.httpMethod = "POST"
+        req.allHTTPHeaderFields = headers
+        var task = session.dataTask(with: req) { (data, _, error) -> Void in
+            defer { expect.fulfill() }
+            let headers = String(data: data!, encoding: String.Encoding.utf8)!
+            XCTAssertNotNil(headers.range(of: "header1: value1"))
+        }
+        task.resume()
+
+        waitForExpectations(timeout: 30)
+    }
+
+    func test_taskTimeout() {
+        let serverReady = ServerSemaphore()
+        globalDispatchQueue.async {
+            do {
+                try self.runServer(with: serverReady, startDelay: 3, sendDelay: 3, bodyChunks: 3)
+            } catch {
+                XCTAssertTrue(true)
+                return
+            }
+        }
+        serverReady.wait()
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 5
+        let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
+        var expect = expectation(description: "download task with handler")
+        let req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/Peru")!)
+        var task = session.dataTask(with: req) { (data, _, error) -> Void in
+            defer { expect.fulfill() }
+            XCTAssertNil(error)
+        }
+        task.resume()
+
+        waitForExpectations(timeout: 30)
+    }
 }
 
-class DataTask: NSObject {
+class SessionDelegate: NSObject, URLSessionDelegate {
+    let invalidateExpectation: XCTestExpectation
+    init(invalidateExpectation: XCTestExpectation){
+        self.invalidateExpectation = invalidateExpectation
+    }
+    func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
+        invalidateExpectation.fulfill()
+    }
+}
+
+class DataTask : NSObject {
     let dataTaskExpectation: XCTestExpectation!
     var capital = "unknown"
     var session: URLSession! = nil
     var task: URLSessionDataTask! = nil
+    var cancelExpectation: XCTestExpectation?
+
     public var error = false
 
     init(with expectation: XCTestExpectation) {
-       dataTaskExpectation = expectation 
+       dataTaskExpectation = expectation
     }
 
     func run(with request: URLRequest) {
@@ -182,7 +405,7 @@ class DataTask: NSObject {
         task = session.dataTask(with: request)
         task.resume()
     }
-    
+
     func run(with url: URL) {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
@@ -190,45 +413,44 @@ class DataTask: NSObject {
         task = session.dataTask(with: url)
         task.resume()
     }
+
+    func cancel() {
+        task.cancel()
+    }
 }
 
 extension DataTask : URLSessionDataDelegate {
-     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-         do {
-            let json = try JSONSerialization.jsonObject(with: data, options: [])
-            let arr = json as? Array<Any>
-            let first = arr![0]
-            let result = first as? [String : Any]
-            capital = result!["capital"] as! String
-         } catch { }
-
-         dataTaskExpectation.fulfill()
-     }
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        capital = String(data: data, encoding: String.Encoding.utf8)!
+        dataTaskExpectation.fulfill()
+    }
 }
 
 extension DataTask : URLSessionTaskDelegate {
-    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
-         guard let e = error else { return }
-         XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+         guard let e = error as? URLError else { return }
          dataTaskExpectation.fulfill()
+         if let cancellation = cancelExpectation {
+             cancellation.fulfill()
+         }
          self.error = true
      }
-} 
+}
 
 class DownloadTask : NSObject {
-    var totalBytesWritten: Int64 = 0   
+    var totalBytesWritten: Int64 = 0
     let dwdExpectation: XCTestExpectation!
-    var session: URLSession! = nil   
-    var task: URLSessionDownloadTask! = nil  
- 
+    var session: URLSession! = nil
+    var task: URLSessionDownloadTask! = nil
+
     init(with expectation: XCTestExpectation) {
-       dwdExpectation = expectation
+        dwdExpectation = expectation
     }
-  
+
     func run(with url: URL) {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
-        session = URLSession(configuration: config, delegate: self, delegateQueue: nil)       
+        session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         task = session.downloadTask(with: url)
         task.resume()
     }
@@ -243,12 +465,12 @@ class DownloadTask : NSObject {
 }
 
 extension DownloadTask : URLSessionDownloadDelegate {
-    
+
     public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64,
                            totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) -> Void {
         self.totalBytesWritten = totalBytesWritten
     }
-    
+
     public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         do {
             let attr = try FileManager.default.attributesOfItem(atPath: location.path)
@@ -261,9 +483,9 @@ extension DownloadTask : URLSessionDownloadDelegate {
 }
 
 extension DownloadTask : URLSessionTaskDelegate {
-   public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
-       guard let e = error else { return }
-       XCTAssertEqual(e.code, NSURLErrorTimedOut, "Unexpected error code")
+   public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+       guard let e = error as? URLError else { return }
+       XCTAssertEqual(e.code, .timedOut, "Unexpected error code")
        dwdExpectation.fulfill()
    }
 }

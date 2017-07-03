@@ -65,6 +65,26 @@ class TestNSNumber : XCTestCase {
         XCTAssertEqual(NSNumber(value: false).doubleValue, Double(0))
     }
     
+    func test_CFBoolean() {
+        guard let plist = try? PropertyListSerialization.data(fromPropertyList: ["test" : true], format: .binary, options: 0) else {
+            XCTFail()
+            return
+        }
+        guard let obj = (try? PropertyListSerialization.propertyList(from: plist, format: nil)) as? [String : Any] else {
+            XCTFail()
+            return
+        }
+        guard let value = obj["test"] else {
+            XCTFail()
+            return
+        }
+        guard let boolValue = value as? Bool else {
+            XCTFail("Expected de-serialization as round-trip boolean value")
+            return
+        }
+        XCTAssertTrue(boolValue)
+    }
+    
     func test_numberWithChar() {
         XCTAssertEqual(NSNumber(value: Int8(0)).boolValue, false)
         XCTAssertEqual(NSNumber(value: Int8(0)).int8Value, Int8(0))
@@ -77,8 +97,8 @@ class TestNSNumber : XCTestCase {
         XCTAssertEqual(NSNumber(value: Int8(0)).uint64Value, UInt64(0))
         XCTAssertEqual(NSNumber(value: Int8(-37)).boolValue, true)
         XCTAssertEqual(NSNumber(value: Int8(-37)).int8Value, Int8(-37))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).int16Value, Int16(-37))
         XCTAssertEqual(NSNumber(value: Int8(-37)).int32Value, Int32(-37))
         XCTAssertEqual(NSNumber(value: Int8(-37)).int64Value, Int64(-37))
@@ -103,32 +123,32 @@ class TestNSNumber : XCTestCase {
         XCTAssertEqual(NSNumber(value: Int8.max).uint64Value, UInt64(Int8.max))
         XCTAssertEqual(NSNumber(value: Int8.min).boolValue, true)
         XCTAssertEqual(NSNumber(value: Int8.min).int8Value, Int8(Int8.min))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8.min).int16Value, Int16(Int8.min))
         XCTAssertEqual(NSNumber(value: Int8.min).int32Value, Int32(Int8.min))
         XCTAssertEqual(NSNumber(value: Int8.min).int64Value, Int64(Int8.min))
 #endif
         XCTAssertEqual(NSNumber(value: Int8(0)).floatValue, Float(0))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).floatValue, Float(-37))
 #endif
         XCTAssertEqual(NSNumber(value: Int8(42)).floatValue, Float(42))
         XCTAssertEqual(NSNumber(value: Int8.max).floatValue, Float(Int8.max))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8.min).floatValue, Float(Int8.min))
 #endif
         XCTAssertEqual(NSNumber(value: Int8(0)).doubleValue, Double(0))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).doubleValue, Double(-37))
 #endif
         XCTAssertEqual(NSNumber(value: Int8(42)).doubleValue, Double(42))
         XCTAssertEqual(NSNumber(value: Int8.max).doubleValue, Double(Int8.max))
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8.min).doubleValue, Double(Int8.min))
 #endif
     }
@@ -279,8 +299,8 @@ class TestNSNumber : XCTestCase {
         XCTAssertEqual(NSNumber(value: false).compare(NSNumber(value: true)), ComparisonResult.orderedAscending)
 
         XCTAssertEqual(NSNumber(value: false).compare(NSNumber(value: Int8(0))), ComparisonResult.orderedSame)
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: false).compare(NSNumber(value: Int8(-1))), ComparisonResult.orderedDescending)
 #endif
         XCTAssertEqual(NSNumber(value: false).compare(NSNumber(value: Int8(1))), ComparisonResult.orderedAscending)
@@ -301,28 +321,28 @@ class TestNSNumber : XCTestCase {
     func test_compareNumberWithChar() {
         XCTAssertEqual(NSNumber(value: Int8(42)).compare(NSNumber(value: Int8(42))), ComparisonResult.orderedSame)
         XCTAssertEqual(NSNumber(value: Int8(42)).compare(NSNumber(value: Int8(0))), ComparisonResult.orderedDescending)
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).compare(NSNumber(value: Int8(16))), ComparisonResult.orderedAscending)
 #endif
 
         XCTAssertEqual(NSNumber(value: Int8(1)).compare(NSNumber(value: true)), ComparisonResult.orderedSame)
         XCTAssertEqual(NSNumber(value: Int8(1)).compare(NSNumber(value: false)), ComparisonResult.orderedDescending)
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).compare(NSNumber(value: true)), ComparisonResult.orderedAscending)
 #endif
 
         XCTAssertEqual(NSNumber(value: Int8(42)).compare(NSNumber(value: UInt8(42))), ComparisonResult.orderedSame)
         XCTAssertEqual(NSNumber(value: Int8(42)).compare(NSNumber(value: UInt8(16))), ComparisonResult.orderedDescending)
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-37)).compare(NSNumber(value: UInt8(255))), ComparisonResult.orderedAscending)
 #endif
 
         XCTAssertEqual(NSNumber(value: Int8(42)).compare(NSNumber(value: Float(42))), ComparisonResult.orderedSame)
-#if !(os(Linux) && arch(arm))
-        // Linux/arm chars are unsigned, so Int8 in Swift, until this issue is resolved, this test will always fail.
+#if !(os(Linux) && (arch(arm) || arch(powerpc64) || arch(powerpc64le)))
+        // Linux/arm and Linux/power chars are unsigned, so Int8 in Swift, until this issue is resolved, these tests will always fail.
         XCTAssertEqual(NSNumber(value: Int8(-16)).compare(NSNumber(value: Float(-37.5))), ComparisonResult.orderedDescending)
 #endif
         XCTAssertEqual(NSNumber(value: Int8(16)).compare(NSNumber(value: Float(16.1))), ComparisonResult.orderedAscending)

@@ -78,7 +78,13 @@ open class NSIndexSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         return copy(with: nil)
     }
     
-    open func copy(with zone: NSZone? = nil) -> Any  { NSUnimplemented() }
+    open func copy(with zone: NSZone? = nil) -> Any {
+        if type(of: self) === NSIndexSet.self {
+            // return self for immutable type
+            return self
+        }
+        return NSIndexSet(indexSet: self._bridgeToSwift())
+    }
     
     open override func mutableCopy() -> Any {
         return mutableCopy(with: nil)
@@ -127,7 +133,7 @@ open class NSIndexSet : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         return _ranges.first?.location ?? NSNotFound
     }
     open var lastIndex: Int {
-        guard _ranges.count > 0 else {
+        guard !_ranges.isEmpty else {
             return NSNotFound
         }
         return NSMaxRange(_ranges.last!) - 1
@@ -505,6 +511,16 @@ open class NSMutableIndexSet : NSIndexSet {
     open func add(_ indexSet: IndexSet) {
         indexSet.rangeView.forEach { add(in: NSRange(location: $0.lowerBound, length: $0.upperBound - $0.lowerBound)) }
     }
+
+    open override func copy(with zone: NSZone? = nil) -> Any {
+        if type(of: self) === NSMutableIndexSet.self {
+            let indexSet = NSMutableIndexSet()
+            indexSet._ranges = self._ranges
+            indexSet._count = self._count
+            return indexSet
+        }
+        return NSMutableIndexSet(indexSet: self._bridgeToSwift())
+    }
     
     open func remove(_ indexSet: IndexSet) {
         indexSet.rangeView.forEach { remove(in: NSRange(location: $0.lowerBound, length: $0.upperBound - $0.lowerBound)) }
@@ -541,7 +557,7 @@ open class NSMutableIndexSet : NSIndexSet {
     
     internal func _mergeOverlappingRangesStartingAtIndex(_ index: Int) {
         var rangeIndex = index
-        while _ranges.count > 0 && rangeIndex < _ranges.count - 1 {
+        while !_ranges.isEmpty && rangeIndex < _ranges.count - 1 {
             let curRange = _ranges[rangeIndex]
             let nextRange = _ranges[rangeIndex + 1]
             let curEnd = NSMaxRange(curRange)
