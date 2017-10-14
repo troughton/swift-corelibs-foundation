@@ -463,11 +463,13 @@ CF_EXPORT int64_t OSAtomicAdd64Barrier( int64_t __theAmount, volatile int64_t *_
 
 #include <stdarg.h>
 
+#if !TARGET_OS_CYGWIN
 CF_INLINE int flsl( long mask ) {
     int idx = 0;
     while (mask != 0) mask = (unsigned long)mask >> 1, idx++;
     return idx;
 }
+#endif
     
 CF_INLINE int popcountll(long long x) {
     int count = 0;

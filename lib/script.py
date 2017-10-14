@@ -86,7 +86,7 @@ TARGET_BOOTSTRAP_DIR  = """ + Configuration.current.bootstrap_directory.relative
 """
 
         c_flags = """
-TARGET_CFLAGS         = -fcolor-diagnostics -fdollars-in-identifiers -fblocks -fobjc-runtime=macosx-10.11 -fintegrated-as -fPIC --target=${TARGET} """
+TARGET_CFLAGS         = -fcolor-diagnostics -fdollars-in-identifiers -fblocks -fobjc-runtime=macosx-10.11 -fintegrated-as --target=${TARGET} """
 
         if Configuration.current.build_mode == Configuration.Debug:
             c_flags += "-g -O0 "

@@ -14,8 +14,10 @@ import CoreFoundation
 // This mimics the behavior of the swift sdk overlay on Darwin
 #if os(OSX) || os(iOS)
 @_exported import Darwin
-#elseif os(Linux) || os(Android) || CYGWIN
+#elseif os(Linux) || os(Android)
 @_exported import Glibc
+#elseif os(Cygwin)
+@_exported import Newlib
 #endif
 
 #if os(Android) // shim required for bzero

@@ -11,8 +11,10 @@ import CoreFoundation
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux)
 import Glibc
+#elseif os(Cygwin)
+import Newlib
 #endif
 
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
@@ -434,8 +436,10 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
             repeat {
                 #if os(OSX) || os(iOS)
                     bytesWritten = Darwin.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
-                #elseif os(Linux) || os(Android) || CYGWIN
+                #elseif os(Linux) || os(Android)
                     bytesWritten = Glibc.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
+                #elseif os(Cygwin)
+                    bytesWritten = Newlib.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
                 #endif
             } while (bytesWritten < 0 && errno == EINTR)
             if bytesWritten <= 0 {

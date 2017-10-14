@@ -10,8 +10,10 @@
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux)
 import Glibc
+#elseif os(Cygwin)
+import Newlib
 #endif
 
 import CoreFoundation
@@ -107,7 +109,7 @@ open class Host: NSObject {
             }
             var hints = addrinfo()
             hints.ai_family = PF_UNSPEC
-#if os(OSX) || os(iOS) || os(Android)
+#if os(OSX) || os(iOS) || os(Android) || os(Cygwin)
             hints.ai_socktype = SOCK_STREAM
 #else
             hints.ai_socktype = Int32(SOCK_STREAM.rawValue)

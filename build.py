@@ -26,7 +26,7 @@ elif Configuration.current.target.sdk == OSType.MacOSX:
 	foundation.LDFLAGS = '-licucore -twolevel_namespace -Wl,-alias_list,CoreFoundation/Base.subproj/DarwinSymbolAliases -sectcreate __UNICODE __csbitmaps CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap -sectcreate __UNICODE __properties CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data -sectcreate __UNICODE __data CoreFoundation/CharacterSets/CFUnicodeData-L.mapping -segprot __UNICODE r r '
 elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.target.environ == EnvironmentType.Cygnus:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -mcmodel=large '
-	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftGlibc `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
+	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftNewlib `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
 	swift_cflags += ['-DCYGWIN']
 
 if Configuration.current.build_mode == Configuration.Debug:
@@ -82,7 +82,7 @@ if "XCTEST_BUILD_DIR" in Configuration.current.variables:
 	]
 
 triple = Configuration.current.target.triple
-if triple.endswith("-linux-gnu") or triple == "armv7-none-linux-androideabi":
+if triple.endswith("-linux-gnu") or triple == "armv7-none-linux-androideabi" or triple.endswith("-windows-cygnus"):
 	foundation.LDFLAGS += '-lcurl '
 
 if triple == "armv7-none-linux-androideabi":
@@ -474,7 +474,7 @@ foundation_tests = SwiftExecutable('TestFoundation', [
         'Foundation/ProgressFraction.swift',
 ] + glob.glob('./TestFoundation/Test*.swift')) # all TestSomething.swift are considered sources to the test project in the TestFoundation directory
 
-Configuration.current.extra_ld_flags += ' -L'+Configuration.current.variables["LIBDISPATCH_BUILD_DIR"]+'/src/.libs'
+#Configuration.current.extra_ld_flags += ' -L'+Configuration.current.variables["LIBDISPATCH_BUILD_DIR"]+'/src/.libs'
 
 foundation_tests.add_dependency(foundation_tests_resources)
 foundation.add_phase(foundation_tests_resources)

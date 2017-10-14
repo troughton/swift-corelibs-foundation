@@ -153,6 +153,9 @@ const char *_CFProcessPath(void) {
 
 #if DEPLOYMENT_TARGET_LINUX
 #if TARGET_OS_CYGWIN
+Boolean _CFIsMainThread(void) {
+    return 1;
+}
 #else
 #include <unistd.h>
 #if __has_include(<syscall.h>)

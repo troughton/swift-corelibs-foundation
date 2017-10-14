@@ -13,7 +13,9 @@
 #include <CoreFoundation/CFString.h>
 #include <CoreFoundation/CFRunLoop.h>
 #include <CoreFoundation/CFData.h>
+#if !TARGET_OS_CYGWIN  // __HAS_DISPATCH__
 #include <dispatch/dispatch.h>
+#endif
 
 CF_IMPLICIT_BRIDGING_ENABLED
 CF_EXTERN_C_BEGIN
@@ -60,7 +62,9 @@ CF_EXPORT SInt32	CFMessagePortSendRequest(CFMessagePortRef remote, SInt32 msgid,
 
 CF_EXPORT CFRunLoopSourceRef	CFMessagePortCreateRunLoopSource(CFAllocatorRef allocator, CFMessagePortRef local, CFIndex order);
 
+#if !TARGET_OS_CYGWIN  // __HAS_DISPATCH__
 CF_EXPORT void CFMessagePortSetDispatchQueue(CFMessagePortRef ms, dispatch_queue_t queue) CF_AVAILABLE(10_6, 4_0);
+#endif
 
 CF_EXTERN_C_END
 CF_IMPLICIT_BRIDGING_DISABLED

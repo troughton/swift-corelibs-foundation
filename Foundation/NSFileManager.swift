@@ -9,8 +9,10 @@
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux)
     import Glibc
+#elseif os(Cygwin)
+    import Newlib
 #endif
 
 #if os(Android) // struct stat.st_mode is UInt32
@@ -129,7 +131,7 @@ open class FileManager : NSObject {
                 }
                 #if os(OSX) || os(iOS)
                     let modeT = number.uint16Value
-                #elseif os(Linux) || os(Android) || CYGWIN
+                #elseif os(Linux) || os(Android) || os(Cygwin)
                     let modeT = number.uint32Value
                 #endif
                 if chmod(path, mode_t(modeT)) != 0 {
@@ -252,7 +254,7 @@ open class FileManager : NSObject {
                 }
                 #if os(OSX) || os(iOS)
                     let tempEntryType = entryType
-                #elseif os(Linux) || os(Android) || CYGWIN
+                #elseif os(Linux) || os(Android) || os(Cygwin)
                     let tempEntryType = Int32(entryType)
                 #endif
 

@@ -166,8 +166,10 @@ public var NSCoderValueNotFoundError: Int                    { return CocoaError
 
 #if os(OSX) || os(iOS)
     import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux)
     import Glibc
+#elseif os(Cygwin)
+    import Newlib
 #endif
 
 internal func _NSErrorWithErrno(_ posixErrno : Int32, reading : Bool, path : String? = nil, url : URL? = nil, extraUserInfo : [String : Any]? = nil) -> NSError {

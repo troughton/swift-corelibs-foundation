@@ -12,8 +12,10 @@ import CoreFoundation
 
 #if os(OSX) || os(iOS)
 import Darwin
-#elseif os(Linux) || CYGWIN
+#elseif os(Linux)
 import Glibc
+#elseif os(Cygwin)
+import Newlib
 #endif
 
 #if os(OSX) || os(iOS)
@@ -502,7 +504,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     open var password: String? {
         let absoluteURL = CFURLCopyAbsoluteURL(_cfObject)
-#if os(Linux) || os(Android) || CYGWIN
+#if os(Linux) || os(Android) || os(Cygwin)
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, kCFURLComponentPassword, nil)
 #else
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, .password, nil)
