@@ -247,7 +247,7 @@ void CFReadStreamUnscheduleFromRunLoop(CFReadStreamRef stream, CFRunLoopRef runL
 CF_EXPORT
 void CFWriteStreamUnscheduleFromRunLoop(CFWriteStreamRef stream, CFRunLoopRef runLoop, CFRunLoopMode runLoopMode);
 
-#if !TARGET_OS_CYGWIN  // __HAS_DISPATCH__
+#if __HAS_DISPATCH__
 
 /*
  * Specify the dispatch queue upon which the client callbacks will be invoked.

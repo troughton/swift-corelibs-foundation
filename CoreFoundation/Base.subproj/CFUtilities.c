@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_WINDOWS
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED
 #include <asl.h>
 #else
 #define ASL_LEVEL_EMERG 0

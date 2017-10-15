@@ -291,7 +291,8 @@ void OSMemoryBarrier();
 #define CF_PRIVATE extern
     
 #define __builtin_expect(P1,P2) P1
-    
+
+#if 0    
 // These are replacements for POSIX calls on Windows, ensuring that the UTF8 parameters are converted to UTF16 before being passed to Windows
 CF_EXPORT int _NS_stat(const char *name, struct _stat *st);
 CF_EXPORT int _NS_mkdir(const char *name);
@@ -301,10 +302,11 @@ CF_EXPORT int _NS_unlink(const char *name);
 CF_EXPORT char *_NS_getcwd(char *dstbuf, size_t size);     // Warning: this doesn't support dstbuf as null even though 'getcwd' does
 CF_EXPORT char *_NS_getenv(const char *name);
 CF_EXPORT int _NS_rename(const char *oldName, const char *newName);
-CF_EXPORT int _NS_open(const char *name, int oflag, int pmode = 0);
+CF_EXPORT int _NS_open(const char *name, int oflag, int pmode);
 CF_EXPORT int _NS_chdir(const char *name);
 CF_EXPORT int _NS_mkstemp(char *name, int bufSize);
 CF_EXPORT int _NS_access(const char *name, int amode);
+#endif
 
 #define BOOL WINDOWS_BOOL
 
@@ -349,7 +351,7 @@ typedef int gid_t;
 #define getuid() 0
 #define getegid() 0
 
-#define scalbn(A, B) _scalb(A, B)
+//#define scalbn(A, B) _scalb(A, B)
 
 #define fsync(a) _commit(a)
 #define malloc_create_zone(a,b) 123

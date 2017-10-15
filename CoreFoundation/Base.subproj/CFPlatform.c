@@ -506,28 +506,15 @@ typedef struct tagTHREADNAME_INFO
 #pragma pack(pop)
 
 CF_EXPORT void _NS_pthread_setname_np(const char *name) {
-    THREADNAME_INFO info;
-    info.dwType = 0x1000;
-    info.szName = name;
-    info.dwThreadID = GetCurrentThreadId();
-    info.dwFlags = 0;
-
-    __try
-    {
-        RaiseException( MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info );
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER)
-    {
-    }
+    pthread_setname_np(name);
 }
 
-static pthread_t __initialPthread = { NULL, 0 };
+static pthread_t __initialPthread = NULL;
 
 CF_EXPORT int _NS_pthread_main_np() {
     pthread_t me = pthread_self();
-    if (NULL == __initialPthread.p) {
-        __initialPthread.p = me.p;
-        __initialPthread.x = me.x;
+    if (NULL == __initialPthread) {
+        __initialPthread = me;
     }
     return (pthread_equal(__initialPthread, me));
 }
