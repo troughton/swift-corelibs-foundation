@@ -17,7 +17,7 @@
 #include <CoreFoundation/CFRunLoop.h>
 #include <CoreFoundation/CFSocket.h>
 #include <CoreFoundation/CFError.h>
-#if !TARGET_OS_CYGWIN  // __HAS_DISPATCH__
+#if __HAS_DISPATCH__
 #include <dispatch/dispatch.h>
 #endif
 

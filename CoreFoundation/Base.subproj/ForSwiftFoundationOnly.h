@@ -25,7 +25,9 @@
 #include <CoreFoundation/CFLogUtilities.h>
 #include <CoreFoundation/CFURLSessionInterface.h>
 #include <CoreFoundation/ForFoundationOnly.h>
+#if !DEPLOYMENT_TARGET_WINDOWS
 #include <fts.h>
+#endif
 #include <pthread.h>
 
 _CF_EXPORT_SCOPE_BEGIN

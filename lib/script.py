@@ -166,17 +166,17 @@ AR_FLAGS              = rcs
 
         cp_command = """
 rule Cp
-    command = mkdir -p `dirname $out`; /bin/cp -r $in $out
+    command = sh -c "mkdir -p `dirname $out`; /bin/cp -r $in $out"
     description = Cp $in
 """
 
         compilec_command = """
 rule CompileC
-    command = mkdir -p `dirname $out`; ${CLANG} ${TARGET_CFLAGS} $flags ${VERBOSE_FLAGS} -c $in -o $out 
+    command = sh -c "mkdir -p `dirname $out`; ${CLANG} ${TARGET_CFLAGS} $flags ${VERBOSE_FLAGS} -c $in -o $out"
     description = CompileC: $in
 
 rule CompileCxx
-    command = mkdir -p `dirname $out`; ${CLANGXX} ${TARGET_CFLAGS} ${TARGET_CXXFLAGS} $flags ${VERBOSE_FLAGS} -c $in -o $out 
+    command = sh -c "mkdir -p `dirname $out`; ${CLANGXX} ${TARGET_CFLAGS} ${TARGET_CXXFLAGS} $flags ${VERBOSE_FLAGS} -c $in -o $out"
     description = CompileCxx: $in
 """
 

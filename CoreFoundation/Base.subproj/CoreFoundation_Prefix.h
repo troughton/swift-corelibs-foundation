@@ -57,7 +57,9 @@ extern "C" {
 #if INCLUDE_OBJC
 #include <objc/objc.h>
 #else
+#if !defined(DEPLOYMENT_TARGET_WINDOWS)
 typedef signed char	BOOL; 
+#endif
 typedef char * id;
 typedef char * Class;
 #ifndef YES
@@ -274,6 +276,7 @@ void OSMemoryBarrier();
 #endif
 
 #if DEPLOYMENT_TARGET_WINDOWS
+#define HAVE_STRUCT_TIMESPEC 1
 
 #define MAXPATHLEN MAX_PATH
 #undef MAX_PATH

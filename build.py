@@ -28,6 +28,10 @@ elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -mcmodel=large '
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftNewlib `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
 	swift_cflags += ['-DCYGWIN']
+elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.target.environ == EnvironmentType.GNU:
+	foundation.CFLAGS = '-DEPLOYMENT_TARGET_WINDOWS -D_GNU_SOURCE -mcmodel=large '
+	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftMinGwCrt `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
+	swift_cflags += ['-DCYGWIN', '-DMINGW']
 
 if Configuration.current.build_mode == Configuration.Debug:
         foundation.LDFLAGS += ' -lswiftSwiftOnoneSupport '
