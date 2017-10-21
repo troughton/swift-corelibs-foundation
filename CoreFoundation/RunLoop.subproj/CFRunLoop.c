@@ -23,7 +23,7 @@
 #endif
 
 #if DEPLOYMENT_TARGET_WINDOWS
-#include <typeinfo.h>
+//#include <typeinfo.h>
 #endif
 
 #if __has_include(<checkint.h>)
@@ -103,7 +103,9 @@ CF_EXPORT pthread_t _CF_pthread_main_thread_np(void);
 #define pthread_main_thread_np() _CF_pthread_main_thread_np()
 #endif
 
+#if __HAS_DISPATCH__
 #include <Block.h>
+#endif
 #if __has_include(<Block_private.h>)
 #include <Block_private.h>
 #elif __has_include("Block_private.h")

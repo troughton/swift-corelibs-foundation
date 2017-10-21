@@ -25,7 +25,10 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#if DEPLOYMENT_TARGET_WINDOWS
+#else
 #include <sys/mman.h>
+#endif
 
 #if BINARY_SUPPORT_DLFCN
 #include <dlfcn.h>

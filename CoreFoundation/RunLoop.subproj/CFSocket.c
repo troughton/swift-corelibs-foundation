@@ -946,7 +946,10 @@ Boolean __CFSocketGetBytesAvailable(CFSocketRef s, CFIndex* ctBytesAvailable) {
 #if TARGET_OS_CYGWIN
 #include <sys/socket.h>
 #endif
+#if DEPLOYMENT_TARGET_WINDOWS
+#else
 #include <arpa/inet.h>
+#endif
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>

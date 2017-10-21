@@ -568,9 +568,9 @@ CF_PRIVATE void __CFFinalizeWindowsThreadData() {
     __CFTSDFinalize(TlsGetValue(__CFTSDIndexKey));
 }
 
-#endif
-
+#else
 static pthread_key_t __CFTSDIndexKey;
+#endif
 
 CF_PRIVATE void __CFTSDInitialize() {
     (void)pthread_key_create(&__CFTSDIndexKey, __CFTSDFinalize);
@@ -711,6 +711,7 @@ CF_EXPORT void *_CFSetTSD(uint32_t slot, void *newVal, tsdDestructor destructor)
 /* On Windows, we want to use UTF-16LE for path names to get full unicode support. Internally, however, everything remains in UTF-8 representation. These helper functions stand between CF and the Microsoft CRT to ensure that we are using the right representation on both sides. */
 
 #include <sys/stat.h>
+
 #include <share.h>
 
 // Creates a buffer of wchar_t to hold a UTF16LE version of the UTF8 str passed in. Caller must free the buffer when done. If resultLen is non-NULL, it is filled out with the number of characters in the string.
@@ -1059,7 +1060,7 @@ CF_PRIVATE int _NS_gettimeofday(struct timeval *tv, struct timezone *tz) {
         t /= 10;
         
         // Difference between 1/1/1970 and 1/1/1601
-        t -= 11644473600000000Ui64;
+        t -= 11644473600000000ULL;
         
         // Convert microseconds to seconds
         tv->tv_sec = (long)(t / 1000000UL);

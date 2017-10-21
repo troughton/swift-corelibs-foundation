@@ -108,7 +108,7 @@ CF_INLINE void __CFTimeZoneUnlockCompatibilityMapping(void) {
     __CFUnlock(&__CFTimeZoneCompatibilityMappingLock);
 }
 
-#if DEPLOYMENT_TARGET_WINDOWS
+#if DEPLOYMENT_TARGET_WINDOWS && defined(_MSC_VER_)
 /* This function should be used for WIN32 instead of
  * __CFCopyRecursiveDirectoryList function.
  * It takes TimeZone names from the registry
@@ -303,7 +303,12 @@ static Boolean __CFParseTimeZoneData(CFAllocatorRef allocator, CFDataRef data, C
 
     p = CFDataGetBytePtr(data);
     len = CFDataGetLength(data);
-    if (len < (int32_t)sizeof(struct tzhead)) {
+#if DEPLOYMENT_TARGET_WINDOWS
+    int32_t tzhead_len = 0;
+#else
+    int32_t tzhead_len = (int32_t)sizeof(struct tzhead);
+#endif 
+    if (len < tzhead_len) {
 	return false;
     }
     
@@ -324,7 +329,7 @@ static Boolean __CFParseTimeZoneData(CFAllocatorRef allocator, CFDataRef data, C
 	// security reasons and to reject potentially corrupt files
 	return false;
     }
-    if (len - (int32_t)sizeof(struct tzhead) < (4 + 1) * timecnt + (4 + 1 + 1) * typecnt + charcnt) {
+    if (len - tzhead_len < (4 + 1) * timecnt + (4 + 1 + 1) * typecnt + charcnt) {
 	return false;
     }
     timep = p;

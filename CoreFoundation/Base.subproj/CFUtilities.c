@@ -62,7 +62,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-
+#if DEPLOYMENT_TARGET_WINDOWS
+#include <time.h>
+#endif
 
 #if !defined(CF_HAVE_HW_CONFIG_COMMPAGE) && defined(_COMM_PAGE_LOGICAL_CPUS) && defined(_COMM_PAGE_PHYSICAL_CPUS) && defined(_COMM_PAGE_ACTIVE_CPUS)
 #define CF_HAVE_HW_CONFIG_COMMPAGE 1
@@ -705,6 +707,7 @@ static void _logToStderr(char *banner, const char *message, size_t length) {
     writev(STDERR_FILENO, v[0].iov_base ? v : v + 1, nv);
     __CFUnlock(&lock);
 #elif DEPLOYMENT_TARGET_WINDOWS
+    int bannerLen = strlen(banner);
     size_t bufLen = bannerLen + length + 1;
     char *buf = (char *)malloc(sizeof(char) * bufLen);
     if (banner) {
@@ -772,7 +775,7 @@ static void __CFLogCStringLegacy(int32_t lev, const char *message, size_t length
         _populateBanner(&banner, &time, &thread, &bannerLen);
     }
     
-#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_WINDOWS
+#if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated"
     uid_t euid;
@@ -1528,6 +1531,9 @@ CFDictionaryRef __CFGetEnvironment() {
 #if !defined(environ) && !TARGET_OS_ANDROID
 #define environ __environ
 #endif
+        char **envp = environ;
+#elif DEPLOYMENT_TARGET_WINDOWS
+        extern char **environ;
         char **envp = environ;
 #endif
         envDict = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
