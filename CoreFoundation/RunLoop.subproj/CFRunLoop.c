@@ -103,8 +103,10 @@ CF_EXPORT pthread_t _CF_pthread_main_thread_np(void);
 #define pthread_main_thread_np() _CF_pthread_main_thread_np()
 #endif
 
-#if __HAS_DISPATCH__
+#if __has_include(<Block.h>)
 #include <Block.h>
+#elif __has_include("../../closure/Block.h")
+#include "../../closure/Block.h"
 #endif
 #if __has_include(<Block_private.h>)
 #include <Block_private.h>
@@ -135,7 +137,7 @@ static void _runLoopTimerWithBlockContext(CFRunLoopTimerRef timer, void *opaqueB
 #if DEPLOYMENT_TARGET_WINDOWS
 
 static pthread_t kNilPthreadT = { nil, nil };
-#define pthreadPointer(a) a.p
+#define pthreadPointer(a) ((void*)a)
 typedef	int kern_return_t;
 #define KERN_SUCCESS 0
 
