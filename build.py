@@ -32,6 +32,7 @@ elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_WINDOWS -D_GNU_SOURCE -mcmodel=large -I/mingw64/include/libxml2 -I/mingw64/include/curl '
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftMinGwCrt `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
 	swift_cflags += ['-DMINGW']
+	Configuration.current.swift_sdk = '/c/Work/swift_msvc/build/NinjaMinGW/swift'
 
 if Configuration.current.build_mode == Configuration.Debug:
         foundation.LDFLAGS += ' -lswiftSwiftOnoneSupport '
