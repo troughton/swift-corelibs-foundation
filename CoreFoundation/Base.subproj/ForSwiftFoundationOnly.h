@@ -25,8 +25,7 @@
 #include <CoreFoundation/CFLogUtilities.h>
 #include <CoreFoundation/CFURLSessionInterface.h>
 #include <CoreFoundation/ForFoundationOnly.h>
-#if DEPLOYMENT_TARGET_WINDOWS
-#else
+#if __has_include(<fts.h>)
 #include <fts.h>
 #endif
 #include <pthread.h>

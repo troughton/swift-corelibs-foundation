@@ -13,7 +13,7 @@ import Darwin
 import Glibc
 #endif
 
-#if !os(Cygwin)
+#if !os(Cygwin) && !MINGW
 import Dispatch
 #endif
 
@@ -281,7 +281,7 @@ open class Progress : NSObject {
             guard let handler = cancellationHandler else { return }
             // If we're already cancelled, then invoke it - asynchronously
             if isCancelled {
-#if !os(Cygwin)            
+#if !os(Cygwin) && !MINGW
                 DispatchQueue.global().async {
                     handler()
                 }
@@ -298,7 +298,7 @@ open class Progress : NSObject {
             guard let handler = pausingHandler else { return }
             // If we're already paused, then invoke it - asynchronously
             if isPaused {
-#if !os(Cygwin)
+#if !os(Cygwin) && !MINGW
                 DispatchQueue.global().async {
                     handler()
                 }
@@ -342,7 +342,7 @@ open class Progress : NSObject {
         isCancelled = true
         
         if let handler = cancellationHandler {
-#if !os(Cygwin)
+#if !os(Cygwin) && !MINGW
             DispatchQueue.global().async {
                 handler()
             }
@@ -361,7 +361,7 @@ open class Progress : NSObject {
         isPaused = true
         
         if let handler = pausingHandler {
-#if !os(Cygwin)
+#if !os(Cygwin) && !MINGW
             DispatchQueue.global().async {
                 handler()
             }
@@ -380,7 +380,7 @@ open class Progress : NSObject {
         isPaused = false
         
         if let handler = resumingHandler {
-#if !os(Cygwin)
+#if !os(Cygwin) && !MINGW
             DispatchQueue.global().async {
                 handler()
             }

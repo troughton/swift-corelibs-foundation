@@ -14,6 +14,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif MINGW
+import MinGWCrt
 #endif
 
 import CoreFoundation
