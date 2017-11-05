@@ -18,6 +18,8 @@ import CoreFoundation
 @_exported import Glibc
 #elseif os(Cygwin)
 @_exported import Newlib
+#elseif MINGW
+@_exported import MinGWCrt
 #endif
 
 #if os(Android) // shim required for bzero

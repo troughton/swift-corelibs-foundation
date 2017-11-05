@@ -176,7 +176,7 @@ enum {
 
 #define NSENCODING_MASK (1 << 31)
 
-unsigned long CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncoding) {
+UPlatformInt CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncoding) {
     switch (theEncoding & 0xFFF) {
         case kCFStringEncodingUnicode:
             if (theEncoding == kCFStringEncodingUTF16) return NSUnicodeStringEncoding;

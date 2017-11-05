@@ -777,8 +777,16 @@ CFStringRef CFStringGetNameOfEncoding(CFStringEncoding encoding);
 
 /* ID mapping functions from/to Cocoa NSStringEncoding.  Returns kCFStringEncodingInvalidId if no mapping exists.
 */
+#if __LLP64__
+typedef  long long           PlatformInt;
+typedef  unsigned long long  UPlatformInt;
+#else
+typedef  long                PlatformInt;
+typedef  unsigned long       UPlatformInt;
+#endif
+
 CF_EXPORT
-unsigned long CFStringConvertEncodingToNSStringEncoding(CFStringEncoding encoding);
+UPlatformInt CFStringConvertEncodingToNSStringEncoding(CFStringEncoding encoding);
 
 CF_EXPORT
 CFStringEncoding CFStringConvertNSStringEncodingToEncoding(unsigned long encoding);
