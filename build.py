@@ -18,20 +18,51 @@ if Configuration.current.target.sdk == OSType.Linux:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -DCF_CHARACTERSET_DATA_DIR="CoreFoundation/CharacterSets"'
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -Wl,@./CoreFoundation/linux.ld -lswiftGlibc `${PKG_CONFIG} icu-uc icu-i18n --libs` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN -Wl,-Bsymbolic '
 	Configuration.current.requires_pkg_config = True
+	swift_cflags += [
+		'-I${BUILD_DIR}/Foundation/usr/lib/swift',
+		'-I${SYSROOT}/usr/include',
+		'-I${SYSROOT}/usr/include/libxml2',
+		'-I${SYSROOT}/usr/include/curl'
+	]
 elif Configuration.current.target.sdk == OSType.FreeBSD:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_FREEBSD -I/usr/local/include -I/usr/local/include/libxml2 -I/usr/local/include/curl '
 	foundation.LDFLAGS = ''
+	swift_cflags += [
+		'-I${BUILD_DIR}/Foundation/usr/lib/swift',
+		'-I${SYSROOT}/usr/include',
+		'-I${SYSROOT}/usr/include/libxml2',
+		'-I${SYSROOT}/usr/include/curl'
+	]
 elif Configuration.current.target.sdk == OSType.MacOSX:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_MACOSX '
 	foundation.LDFLAGS = '-licucore -twolevel_namespace -Wl,-alias_list,CoreFoundation/Base.subproj/DarwinSymbolAliases -sectcreate __UNICODE __csbitmaps CoreFoundation/CharacterSets/CFCharacterSetBitmaps.bitmap -sectcreate __UNICODE __properties CoreFoundation/CharacterSets/CFUniCharPropertyDatabase.data -sectcreate __UNICODE __data CoreFoundation/CharacterSets/CFUnicodeData-L.mapping -segprot __UNICODE r r '
+	swift_cflags += [
+		'-I${BUILD_DIR}/Foundation/usr/lib/swift',
+		'-I${SYSROOT}/usr/include',
+		'-I${SYSROOT}/usr/include/libxml2',
+		'-I${SYSROOT}/usr/include/curl'
+	]
 elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.target.environ == EnvironmentType.Cygnus:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_LINUX -D_GNU_SOURCE -mcmodel=large '
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftNewlib `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
-	swift_cflags += ['-DCYGWIN']
+	swift_cflags += [
+		'-DCYGWIN',
+		'-I${BUILD_DIR}/Foundation/usr/lib/swift',
+		'-I${SYSROOT}/usr/include',
+		'-I${SYSROOT}/usr/include/libxml2',
+		'-I${SYSROOT}/usr/include/curl'
+	]
 elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.target.environ == EnvironmentType.GNU:
 	foundation.CFLAGS = '-DDEPLOYMENT_TARGET_WINDOWS -D_GNU_SOURCE -mcmodel=large -I/mingw64/include/libxml2 -I/mingw64/include/curl '
 	foundation.LDFLAGS = '${SWIFT_USE_LINKER} -lswiftMinGwCrt `icu-config --ldflags` -Wl,-defsym,__CFConstantStringClassReference=_T010Foundation19_NSCFConstantStringCN,--allow-multiple-definition '
-	swift_cflags += ['-DMINGW', '-I/mingw64/include', '-I/mingw64/include/libxml2', '-I/mingw64/include/curl']
+	swift_cflags += [
+		'-DMINGW',
+		'-DCAN_IMPORT_MINGWCRT',
+		'-I${BUILD_DIR}/Foundation/usr/lib/swift',
+		'-I/mingw64/include',
+		'-I/mingw64/include/libxml2',
+		'-I/mingw64/include/curl'
+	]
 	Configuration.current.swift_sdk = '/c/Work/swift_msvc/build/NinjaMinGW/swift'
 
 if Configuration.current.build_mode == Configuration.Debug:
@@ -70,13 +101,6 @@ foundation.CFLAGS += " ".join([
 	'-I${SYSROOT}/usr/include/curl',
 	'-I./',
 ])
-
-swift_cflags += [
-	'-I${BUILD_DIR}/Foundation/usr/lib/swift',
-	'-I${SYSROOT}/usr/include',
-	'-I${SYSROOT}/usr/include/libxml2',
-	'-I${SYSROOT}/usr/include/curl'
-]
 
 if "XCTEST_BUILD_DIR" in Configuration.current.variables:
 	swift_cflags += [

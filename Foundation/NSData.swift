@@ -15,6 +15,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+import MinGWCrt
 #endif
 
 #if DEPLOYMENT_ENABLE_LIBDISPATCH
@@ -440,6 +442,8 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
                     bytesWritten = Glibc.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
                 #elseif os(Cygwin)
                     bytesWritten = Newlib.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
+                #elseif CAN_IMPORT_MINGWCRT
+                    bytesWritten = MinGWCrt.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
                 #endif
             } while (bytesWritten < 0 && errno == EINTR)
             if bytesWritten <= 0 {
