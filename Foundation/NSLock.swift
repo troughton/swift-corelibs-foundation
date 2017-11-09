@@ -14,7 +14,7 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
-#elseif MINGW
+#elseif CAN_IMPORT_MINGWCRT
 import MinGWCrt
 #endif
 
@@ -26,7 +26,7 @@ public protocol NSLocking {
 }
 
 open class NSLock: NSObject, NSLocking {
-#if os(Cygwin)
+#if os(Cygwin) || CAN_IMPORT_MINGWCRT
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t?>.allocate(capacity: 1)
 #else
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
@@ -147,7 +147,7 @@ open class NSConditionLock : NSObject, NSLocking {
 }
 
 open class NSRecursiveLock: NSObject, NSLocking {
-#if os(Cygwin)
+#if os(Cygwin) || CAN_IMPORT_MINGWCRT
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t?>.allocate(capacity: 1)
 #else
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
@@ -192,7 +192,7 @@ open class NSRecursiveLock: NSObject, NSLocking {
 }
 
 open class NSCondition: NSObject, NSLocking {
-#if os(Cygwin)
+#if os(Cygwin) || CAN_IMPORT_MINGWCRT
     internal var mutex = UnsafeMutablePointer<pthread_mutex_t?>.allocate(capacity: 1)
     internal var cond = UnsafeMutablePointer<pthread_cond_t?>.allocate(capacity: 1)
 #else
@@ -234,11 +234,11 @@ open class NSCondition: NSObject, NSLocking {
         }
         var ts = timespec()
         ts.tv_sec = Int(floor(ti))
-        ts.tv_nsec = Int((ti - Double(ts.tv_sec)) * 1000000000.0)
+        ts.tv_nsec = CLong((ti - Double(ts.tv_sec)) * 1000000000.0)
         var tv = timeval()
         withUnsafeMutablePointer(to: &tv) { t in
             gettimeofday(t, nil)
-            ts.tv_sec += t.pointee.tv_sec
+            ts.tv_sec += Int(t.pointee.tv_sec)
             ts.tv_nsec += Int((t.pointee.tv_usec * 1000000) / 1000000000)
         }
         let retVal: Int32 = withUnsafePointer(to: &ts) { t in

@@ -547,8 +547,13 @@ CF_SWIFT_EXPORT void _CFNumberInitInt16(CFNumberRef result, int16_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt16(CFNumberRef result, uint16_t value);
 CF_SWIFT_EXPORT void _CFNumberInitInt32(CFNumberRef result, int32_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt32(CFNumberRef result, uint32_t value);
+#if DEPLOYMENT_TARGET_WINDOWS
+CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, int64_t value);
+CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, uint64_t value);
+#else
 CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, long value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, unsigned long value);
+#endif
 CF_SWIFT_EXPORT void _CFNumberInitInt64(CFNumberRef result, int64_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt64(CFNumberRef result, uint64_t value);
 CF_SWIFT_EXPORT void _CFNumberInitFloat(CFNumberRef result, float value);

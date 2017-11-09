@@ -13,6 +13,8 @@
     import Glibc
 #elseif os(Cygwin)
     import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+    import MinGWCrt
 #endif
 
 #if os(Android) // struct stat.st_mode is UInt32
@@ -131,7 +133,7 @@ open class FileManager : NSObject {
                 }
                 #if os(OSX) || os(iOS)
                     let modeT = number.uint16Value
-                #elseif os(Linux) || os(Android) || os(Cygwin)
+                #elseif os(Linux) || os(Android) || os(Cygwin) || CAN_IMPORT_MINGWCRT
                     let modeT = number.uint32Value
                 #endif
                 if chmod(path, mode_t(modeT)) != 0 {
@@ -254,7 +256,7 @@ open class FileManager : NSObject {
                 }
                 #if os(OSX) || os(iOS)
                     let tempEntryType = entryType
-                #elseif os(Linux) || os(Android) || os(Cygwin)
+                #elseif os(Linux) || os(Android) || os(Cygwin) || CAN_IMPORT_MINGWCRT
                     let tempEntryType = Int32(entryType)
                 #endif
 

@@ -1135,6 +1135,15 @@ void _CFNumberInitUInt32(CFNumberRef result, uint32_t value) {
     _CFNumberInit(result, kCFNumberIntType, &value);
 }
 
+#if DEPLOYMENT_TARGET_WINDOWS
+void _CFNumberInitInt(CFNumberRef result, int64_t value) {
+    _CFNumberInit(result, kCFNumberLongLongType, &value);
+}
+
+void _CFNumberInitUInt(CFNumberRef result, uint64_t value) {
+    _CFNumberInit(result, kCFNumberLongLongType, &value);
+}
+#else
 void _CFNumberInitInt(CFNumberRef result, long value) {
     _CFNumberInit(result, kCFNumberLongType, &value);
 }
@@ -1142,6 +1151,7 @@ void _CFNumberInitInt(CFNumberRef result, long value) {
 void _CFNumberInitUInt(CFNumberRef result, unsigned long value) {
     _CFNumberInit(result, kCFNumberLongType, &value);
 }
+#endif
 
 void _CFNumberInitInt64(CFNumberRef result, int64_t value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
