@@ -136,9 +136,15 @@ open class FileManager : NSObject {
                 #elseif os(Linux) || os(Android) || os(Cygwin) || CAN_IMPORT_MINGWCRT
                     let modeT = number.uint32Value
                 #endif
+#if CAN_IMPORT_MINGWCRT
+                if chmod(path, Int32(mode_t(modeT))) != 0 {
+                    fatalError("errno \(errno)")
+                }
+#else
                 if chmod(path, mode_t(modeT)) != 0 {
                     fatalError("errno \(errno)")
                 }
+#endif
             } else {
                 fatalError("Attribute type not implemented: \(attribute)")
             }
@@ -157,7 +163,12 @@ open class FileManager : NSObject {
                 if !fileExists(atPath: parent, isDirectory: &isDir) {
                     try createDirectory(atPath: parent, withIntermediateDirectories: true, attributes: attributes)
                 }
-                if mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO) != 0 {
+#if CAN_IMPORT_MINGWCRT
+                let mkdir_failed = _mkdir(path) != 0
+#else
+                let mkdir_failed = mkdir(pathh, S_IRWXU | S_IRWXG | S_IRWXO) != 0
+#endif
+                if mkdir_failed != 0 {
                     throw _NSErrorWithErrno(errno, reading: false, path: path)
                 } else if let attr = attributes {
                     try self.setAttributes(attr, ofItemAtPath: path)
@@ -168,7 +179,12 @@ open class FileManager : NSObject {
                 throw _NSErrorWithErrno(EEXIST, reading: false, path: path)
             }
         } else {
-            if mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO) != 0 {
+#if CAN_IMPORT_MINGWCRT
+            let mkdir_failed = _mkdir(path) != 0
+#else
+            let mkdir_failed = mkdir(pathh, S_IRWXU | S_IRWXG | S_IRWXO) != 0
+#endif
+            if mkdir_failed {
                 throw _NSErrorWithErrno(errno, reading: false, path: path)
             } else if let attr = attributes {
                 try self.setAttributes(attr, ofItemAtPath: path)
@@ -365,7 +381,11 @@ open class FileManager : NSObject {
         This method replaces pathContentOfSymbolicLinkAtPath:
      */
     open func destinationOfSymbolicLink(atPath path: String) throws -> String {
+#if CAN_IMPORT_MINGWCRT
+        let bufSize = Int(_MAX_PATH + 1)
+#else
         let bufSize = Int(PATH_MAX + 1)
+#endif
         var buf = [Int8](repeating: 0, count: bufSize)
         let len = readlink(path, &buf, bufSize)
         if len < 0 {
@@ -512,7 +532,11 @@ open class FileManager : NSObject {
     /* Process working directory management. Despite the fact that these are instance methods on NSFileManager, these methods report and change (respectively) the working directory for the entire process. Developers are cautioned that doing so is fraught with peril.
      */
     open var currentDirectoryPath: String {
+#if CAN_IMPORT_MINGWCRT
+        let length = Int(_MAX_PATH) + 1
+#else
         let length = Int(PATH_MAX) + 1
+#endif
         var buf = [Int8](repeating: 0, count: length)
         getcwd(&buf, length)
         let result = self.string(withFileSystemRepresentation: buf, length: Int(strlen(buf)))
@@ -990,6 +1014,26 @@ extension FileManager {
     }
 
     internal class NSURLDirectoryEnumerator : DirectoryEnumerator {
+#if CAN_IMPORT_MINGWCRT
+        init(url: URL, options: FileManager.DirectoryEnumerationOptions, errorHandler: (/* @escaping */ (URL, Error) -> Bool)?) {
+        }
+        deinit {
+        }
+        override func nextObject() -> Any? {
+            return nil
+        }
+        override var directoryAttributes : [FileAttributeKey : Any]? {
+            return nil
+        }
+        override var fileAttributes: [FileAttributeKey : Any]? {
+            return nil
+        }
+        override var level: Int {
+            return 0
+        }
+        override func skipDescendants() {
+        }
+#else
         var _url : URL
         var _options : FileManager.DirectoryEnumerationOptions
         var _errorHandler : ((URL, Error) -> Bool)?
@@ -1091,5 +1135,6 @@ extension FileManager {
                 fts_set(stream, current, FTS_SKIP)
             }
         }
+#endif
     }
 }
