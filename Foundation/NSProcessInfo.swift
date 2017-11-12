@@ -14,6 +14,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+import MinGWCrt
 #endif
 
 import CoreFoundation
@@ -111,7 +113,11 @@ open class ProcessInfo: NSObject {
         return Int(_activeProcessorCount)
     }
     
+#if CAN_IMPORT_MINGWCRT    
+    internal let _physicalMemory = UInt64(__CFMemorySize())
+#else
     internal let _physicalMemory = __CFMemorySize()
+#endif
     open var physicalMemory: UInt64 {
         return _physicalMemory
     }

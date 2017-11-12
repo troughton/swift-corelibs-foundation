@@ -1143,6 +1143,14 @@ void _CFNumberInitInt(CFNumberRef result, long long value) {
 void _CFNumberInitUInt(CFNumberRef result, unsigned long long value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
 }
+
+void _CFNumberInitInt64(CFNumberRef result, long long value) {
+    _CFNumberInit(result, kCFNumberLongLongType, &value);
+}
+
+void _CFNumberInitUInt64(CFNumberRef result, unsigned long long value) {
+    _CFNumberInit(result, kCFNumberLongLongType, &value);
+}
 #else
 void _CFNumberInitInt(CFNumberRef result, long value) {
     _CFNumberInit(result, kCFNumberLongType, &value);
@@ -1151,7 +1159,6 @@ void _CFNumberInitInt(CFNumberRef result, long value) {
 void _CFNumberInitUInt(CFNumberRef result, unsigned long value) {
     _CFNumberInit(result, kCFNumberLongType, &value);
 }
-#endif
 
 void _CFNumberInitInt64(CFNumberRef result, int64_t value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
@@ -1160,6 +1167,7 @@ void _CFNumberInitInt64(CFNumberRef result, int64_t value) {
 void _CFNumberInitUInt64(CFNumberRef result, uint64_t value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
 }
+#endif
 
 void _CFNumberInitFloat(CFNumberRef result, float value) {
     _CFNumberInit(result, kCFNumberFloatType, &value);

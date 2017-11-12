@@ -556,12 +556,14 @@ CF_SWIFT_EXPORT void _CFNumberInitUInt32(CFNumberRef result, uint32_t value);
 #if __LLP64__
 CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, long long value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, unsigned long long value);
+CF_SWIFT_EXPORT void _CFNumberInitInt64(CFNumberRef result, long long value);
+CF_SWIFT_EXPORT void _CFNumberInitUInt64(CFNumberRef result, unsigned long long value);
 #else
 CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, long value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, unsigned long value);
-#endif
 CF_SWIFT_EXPORT void _CFNumberInitInt64(CFNumberRef result, int64_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt64(CFNumberRef result, uint64_t value);
+#endif
 CF_SWIFT_EXPORT void _CFNumberInitFloat(CFNumberRef result, float value);
 CF_SWIFT_EXPORT void _CFNumberInitDouble(CFNumberRef result, double value);
 
@@ -645,7 +647,7 @@ CF_EXPORT _CFStringFileSystemRepresentationError _CFStringGetFileSystemRepresent
 
 
 CF_EXPORT CFIndex __CFProcessorCount();
-CF_EXPORT uint64_t __CFMemorySize();
+CF_EXPORT unsigned long long __CFMemorySize();
 CF_EXPORT CFStringRef _CFProcessNameString(void);
 CF_EXPORT CFIndex __CFActiveProcessorCount();
 CF_EXPORT CFDictionaryRef __CFGetEnvironment();

@@ -204,6 +204,8 @@ open class Process: NSObject {
     
     // actions
     open func launch() {
+#if CAN_IMPORT_MINGWCRT
+#else
         
         self.processLaunchedCondition.lock()
     
@@ -443,6 +445,7 @@ open class Process: NSObject {
         
         self.processLaunchedCondition.unlock()
         self.processLaunchedCondition.broadcast()
+#endif
     }
     
     open func interrupt() { NSUnimplemented() } // Not always possible. Sends SIGINT.

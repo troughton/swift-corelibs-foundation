@@ -288,13 +288,21 @@ open class NSNumber : NSValue {
     public init(value: Int64) {
         _objCType = .LongLong
         super.init()
+#if CAN_IMPORT_MINGWCRT
+        _CFNumberInitInt64(_cfObject, Int(value))
+#else
         _CFNumberInitInt64(_cfObject, value)
+#endif
     }
     
     public init(value: UInt64) {
         _objCType = .ULongLong
         super.init()
+#if CAN_IMPORT_MINGWCRT
+        _CFNumberInitUInt64(_cfObject, UInt(value))
+#else
         _CFNumberInitUInt64(_cfObject, value)
+#endif
     }
     
     public init(value: Float) {

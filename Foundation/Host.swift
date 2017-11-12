@@ -40,6 +40,9 @@ open class Host: NSObject {
     }
     
     static internal func currentHostName() -> String {
+#if CAN_IMPORT_MINGWCRT
+        return "unknown"
+#else
         let hname = UnsafeMutablePointer<Int8>.allocate(capacity: Int(NI_MAXHOST))
         defer {
             hname.deinitialize()
@@ -50,6 +53,7 @@ open class Host: NSObject {
             return "localhost"
         }
         return String(cString: hname)
+#endif
     }
     
     open class func current() -> Host {
@@ -69,6 +73,9 @@ open class Host: NSObject {
     }
     
     internal func _resolveCurrent() {
+#if CAN_IMPORT_MINGWCRT
+        return
+#else
         var ifaddr: UnsafeMutablePointer<ifaddrs>? = nil
         if getifaddrs(&ifaddr) != 0 {
             return
@@ -92,12 +99,15 @@ open class Host: NSObject {
             }
             ifa = ifaValue.ifa_next
         }
+#endif
     }
     
     internal func _resolve() {
         if _resolved {
             return
         }
+#if CAN_IMPORT_MINGWCRT
+#else
         if let info = _info {
             var flags: Int32 = 0
             switch (_type) {
@@ -152,7 +162,7 @@ open class Host: NSObject {
                 res = info.ai_next
             }
         }
-        
+#endif
     }
     
     open var name: String? {
