@@ -176,7 +176,13 @@ enum {
 
 #define NSENCODING_MASK (1 << 31)
 
-UPlatformInt CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncoding) {
+#if __LLP64__
+CF_EXPORT
+unsigned long long CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncoding) {
+#else
+CF_EXPORT
+unsigned long CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncoding) {
+#endif
     switch (theEncoding & 0xFFF) {
         case kCFStringEncodingUnicode:
             if (theEncoding == kCFStringEncodingUTF16) return NSUnicodeStringEncoding;
@@ -206,7 +212,11 @@ UPlatformInt CFStringConvertEncodingToNSStringEncoding(CFStringEncoding theEncod
     return NSENCODING_MASK | theEncoding;
 }
 
+#if __LLP64__
+CFStringEncoding CFStringConvertNSStringEncodingToEncoding(unsigned long long theEncoding) {
+#else
 CFStringEncoding CFStringConvertNSStringEncodingToEncoding(unsigned long theEncoding) {
+#endif
     const uint16_t encodings[] = {
         kCFStringEncodingASCII,
         kCFStringEncodingNextStepLatin,

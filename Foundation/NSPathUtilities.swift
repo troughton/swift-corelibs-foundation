@@ -15,6 +15,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+import MinGWCrt
 #endif
 
 public func NSTemporaryDirectory() -> String {
@@ -600,7 +602,11 @@ public func NSUserName() -> String {
 
 internal func _NSCreateTemporaryFile(_ filePath: String) throws -> (Int32, String) {
     let template = "." + filePath + ".tmp.XXXXXX"
+#if CAN_IMPORT_MINGWCRT
+    let maxLength = Int(_MAX_PATH) + 1
+#else
     let maxLength = Int(PATH_MAX) + 1
+#endif
     var buf = [Int8](repeating: 0, count: maxLength)
     let _ = template._nsObject.getFileSystemRepresentation(&buf, maxLength: maxLength)
     let fd = mkstemp(&buf)

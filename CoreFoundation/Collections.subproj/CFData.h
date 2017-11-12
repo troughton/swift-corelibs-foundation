@@ -72,6 +72,11 @@ typedef CF_OPTIONS(CFOptionFlags, CFDataSearchFlags) {
 CF_EXPORT
 CFRange CFDataFind(CFDataRef theData, CFDataRef dataToFind, CFRange searchRange, CFDataSearchFlags compareOptions) CF_AVAILABLE(10_6, 4_0);
 
+#if TARGET_OS_WINDOWS
+CF_EXPORT
+unsigned long CFPageSize();
+#endif
+
 CF_EXTERN_C_END
 CF_IMPLICIT_BRIDGING_DISABLED
 

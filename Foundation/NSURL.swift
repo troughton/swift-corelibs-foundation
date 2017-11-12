@@ -16,6 +16,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+import MinGWCrt
 #endif
 
 #if os(OSX) || os(iOS)
@@ -504,7 +506,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     open var password: String? {
         let absoluteURL = CFURLCopyAbsoluteURL(_cfObject)
-#if os(Linux) || os(Android) || os(Cygwin)
+#if os(Linux) || os(Android) || os(Cygwin) || CAN_IMPORT_MINGWCRT
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, kCFURLComponentPassword, nil)
 #else
         let passwordRange = CFURLGetByteRangeForComponent(absoluteURL, .password, nil)
@@ -567,8 +569,11 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     // Memory leak. See https://github.com/apple/swift-corelibs-foundation/blob/master/Docs/Issues.md
     open var fileSystemRepresentation: UnsafePointer<Int8> {
-        
+#if CAN_IMPORT_MINGWCRT        
+        let bufSize = Int(_MAX_PATH + 1)
+#else
         let bufSize = Int(PATH_MAX + 1)
+#endif
         
         let _fsrBuffer = UnsafeMutablePointer<Int8>.allocate(capacity: bufSize)
         for i in 0..<bufSize {

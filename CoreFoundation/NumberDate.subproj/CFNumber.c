@@ -1135,12 +1135,12 @@ void _CFNumberInitUInt32(CFNumberRef result, uint32_t value) {
     _CFNumberInit(result, kCFNumberIntType, &value);
 }
 
-#if DEPLOYMENT_TARGET_WINDOWS
-void _CFNumberInitInt(CFNumberRef result, int64_t value) {
+#if __LLP64__
+void _CFNumberInitInt(CFNumberRef result, long long value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
 }
 
-void _CFNumberInitUInt(CFNumberRef result, uint64_t value) {
+void _CFNumberInitUInt(CFNumberRef result, unsigned long long value) {
     _CFNumberInit(result, kCFNumberLongLongType, &value);
 }
 #else

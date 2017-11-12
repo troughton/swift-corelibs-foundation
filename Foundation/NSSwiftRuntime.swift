@@ -18,11 +18,11 @@ import CoreFoundation
 @_exported import Glibc
 #elseif os(Cygwin)
 @_exported import Newlib
-#elseif MINGW
+#elseif CAN_IMPORT_MINGWCRT
 @_exported import MinGWCrt
 #endif
 
-#if os(Android) // shim required for bzero
+#if os(Android) || CAN_IMPORT_MINGWCRT // shim required for bzero
 @_transparent func bzero(_ ptr: UnsafeMutableRawPointer, _ size: size_t) {
     memset(ptr, 0, size)
 }

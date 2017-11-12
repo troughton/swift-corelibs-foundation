@@ -14,6 +14,8 @@ import Darwin
 import Glibc
 #elseif os(Cygwin)
 import Newlib
+#elseif CAN_IMPORT_MINGWCRT
+import MinGWCrt
 #endif
 
 import CoreFoundation
@@ -98,7 +100,7 @@ open class Thread : NSObject {
                     return modf(ti, integp)
                 }
                 __ts__.tv_sec = Int(integ)
-                __ts__.tv_nsec = Int(frac * 1000000000.0)
+                __ts__.tv_nsec = CLong(frac * 1000000000.0)
             }
             let _ = withUnsafePointer(to: &__ts__) { ts in
                 nanosleep(ts, nil)
@@ -119,7 +121,7 @@ open class Thread : NSObject {
                     return modf(ti, integp)
                 }
                 __ts__.tv_sec = Int(integ)
-                __ts__.tv_nsec = Int(frac * 1000000000.0)
+                __ts__.tv_nsec = CLong(frac * 1000000000.0)
             }
             let _ = withUnsafePointer(to: &__ts__) { ts in
                 nanosleep(ts, nil)
@@ -133,7 +135,7 @@ open class Thread : NSObject {
     }
     
     internal var _main: (Void) -> Void = {}
-#if os(OSX) || os(iOS) || os(Cygwin)
+#if os(OSX) || os(iOS) || os(Cygwin) || CAN_IMPORT_MINGWCRT
     private var _thread: pthread_t? = nil
 #elseif os(Linux) || os(Android)
     private var _thread = pthread_t()

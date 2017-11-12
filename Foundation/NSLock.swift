@@ -239,7 +239,7 @@ open class NSCondition: NSObject, NSLocking {
         withUnsafeMutablePointer(to: &tv) { t in
             gettimeofday(t, nil)
             ts.tv_sec += Int(t.pointee.tv_sec)
-            ts.tv_nsec += Int((t.pointee.tv_usec * 1000000) / 1000000000)
+            ts.tv_nsec += CLong((t.pointee.tv_usec * 1000000) / 1000000000)
         }
         let retVal: Int32 = withUnsafePointer(to: &ts) { t in
             return pthread_cond_timedwait(cond, mutex, t)

@@ -487,6 +487,12 @@ CF_EXPORT int _NS_open(const char *name, int oflag, int pmode);
 CF_EXPORT int _NS_mkstemp(char *name, int bufSize);
 #endif
 
+#if TARGET_OS_WINDOWS
+CF_EXPORT int fsync(int fd);
+CF_EXPORT int pipe(int pipefd[2]);
+CF_EXPORT int fchmod(int fd, mode_t mode);
+#endif
+
 _CF_EXPORT_SCOPE_END
 
 // ---- Miscellaneous material ----------------------------------------
@@ -547,9 +553,9 @@ CF_SWIFT_EXPORT void _CFNumberInitInt16(CFNumberRef result, int16_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt16(CFNumberRef result, uint16_t value);
 CF_SWIFT_EXPORT void _CFNumberInitInt32(CFNumberRef result, int32_t value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt32(CFNumberRef result, uint32_t value);
-#if DEPLOYMENT_TARGET_WINDOWS
-CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, int64_t value);
-CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, uint64_t value);
+#if __LLP64__
+CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, long long value);
+CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, unsigned long long value);
 #else
 CF_SWIFT_EXPORT void _CFNumberInitInt(CFNumberRef result, long value);
 CF_SWIFT_EXPORT void _CFNumberInitUInt(CFNumberRef result, unsigned long value);

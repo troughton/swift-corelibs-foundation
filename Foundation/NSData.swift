@@ -386,6 +386,8 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         let length = Int(info.st_size)
         
         if options.contains(.alwaysMapped) {
+#if CAN_IMPORT_MINGWCRT
+#else
             let data = mmap(nil, length, PROT_READ, MAP_PRIVATE, fd, 0)
             
             // Swift does not currently expose MAP_FAILURE
@@ -394,14 +396,18 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
                     munmap(buffer, length)
                 }
             }
-            
+#endif
         }
         
         let data = malloc(length)!
         var remaining = Int(info.st_size)
         var total = 0
         while remaining > 0 {
+#if CAN_IMPORT_MINGWCRT
+            let amt = Int(read(fd, data.advanced(by: total), UInt32(remaining)))
+#else
             let amt = read(fd, data.advanced(by: total), remaining)
+#endif
             if amt < 0 {
                 break
             }
@@ -420,7 +426,11 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
     
     internal func makeTemporaryFile(inDirectory dirPath: String) throws -> (Int32, String) {
         let template = dirPath._nsObject.appendingPathComponent("tmp.XXXXXX")
+#if CAN_IMPORT_MINGWCRT
+        let maxLength = Int(_MAX_PATH) + 1
+#else
         let maxLength = Int(PATH_MAX) + 1
+#endif
         var buf = [Int8](repeating: 0, count: maxLength)
         let _ = template._nsObject.getFileSystemRepresentation(&buf, maxLength: maxLength)
         let fd = mkstemp(&buf)
@@ -443,7 +453,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
                 #elseif os(Cygwin)
                     bytesWritten = Newlib.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
                 #elseif CAN_IMPORT_MINGWCRT
-                    bytesWritten = MinGWCrt.write(fd, buf.advanced(by: length - bytesRemaining), bytesRemaining)
+                    bytesWritten = Int(MinGWCrt.write(fd, buf.advanced(by: length - bytesRemaining), UInt32(bytesRemaining)))
                 #endif
             } while (bytesWritten < 0 && errno == EINTR)
             if bytesWritten <= 0 {
@@ -462,6 +472,9 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         if useAuxiliaryFile {
             // Preserve permissions.
             var info = stat()
+#if CAN_IMPORT_MINGWCRT
+            let lstat = stat
+#endif
             if lstat(path, &info) == 0 {
                 mode = mode_t(info.st_mode)
             } else if errno != ENOENT && errno != ENAMETOOLONG {
@@ -510,7 +523,11 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
                 throw _NSErrorWithErrno(errno, reading: false, path: path)
             }
             if let mode = mode {
+#if CAN_IMPORT_MINGWCRT
+                chmod(path, Int32(mode))
+#else
                 chmod(path, mode)
+#endif
             }
         }
     }

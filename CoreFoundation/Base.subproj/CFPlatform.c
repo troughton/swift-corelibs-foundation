@@ -1073,6 +1073,32 @@ CF_PRIVATE int _NS_gettimeofday(struct timeval *tv, struct timezone *tz) {
 
 #endif // DEPLOYMENT_TARGET_WINDOWS
 
+#if TARGET_OS_WINDOWS
+CF_EXPORT int fsync(int fd)
+{
+    // If the function FlushFileBuffers succeeds, the return value is nonzero.
+    if (FlushFileBuffers(_get_osfhandle(fd)) == 0)
+        return -1;
+    return 0;
+}
+
+CF_EXPORT int pipe(int pipefd[2])
+{
+    int fd[2];
+    int ret = _pipe(fd, 4096, _O_BINARY);
+    if (ret != 0)
+	return -1;
+    pipefd[0] = fd[0];
+    pipefd[1] = fd[1];
+    return 0;
+}
+
+CF_EXPORT int fchmod(int fd, mode_t mode)
+{
+    return -1;
+}
+#endif
+
 #pragma mark -
 #pragma mark Linux OSAtomic
 
