@@ -168,7 +168,7 @@ open class FileManager : NSObject {
 #else
                 let mkdir_failed = mkdir(pathh, S_IRWXU | S_IRWXG | S_IRWXO) != 0
 #endif
-                if mkdir_failed != 0 {
+                if mkdir_failed {
                     throw _NSErrorWithErrno(errno, reading: false, path: path)
                 } else if let attr = attributes {
                     try self.setAttributes(attr, ofItemAtPath: path)
@@ -245,6 +245,9 @@ open class FileManager : NSObject {
     - Returns: An array of NSString objects, each of which contains the path of an item in the directory specified by path. If path is a symbolic link, this method traverses the link. This method returns nil if it cannot retrieve the device of the linked-to file.
     */
     open func subpathsOfDirectory(atPath path: String) throws -> [String] {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         var contents : [String] = [String]()
         
         let dir = opendir(path)
@@ -288,6 +291,7 @@ open class FileManager : NSObject {
         }
         
         return contents
+#endif
     }
     
     /* attributesOfItemAtPath:error: returns an NSDictionary of key/value pairs containing the attributes of the item (file, directory, symlink, etc.) at the path in question. If this method returns 'nil', an NSError will be returned by reference in the 'error' parameter. This method does not traverse a terminal symlink.
@@ -295,6 +299,9 @@ open class FileManager : NSObject {
         This method replaces fileAttributesAtPath:traverseLink:.
      */
     open func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         var s = stat()
         guard lstat(path, &s) == 0 else {
             throw _NSErrorWithErrno(errno, reading: true, path: path)
@@ -356,6 +363,7 @@ open class FileManager : NSObject {
         result[.groupOwnerAccountID] = NSNumber(value: UInt64(s.st_gid))
         
         return result
+#endif
     }
     
     /* attributesOfFileSystemForPath:error: returns an NSDictionary of key/value pairs containing the attributes of the filesystem containing the provided path. If this method returns 'nil', an NSError will be returned by reference in the 'error' parameter. This method does not traverse a terminal symlink.
@@ -371,9 +379,13 @@ open class FileManager : NSObject {
         This method replaces createSymbolicLinkAtPath:pathContent:
      */
     open func createSymbolicLink(atPath path: String, withDestinationPath destPath: String) throws {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         if symlink(destPath, path) == -1 {
             throw _NSErrorWithErrno(errno, reading: false, path: path)
         }
+#endif
     }
     
     /* destinationOfSymbolicLinkAtPath:error: returns an NSString containing the path of the item pointed at by the symlink specified by 'path'. If this method returns 'nil', an NSError will be returned by reference in the 'error' parameter.
@@ -382,10 +394,9 @@ open class FileManager : NSObject {
      */
     open func destinationOfSymbolicLink(atPath path: String) throws -> String {
 #if CAN_IMPORT_MINGWCRT
-        let bufSize = Int(_MAX_PATH + 1)
+        NSUnimplemented()
 #else
         let bufSize = Int(PATH_MAX + 1)
-#endif
         var buf = [Int8](repeating: 0, count: bufSize)
         let len = readlink(path, &buf, bufSize)
         if len < 0 {
@@ -393,6 +404,7 @@ open class FileManager : NSObject {
         }
         
         return self.string(withFileSystemRepresentation: buf, length: Int(len))
+#endif
     }
     
     open func copyItem(atPath srcPath: String, toPath dstPath: String) throws {
@@ -430,6 +442,9 @@ open class FileManager : NSObject {
     }
     
     open func linkItem(atPath srcPath: String, toPath dstPath: String) throws {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         var isDir = false
         if self.fileExists(atPath: srcPath, isDirectory: &isDir) {
             if !isDir {
@@ -442,9 +457,13 @@ open class FileManager : NSObject {
                 NSUnimplemented("Recursive linking not yet implemented")
             }
         }
+#endif
     }
 
     open func removeItem(atPath path: String) throws {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         if rmdir(path) == 0 {
             return
         } else if errno == ENOTEMPTY {
@@ -490,6 +509,7 @@ open class FileManager : NSObject {
         } else if unlink(path) != 0 {
             throw _NSErrorWithErrno(errno, reading: false, path: path)
         }
+#endif
     }
     
     open func copyItem(at srcURL: URL, to dstURL: URL) throws {
@@ -533,11 +553,12 @@ open class FileManager : NSObject {
      */
     open var currentDirectoryPath: String {
 #if CAN_IMPORT_MINGWCRT
-        let length = Int(_MAX_PATH) + 1
+        let length = Int32(_MAX_PATH) + 1
+        var buf = [Int8](repeating: 0, count: Int(length))
 #else
         let length = Int(PATH_MAX) + 1
-#endif
         var buf = [Int8](repeating: 0, count: length)
+#endif
         getcwd(&buf, length)
         let result = self.string(withFileSystemRepresentation: buf, length: Int(strlen(buf)))
         return result
@@ -555,6 +576,9 @@ open class FileManager : NSObject {
     }
     
     open func fileExists(atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>?) -> Bool {
+#if CAN_IMPORT_MINGWCRT
+        NSUnimplemented()
+#else
         var s = stat()
         if lstat(path, &s) >= 0 {
             if let isDirectory = isDirectory {
@@ -582,6 +606,7 @@ open class FileManager : NSObject {
             return false
         }
         return true
+#endif
     }
     
     open func isReadableFile(atPath path: String) -> Bool {
