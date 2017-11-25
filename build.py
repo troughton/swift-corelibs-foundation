@@ -252,6 +252,7 @@ sources = CompileSources([
 	'CoreFoundation/Base.subproj/CFSystemDirectories.c',
 	'CoreFoundation/Base.subproj/CFUtilities.c',
 	'CoreFoundation/Base.subproj/CFUUID.c',
+	'CoreFoundation/Base.subproj/CFWindowsUtilities.c',
 	'CoreFoundation/Collections.subproj/CFArray.c',
 	'CoreFoundation/Collections.subproj/CFBag.c',
 	'CoreFoundation/Collections.subproj/CFBasicHash.c',

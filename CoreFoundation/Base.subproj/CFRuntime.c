@@ -998,7 +998,7 @@ void __CFInitialize(void) {
 #if DEPLOYMENT_RUNTIME_SWIFT
         
 #ifndef __CFSwiftGetBaseClass
-#if TARGET_OS_LINUX
+#if TARGET_OS_LINUX || TARGET_OS_WINDOWS
 #define __CFSwiftGetBaseClass _T010Foundation21__CFSwiftGetBaseClasss9AnyObject_pXpyF
 #elif TARGET_OS_MAC
 #define __CFSwiftGetBaseClass _T015SwiftFoundation21__CFSwiftGetBaseClasss9AnyObject_pXpyF
@@ -1088,7 +1088,7 @@ void __CFInitialize(void) {
 #endif
         __CFStreamInitialize();
 #if DEPLOYMENT_TARGET_WINDOWS
-        CFWindowsNamedPipeGetTypeID();
+//        CFWindowsNamedPipeGetTypeID();
 #endif
         
         CFDateGetTypeID();
@@ -1107,7 +1107,7 @@ void __CFInitialize(void) {
         
 #if DEPLOYMENT_RUNTIME_SWIFT
 #ifndef __CFInitializeSwift
-#if TARGET_OS_LINUX
+#if TARGET_OS_LINUX || TARGET_OS_WINDOWS
 #define __CFInitializeSwift _T010Foundation19__CFInitializeSwiftyyF
 #elif TARGET_OS_MAC
 #define __CFInitializeSwift _T015SwiftFoundation014__CFInitializeA0yyF

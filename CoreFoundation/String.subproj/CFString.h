@@ -786,8 +786,13 @@ CF_EXPORT
 unsigned long CFStringConvertEncodingToNSStringEncoding(CFStringEncoding encoding);
 #endif
 
+#if __LLP64__
+CF_EXPORT
+CFStringEncoding CFStringConvertNSStringEncodingToEncoding(unsigned long long encoding);
+#else
 CF_EXPORT
 CFStringEncoding CFStringConvertNSStringEncodingToEncoding(unsigned long encoding);
+#endif
 
 /* ID mapping functions from/to Microsoft Windows codepage (covers both OEM & ANSI).  Returns kCFStringEncodingInvalidId if no mapping exists.
 */

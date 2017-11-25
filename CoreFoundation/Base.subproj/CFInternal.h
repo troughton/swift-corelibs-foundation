@@ -171,13 +171,13 @@ CF_PRIVATE CFIndex __CFActiveProcessorCount();
 #define __builtin_unreachable() do { } while (0)
 #endif
 
-#if defined(__GNUC__) 
+#if defined(__GNUC__) && !DEPLOYMENT_TARGET_WINDOWS
     #if defined(__i386__) || defined(__x86_64__)
         #define HALT do {asm __volatile__("int3"); kill(getpid(), 9); __builtin_unreachable(); } while (0)
     #else
         #define HALT do {__builtin_trap(); kill(getpid(), 9); __builtin_unreachable(); } while (0)
     #endif
-#elif defined(_MSC_VER)
+#elif DEPLOYMENT_TARGET_WINDOWS
     #define HALT do { DebugBreak(); abort(); __builtin_unreachable(); } while (0)
 #else
     #error Compiler not supported
@@ -512,7 +512,7 @@ typedef CFLock_t OSSpinLock;
 
 #if !__HAS_DISPATCH__
 
-typedef volatile long dispatch_once_t;
+typedef volatile intptr_t dispatch_once_t;
 CF_PRIVATE void _CF_dispatch_once(dispatch_once_t *, void (^)(void));
 #define dispatch_once _CF_dispatch_once
 
@@ -772,14 +772,15 @@ struct __objcFastEnumerationStateEquivalent {
 
 // These are replacements for pthread calls on Windows
 CF_EXPORT int _NS_pthread_main_np();
-CF_EXPORT int _NS_pthread_setspecific(pthread_key_t key, const void *val);
-CF_EXPORT void* _NS_pthread_getspecific(pthread_key_t key);
+//CF_EXPORT int _NS_pthread_setspecific(pthread_key_t key, const void *val);
+//CF_EXPORT void* _NS_pthread_getspecific(pthread_key_t key);
 CF_EXPORT int _NS_pthread_key_init_np(int key, void (*destructor)(void *));
 CF_EXPORT void _NS_pthread_setname_np(const char *name);
 
 // map use of pthread_set/getspecific to internal API
-#define pthread_setspecific _NS_pthread_setspecific
-#define pthread_getspecific _NS_pthread_getspecific
+// MinGW: pthread_setspecific, pthread_getspecific are implented in winpthread.dll
+//#define pthread_setspecific _NS_pthread_setspecific
+//#define pthread_getspecific _NS_pthread_getspecific
 #define pthread_key_init_np _NS_pthread_key_init_np
 #define pthread_main_np _NS_pthread_main_np
 #define pthread_setname_np _NS_pthread_setname_np

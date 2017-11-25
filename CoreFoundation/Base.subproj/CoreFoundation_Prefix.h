@@ -353,7 +353,7 @@ typedef int gid_t;
 
 //#define scalbn(A, B) _scalb(A, B)
 
-#define fsync(a) _commit(a)
+//#define fsync(a) _commit(a)
 #define malloc_create_zone(a,b) 123
 #define malloc_set_zone_name(zone,name)
 #define malloc_zone_realloc(zone,ptr,size) realloc(ptr,size)

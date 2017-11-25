@@ -596,7 +596,7 @@ static void *__CFTSDGetSpecific() {
 #endif
 }
 
-CF_PRIVATE Boolean __CFMainThreadHasExited;
+CF_PRIVATE Boolean __CFMainThreadHasExited = false;
 static void __CFTSDFinalize(void *arg) {
     if (pthread_main_np()) {
         __CFMainThreadHasExited = true;
@@ -1200,6 +1200,7 @@ CF_INLINE _CF_sema_t _CF_get_thread_semaphore() {
     _CF_sema_t s = (_CF_sema_t)pthread_getspecific(key);
     if (s == NULL) {
         s = malloc(sizeof(struct _CF_sema_s));
+        sem_init(&s->sema, 0, 0);
         pthread_setspecific(key, s);
     }
     return s;

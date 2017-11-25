@@ -624,6 +624,8 @@ typedef void (*CFWindowsMessageQueueHandler)(void);
 CF_EXPORT CFWindowsMessageQueueHandler _CFRunLoopGetWindowsMessageQueueHandler(CFRunLoopRef rl, CFStringRef modeName);
 CF_EXPORT void _CFRunLoopSetWindowsMessageQueueHandler(CFRunLoopRef rl, CFStringRef modeName, CFWindowsMessageQueueHandler func);
 
+void timeradd(struct timeval *a, struct timeval *b, struct timeval *res);
+
 #endif
 
 
