@@ -1240,7 +1240,7 @@ int DllMain( HINSTANCE hInstance, DWORD dwReason, LPVOID pReserved ) {
     static CFBundleRef cfBundle = NULL;
     if (dwReason == DLL_PROCESS_ATTACH) {
 	__CFInitialize();
-        cfBundle = RegisterCoreFoundationBundle();
+//        cfBundle = RegisterCoreFoundationBundle();
     } else if (dwReason == DLL_PROCESS_DETACH && pReserved == 0) {
         // Only cleanup if we are being unloaded dynamically (pReserved == 0) <rdar://problem/7480873>
         __CFStreamCleanup();
