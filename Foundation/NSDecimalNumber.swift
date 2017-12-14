@@ -8,7 +8,7 @@
 //
 
 /***************	Exceptions		***********/
-public struct NSExceptionName : RawRepresentable, Equatable, Hashable, Comparable {
+public struct NSExceptionName : RawRepresentable, Equatable, Hashable {
     public private(set) var rawValue: String
     
     public init(_ rawValue: String) {
@@ -25,10 +25,6 @@ public struct NSExceptionName : RawRepresentable, Equatable, Hashable, Comparabl
     
     public static func ==(_ lhs: NSExceptionName, _ rhs: NSExceptionName) -> Bool {
         return lhs.rawValue == rhs.rawValue
-    }
-    
-    public static func <(_ lhs: NSExceptionName, _ rhs: NSExceptionName) -> Bool {
-        return lhs.rawValue < rhs.rawValue
     }
 }
 
@@ -412,7 +408,7 @@ open class NSDecimalNumberHandler : NSObject, NSDecimalNumberBehaviors, NSCoding
         }
     }
     
-    open class func `default`() -> NSDecimalNumberHandler {
+    open class var `default`: NSDecimalNumberHandler {
         return defaultBehavior
     }
     // rounding mode: NSRoundPlain

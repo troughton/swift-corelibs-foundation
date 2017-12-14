@@ -27,6 +27,20 @@ public struct CGPoint {
     }
 }
 
+extension CGPoint {
+    public static var zero: CGPoint {
+        return CGPoint(x: CGFloat(0), y: CGFloat(0))
+    }
+    
+    public init(x: Int, y: Int) {
+        self.init(x: CGFloat(x), y: CGFloat(y))
+    }
+    
+    public init(x: Double, y: Double) {
+        self.init(x: CGFloat(x), y: CGFloat(y))
+    }
+}
+
 extension CGPoint: Equatable {
     public static func ==(lhs: CGPoint, rhs: CGPoint) -> Bool {
         return lhs.x == rhs.x && lhs.y == rhs.y
@@ -73,8 +87,23 @@ extension CGPoint: NSSpecialValueCoding {
         return self.x.hashValue &+ self.y.hashValue
     }
     
-     var description: String? {
+     var description: String {
         return NSStringFromPoint(self)
+    }
+}
+
+extension CGPoint : Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let x = try container.decode(CGFloat.self)
+        let y = try container.decode(CGFloat.self)
+        self.init(x: x, y: y)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
     }
 }
 
@@ -87,6 +116,20 @@ public struct CGSize {
     public init(width: CGFloat, height: CGFloat) {
         self.width = width
         self.height = height
+    }
+}
+
+extension CGSize {
+    public static var zero: CGSize {
+        return CGSize(width: CGFloat(0), height: CGFloat(0))
+    }
+    
+    public init(width: Int, height: Int) {
+        self.init(width: CGFloat(width), height: CGFloat(height))
+    }
+    
+    public init(width: Double, height: Double) {
+        self.init(width: CGFloat(width), height: CGFloat(height))
     }
 }
 
@@ -136,8 +179,23 @@ extension CGSize: NSSpecialValueCoding {
         return self.width.hashValue &+ self.height.hashValue
     }
     
-    var description: String? {
+    var description: String {
         return NSStringFromSize(self)
+    }
+}
+
+extension CGSize : Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let width = try container.decode(CGFloat.self)
+        let height = try container.decode(CGFloat.self)
+        self.init(width: width, height: height)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(width)
+        try container.encode(height)
     }
 }
 
@@ -153,9 +211,54 @@ public struct CGRect {
     }
 }
 
+extension CGRect {
+    public static var zero: CGRect {
+        return CGRect(origin: CGPoint(), size: CGSize())
+    }
+    
+    public init(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {
+        self.init(origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: height))
+    }
+    
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.init(origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: height))
+    }
+    
+    public init(x: Int, y: Int, width: Int, height: Int) {
+        self.init(origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: height))
+    }
+}
+
+extension CGRect {
+    public static let null = CGRect(x: CGFloat.infinity,
+                                    y: CGFloat.infinity,
+                                    width: CGFloat(0),
+                                    height: CGFloat(0))
+    
+    public static let infinite = CGRect(x: -CGFloat.greatestFiniteMagnitude / 2,
+                                        y: -CGFloat.greatestFiniteMagnitude / 2,
+                                        width: CGFloat.greatestFiniteMagnitude,
+                                        height: CGFloat.greatestFiniteMagnitude)
+}
+
 extension CGRect: Equatable {
     public static func ==(lhs: CGRect, rhs: CGRect) -> Bool {
         return lhs.origin == rhs.origin && lhs.size == rhs.size
+    }
+}
+
+extension CGRect : Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let origin = try container.decode(CGPoint.self)
+        let size = try container.decode(CGSize.self)
+        self.init(origin: origin, size: size)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(origin)
+        try container.encode(size)
     }
 }
 
@@ -218,7 +321,7 @@ extension CGRect: NSSpecialValueCoding {
         return self.origin.hash &+ self.size.hash
     }
     
-    var description: String? {
+    var description: String {
         return NSStringFromRect(self)
     }
 }
@@ -318,8 +421,8 @@ extension NSEdgeInsets: NSSpecialValueCoding {
         return self.top.hashValue &+ self.left.hashValue &+ self.bottom.hashValue &+ self.right.hashValue
     }
     
-    var description: String? {
-        return nil
+    var description: String {
+        return ""
     }
 }
 
@@ -710,7 +813,7 @@ private func _scanDoublesFromString(_ aString: String, number: Int) -> [Double] 
     var index = 0
 
     let _ = scanner.scanUpToCharactersFromSet(digitSet)
-    while !scanner.atEnd && index < number {
+    while !scanner.isAtEnd && index < number {
         if let num = scanner.scanDouble() {
             result[index] = num
         }

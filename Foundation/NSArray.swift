@@ -130,7 +130,7 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
 //        }
         let cnt = array.count
         let buffer = UnsafeMutablePointer<AnyObject>.allocate(capacity: cnt)
-        buffer.initialize(from: optionalArray)
+        buffer.initialize(from: optionalArray, count: cnt)
         self.init(objects: buffer, count: cnt)
         buffer.deinitialize(count: cnt)
         buffer.deallocate(capacity: cnt)
@@ -238,7 +238,7 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         objects.reserveCapacity(objects.count + range.length)
 
         if type(of: self) === NSArray.self || type(of: self) === NSMutableArray.self {
-            objects += _storage[range.toRange()!].map { _SwiftValue.fetch(nonOptional: $0) }
+            objects += _storage[Range(range)!].map { _SwiftValue.fetch(nonOptional: $0) }
             return
         }
         
@@ -312,6 +312,13 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
                 if val1 != val2 {
                     return false
                 }
+            } else if let val1 = object(at: idx) as? _ObjectBridgeable,
+                let val2 = otherArray[idx] as? _ObjectBridgeable {
+                if !(val1._bridgeToAnyObject() as! NSObject).isEqual(val2._bridgeToAnyObject()) {
+                    return false
+                }
+            } else {
+                return false
             }
         }
         
@@ -365,16 +372,17 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
     }
     
     open var sortedArrayHint: Data {
-        let size = count
-        let buffer = UnsafeMutablePointer<Int32>.allocate(capacity: size)
-        for idx in 0..<count {
-            let item = object(at: idx) as! NSObject
-            let hash = item.hash
-            buffer.advanced(by: idx).pointee = Int32(hash).littleEndian
+        let size = MemoryLayout<Int32>.size * count
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size)
+        buffer.withMemoryRebound(to: Int32.self, capacity: count) { (ptr) in
+            for idx in 0..<count {
+                let item = object(at: idx) as! NSObject
+                let hash = item.hash
+                ptr.advanced(by: idx).pointee = Int32(hash).littleEndian
+            }
         }
-        return Data(bytesNoCopy: unsafeBitCast(buffer, to: UnsafeMutablePointer<UInt8>.self), count: count * MemoryLayout<Int>.size, deallocator: .custom({ _ in
+        return Data(bytesNoCopy: buffer, count: size, deallocator: .custom({ (_, _) in
             buffer.deallocate(capacity: size)
-            buffer.deinitialize(count: size)
         }))
     }
     
@@ -438,9 +446,6 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
         self.enumerateObjects(at: IndexSet(integersIn: 0..<count), options: opts, using: block)
     }
     open func enumerateObjects(at s: IndexSet, options opts: NSEnumerationOptions = [], using block: (Any, Int, UnsafeMutablePointer<ObjCBool>) -> Swift.Void) {
-        guard !opts.contains(.concurrent) else {
-            NSUnimplemented()
-        }
         s._bridgeToObjectiveC().enumerate(options: opts) { (idx, stop) in
             block(self.object(at: idx), idx, stop)
         }
@@ -490,7 +495,7 @@ open class NSArray : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSCo
             return []
         }
 
-        let swiftRange = range.toRange()!
+        let swiftRange = Range(range)!
         return allObjects[swiftRange].sorted { lhs, rhs in
             return cmptr(lhs, rhs) == .orderedAscending
         }
@@ -779,7 +784,7 @@ open class NSMutableArray : NSArray {
     
     open func removeObjects(in range: NSRange) {
         if type(of: self) === NSMutableArray.self {
-            _storage.removeSubrange(range.toRange()!)
+            _storage.removeSubrange(Range(range)!)
         } else {
             for idx in range.toCountableRange()!.reversed() {
                 removeObject(at: idx)

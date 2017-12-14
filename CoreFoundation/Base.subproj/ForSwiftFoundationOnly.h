@@ -140,7 +140,7 @@ struct _NSMutableStringBridge {
 };
 
 struct _NSXMLParserBridge {
-    _CFXMLInterface _Nullable (*_Nonnull currentParser)();
+    _CFXMLInterface _Nullable (*_Nonnull currentParser)(void);
     _CFXMLInterfaceParserInput _Nullable (*_Nonnull _xmlExternalEntityWithURL)(_CFXMLInterface interface, const char *url, const char * identifier, _CFXMLInterfaceParserContext context, _CFXMLInterfaceExternalEntityLoader originalLoaderFunction);
     
     _CFXMLInterfaceParserContext _Nonnull (*_Nonnull getContext)(_CFXMLInterface ctx);
@@ -256,22 +256,24 @@ CF_PRIVATE void _CFSwiftRelease(void *_Nullable t);
 
 CF_EXPORT void _CFRuntimeBridgeTypeToClass(CFTypeID type, const void *isa);
 
+CF_EXPORT CFNumberType _CFNumberGetType2(CFNumberRef number);
+
 typedef	unsigned char __cf_uuid[16];
 typedef	char __cf_uuid_string[37];
 typedef __cf_uuid _cf_uuid_t;
 typedef __cf_uuid_string _cf_uuid_string_t;
 
-CF_EXPORT void _cf_uuid_clear(_Null_unspecified _cf_uuid_t uu);
-CF_EXPORT int _cf_uuid_compare(const _Null_unspecified _cf_uuid_t uu1, const _Null_unspecified _cf_uuid_t uu2);
-CF_EXPORT void _cf_uuid_copy(_Null_unspecified _cf_uuid_t dst, const _Null_unspecified _cf_uuid_t src);
-CF_EXPORT void _cf_uuid_generate(_Null_unspecified _cf_uuid_t out);
-CF_EXPORT void _cf_uuid_generate_random(_Null_unspecified _cf_uuid_t out);
-CF_EXPORT void _cf_uuid_generate_time(_Null_unspecified _cf_uuid_t out);
-CF_EXPORT int _cf_uuid_is_null(const _Null_unspecified _cf_uuid_t uu);
-CF_EXPORT int _cf_uuid_parse(const _Null_unspecified _cf_uuid_string_t in, _Null_unspecified _cf_uuid_t uu);
-CF_EXPORT void _cf_uuid_unparse(const _Null_unspecified _cf_uuid_t uu, _Null_unspecified _cf_uuid_string_t out);
-CF_EXPORT void _cf_uuid_unparse_lower(const _Null_unspecified _cf_uuid_t uu, _Null_unspecified _cf_uuid_string_t out);
-CF_EXPORT void _cf_uuid_unparse_upper(const _Null_unspecified _cf_uuid_t uu, _Null_unspecified _cf_uuid_string_t out);
+CF_EXPORT void _cf_uuid_clear(_cf_uuid_t _Nonnull uu);
+CF_EXPORT int _cf_uuid_compare(const _cf_uuid_t _Nonnull uu1, const _cf_uuid_t _Nonnull uu2);
+CF_EXPORT void _cf_uuid_copy(_cf_uuid_t _Nonnull dst, const _cf_uuid_t _Nonnull src);
+CF_EXPORT void _cf_uuid_generate(_cf_uuid_t _Nonnull out);
+CF_EXPORT void _cf_uuid_generate_random(_cf_uuid_t _Nonnull out);
+CF_EXPORT void _cf_uuid_generate_time(_cf_uuid_t _Nonnull out);
+CF_EXPORT int _cf_uuid_is_null(const _cf_uuid_t _Nonnull uu);
+CF_EXPORT int _cf_uuid_parse(const _cf_uuid_string_t _Nonnull in, _cf_uuid_t _Nonnull uu);
+CF_EXPORT void _cf_uuid_unparse(const _cf_uuid_t _Nonnull uu, _cf_uuid_string_t _Nonnull out);
+CF_EXPORT void _cf_uuid_unparse_lower(const _cf_uuid_t _Nonnull uu, _cf_uuid_string_t _Nonnull out);
+CF_EXPORT void _cf_uuid_unparse_upper(const _cf_uuid_t _Nonnull uu, _cf_uuid_string_t _Nonnull out);
 
 
 extern CFWriteStreamRef _CFWriteStreamCreateFromFileDescriptor(CFAllocatorRef alloc, int fd);
@@ -300,7 +302,7 @@ CF_EXPORT CFHashCode __CFHashDouble(double d);
 typedef pthread_key_t _CFThreadSpecificKey;
 CF_EXPORT CFTypeRef _Nullable _CFThreadSpecificGet(_CFThreadSpecificKey key);
 CF_EXPORT void _CThreadSpecificSet(_CFThreadSpecificKey key, CFTypeRef _Nullable value);
-CF_EXPORT _CFThreadSpecificKey _CFThreadSpecificKeyCreate();
+CF_EXPORT _CFThreadSpecificKey _CFThreadSpecificKeyCreate(void);
 
 typedef pthread_attr_t _CFThreadAttributes;
 typedef pthread_t _CFThreadRef;
@@ -319,6 +321,77 @@ CF_EXPORT CFReadStreamRef CFReadStreamCreateWithData(CFAllocatorRef alloc, CFDat
 CF_EXPORT _Nullable CFErrorRef _CFReadStreamCopyError(CFReadStreamRef stream);
 
 CF_EXPORT _Nullable CFErrorRef _CFWriteStreamCopyError(CFWriteStreamRef stream);
+
+// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+// Version 0.8
+
+// note: All paths set in these environment variables must be absolute.
+
+/// a single base directory relative to which user-specific data files should be written. This directory is defined by the environment variable $XDG_DATA_HOME.
+CF_EXPORT CFStringRef _CFXDGCreateDataHomePath(void);
+
+/// a single base directory relative to which user-specific configuration files should be written. This directory is defined by the environment variable $XDG_CONFIG_HOME.
+CF_EXPORT CFStringRef _CFXDGCreateConfigHomePath(void);
+
+/// a set of preference ordered base directories relative to which data files should be searched. This set of directories is defined by the environment variable $XDG_DATA_DIRS.
+CF_EXPORT CFArrayRef _CFXDGCreateDataDirectoriesPaths(void);
+
+/// a set of preference ordered base directories relative to which configuration files should be searched. This set of directories is defined by the environment variable $XDG_CONFIG_DIRS.
+CF_EXPORT CFArrayRef _CFXDGCreateConfigDirectoriesPaths(void);
+
+/// a single base directory relative to which user-specific non-essential (cached) data should be written. This directory is defined by the environment variable $XDG_CACHE_HOME.
+CF_EXPORT CFStringRef _CFXDGCreateCacheDirectoryPath(void);
+
+/// a single base directory relative to which user-specific runtime files and other file objects should be placed. This directory is defined by the environment variable $XDG_RUNTIME_DIR.
+CF_EXPORT CFStringRef _CFXDGCreateRuntimeDirectoryPath(void);
+
+
+typedef struct {
+    void *_Nonnull memory;
+    size_t capacity;
+    _Bool onStack;
+} _ConditionalAllocationBuffer;
+
+static inline _Bool _resizeConditionalAllocationBuffer(_ConditionalAllocationBuffer *_Nonnull buffer, size_t amt) {
+#if TARGET_OS_MAC
+    size_t amount = malloc_good_size(amt);
+#else
+    size_t amount = amt;
+#endif
+    if (amount <= buffer->capacity) { return true; }
+    void *newMemory;
+    if (buffer->onStack) {
+        newMemory = malloc(amount);
+        if (newMemory == NULL) { return false; }
+        memcpy(newMemory, buffer->memory, buffer->capacity);
+        buffer->onStack = false;
+    } else {
+        newMemory = realloc(buffer->memory, amount);
+        if (newMemory == NULL) { return false; }
+    }
+    if (newMemory == NULL) { return false; }
+    buffer->memory = newMemory;
+    buffer->capacity = amount;
+    return true;
+}
+
+static inline _Bool _withStackOrHeapBuffer(size_t amount, void (__attribute__((noescape)) ^ _Nonnull applier)(_ConditionalAllocationBuffer *_Nonnull)) {
+    _ConditionalAllocationBuffer buffer;
+#if TARGET_OS_MAC
+    buffer.capacity = malloc_good_size(amount);
+#else
+    buffer.capacity = amount;
+#endif
+    buffer.onStack = (_CFIsMainThread() != 0 ? buffer.capacity < 2048 : buffer.capacity < 512);
+    buffer.memory = buffer.onStack ? alloca(buffer.capacity) : malloc(buffer.capacity);
+    if (buffer.memory == NULL) { return false; }
+    applier(&buffer);
+    if (!buffer.onStack) {
+        free(buffer.memory);
+    }
+    return true;
+}
+
 
 _CF_EXPORT_SCOPE_END
 

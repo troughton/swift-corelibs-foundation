@@ -175,23 +175,23 @@ open class Process: NSObject {
     
     open var currentDirectoryPath: String = FileManager.default.currentDirectoryPath
     
-    // standard I/O channels; could be either an NSFileHandle or an NSPipe
+    // standard I/O channels; could be either a FileHandle or a Pipe
     open var standardInput: Any? {
         willSet {
             precondition(newValue is Pipe || newValue is FileHandle,
-                         "standardInput must be either NSPipe or NSFileHandle")
+                         "standardInput must be either Pipe or FileHandle")
         }
     }
     open var standardOutput: Any? {
         willSet {
             precondition(newValue is Pipe || newValue is FileHandle,
-                         "standardOutput must be either NSPipe or NSFileHandle")
+                         "standardOutput must be either Pipe or FileHandle")
         }
     }
     open var standardError: Any? {
         willSet {
             precondition(newValue is Pipe || newValue is FileHandle,
-                         "standardError must be either NSPipe or NSFileHandle")
+                         "standardError must be either Pipe or FileHandle")
         }
     }
     
@@ -229,7 +229,7 @@ open class Process: NSObject {
         let argv : UnsafeMutablePointer<UnsafeMutablePointer<Int8>?> = args.withUnsafeBufferPointer {
             let array : UnsafeBufferPointer<String> = $0
             let buffer = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: array.count + 1)
-            buffer.initialize(from: array.map { $0.withCString(strdup) })
+            buffer.initialize(from: array.map { $0.withCString(strdup) }, count: array.count)
             buffer[array.count] = nil
             return buffer
         }
@@ -247,7 +247,7 @@ open class Process: NSObject {
         if let env = environment {
             let nenv = env.count
             envp = UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>.allocate(capacity: 1 + nenv)
-            envp.initialize(from: env.map { strdup("\($0)=\($1)") })
+            envp.initialize(from: env.map { strdup("\($0)=\($1)") }, count: nenv)
             envp[env.count] = nil
         } else {
             envp = _CFEnviron()
@@ -393,10 +393,29 @@ open class Process: NSObject {
             posix(posix_spawn_file_actions_addclose(&fileActions, fd))
         }
 
+        let fileManager = FileManager()
+        let previousDirectoryPath = fileManager.currentDirectoryPath
+        if !fileManager.changeCurrentDirectoryPath(currentDirectoryPath) {
+            // Foundation throws an NSException when changing the working directory fails,
+            // and unfortunately launch() is not marked `throws`, so we get away with a
+            // fatalError.
+            switch errno {
+            case ENOENT:
+                fatalError("Process: The specified working directory does not exist.")
+            case EACCES:
+                fatalError("Process: The specified working directory cannot be accessed.")
+            default:
+                fatalError("Process: The specified working directory cannot be set.")
+            }
+        }
+
         // Launch
 
         var pid = pid_t()
         posix(posix_spawn(&pid, launchPath, &fileActions, nil, argv, envp))
+
+        // Reset the previous working directory path.
+        fileManager.changeCurrentDirectoryPath(previousDirectoryPath)
 
         // Close the write end of the input and output pipes.
         if let pipe = standardInput as? Pipe {

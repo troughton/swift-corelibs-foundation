@@ -96,8 +96,9 @@ There is no _Complete_ status for test coverage because there are always additio
     | `DateComponentFormatter`        | Unimplemented   | None          |                                                                                           |
     | `DateIntervalFormatter`         | Unimplemented   | None          |                                                                                           |
     | `EnergyFormatter`               | Unimplemented   | None          |                                                                                           |
+    | `ISO8601DateFormatter`        | Unimplemented   | None          |                                                                                           |
     | `LengthFormatter`               | Complete 	    | Substantial   |                                                                                           |
-    | `MassFormatter`                 | Unimplemented   | None          |                                                                                           |
+    | `MassFormatter`                 | Complete        | Substantial   | Needs localization                                                                        |
     | `NumberFormatter`               | Mostly Complete | Substantial   | `objectValue(_:range:)` remains unimplemented                                             |
     | `PersonNameComponentsFormatter` | Unimplemented   | None          |                                                                                           |
     | `ByteCountFormatter`            | Mostly Complete | Substantial   | `init?(coder:)` remains unimplemented                                                     |

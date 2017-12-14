@@ -41,7 +41,7 @@ internal class NSConcreteValue : NSValue {
                 
                 scanner.scanLocation = 1
                 
-                guard scanner.scanInteger(&count) && count > 0 else {
+                guard scanner.scanInt(&count) && count > 0 else {
                     print("NSConcreteValue.TypeInfo: array count is missing or zero")
                     return nil
                 }

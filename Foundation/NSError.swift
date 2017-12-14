@@ -70,11 +70,11 @@ open class NSError : NSObject, NSCopying, NSSecureCoding, NSCoding {
         if let info = aDecoder.decodeObject(of: [NSSet.self, NSDictionary.self, NSArray.self, NSString.self, NSNumber.self, NSData.self, NSURL.self], forKey: "NSUserInfo") as? NSDictionary {
             var filteredUserInfo = [String : Any]()
             // user info must be filtered so that the keys are all strings
-            info.enumerateKeysAndObjects(options: []) {
-                if let key = $0.0 as? NSString {
-                    filteredUserInfo[key._swiftObject] = $0.1
+            info.enumerateKeysAndObjects({ (key, value, _) in
+                if let key = key as? NSString {
+                    filteredUserInfo[key._swiftObject] = value
                 }
-            }
+            })
             _userInfo = filteredUserInfo
         }
     }
@@ -274,6 +274,37 @@ public protocol CustomNSError : Error {
     var errorUserInfo: [String : Any] { get }
 }
 
+public extension CustomNSError {
+    /// Default domain of the error.
+    static var errorDomain: String {
+        return String(reflecting: self)
+    }
+
+    /// The error code within the given domain.
+    var errorCode: Int {
+        return _swift_getDefaultErrorCode(self)
+    }
+
+    /// The default user-info dictionary.
+    var errorUserInfo: [String : Any] {
+        return [:]
+    }
+}
+
+extension CustomNSError where Self: RawRepresentable, Self.RawValue: SignedInteger {
+    // The error code of Error with integral raw values is the raw value.
+    public var errorCode: Int {
+        return numericCast(self.rawValue)
+    }
+}
+
+extension CustomNSError where Self: RawRepresentable, Self.RawValue: UnsignedInteger {
+    // The error code of Error with integral raw values is the raw value.
+    public var errorCode: Int {
+        return numericCast(self.rawValue)
+    }
+}
+
 public extension Error where Self : CustomNSError {
     /// Default implementation for customized NSErrors.
     var _domain: String { return Self.errorDomain }
@@ -282,10 +313,24 @@ public extension Error where Self : CustomNSError {
     var _code: Int { return self.errorCode }
 }
 
+public extension Error where Self: CustomNSError, Self: RawRepresentable, Self.RawValue: SignedInteger {
+    /// Default implementation for customized NSErrors.
+    var _code: Int { return self.errorCode }
+}
+
+public extension Error where Self: CustomNSError, Self: RawRepresentable, Self.RawValue: UnsignedInteger {
+    /// Default implementation for customized NSErrors.
+    var _code: Int { return self.errorCode }
+}
+
 public extension Error {
     /// Retrieve the localized description for this error.
     var localizedDescription: String {
-        let defaultUserInfo = _swift_Foundation_getErrorDefaultUserInfo(self) as! [String : Any]
+        if let nsError = self as? NSError {
+            return nsError.localizedDescription
+        }
+
+        let defaultUserInfo = _swift_Foundation_getErrorDefaultUserInfo(self) as? [String : Any]
         return NSError(domain: _domain, code: _code, userInfo: defaultUserInfo).localizedDescription
     }
 }
@@ -372,13 +417,13 @@ public protocol __BridgedNSError : Error {
 // Allow two bridged NSError types to be compared.
 extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: SignedInteger {
     public static func ==(lhs: Self, rhs: Self) -> Bool {
-        return lhs.rawValue.toIntMax() == rhs.rawValue.toIntMax()
+        return lhs.rawValue == rhs.rawValue
     }
 }
 
 public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: SignedInteger {
     public var _domain: String { return Self._nsErrorDomain }
-    public var _code: Int { return Int(rawValue.toIntMax()) }
+    public var _code: Int { return Int(rawValue) }
     
     public init?(rawValue: RawValue) {
         self = unsafeBitCast(rawValue, to: Self.self)
@@ -389,7 +434,7 @@ public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: S
             return nil
         }
         
-        self.init(rawValue: RawValue(IntMax(_bridgedNSError.code)))
+        self.init(rawValue: RawValue(Int(_bridgedNSError.code)))
     }
     
     public var hashValue: Int { return _code }
@@ -398,14 +443,14 @@ public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: S
 // Allow two bridged NSError types to be compared.
 extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: UnsignedInteger {
     public static func ==(lhs: Self, rhs: Self) -> Bool {
-        return lhs.rawValue.toUIntMax() == rhs.rawValue.toUIntMax()
+        return lhs.rawValue == rhs.rawValue
     }
 }
 
 public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: UnsignedInteger {
     public var _domain: String { return Self._nsErrorDomain }
     public var _code: Int {
-        return Int(bitPattern: UInt(rawValue.toUIntMax()))
+        return Int(bitPattern: UInt(rawValue))
     }
     
     public init?(rawValue: RawValue) {
@@ -417,7 +462,7 @@ public extension __BridgedNSError where Self: RawRepresentable, Self.RawValue: U
             return nil
         }
         
-        self.init(rawValue: RawValue(UIntMax(UInt(_bridgedNSError.code))))
+        self.init(rawValue: RawValue(UInt(_bridgedNSError.code)))
     }
     
     public var hashValue: Int { return _code }
@@ -614,6 +659,7 @@ public struct CocoaError : _BridgedStoredNSError {
         public static var userActivityHandoffUserInfoTooLarge:      CocoaError.Code { return CocoaError.Code(rawValue: 4611) }
         public static var coderReadCorrupt:                         CocoaError.Code { return CocoaError.Code(rawValue: 4864) }
         public static var coderValueNotFound:                       CocoaError.Code { return CocoaError.Code(rawValue: 4865) }
+        public static var coderInvalidValue:                        CocoaError.Code { return CocoaError.Code(rawValue: 4866) }
     }
 }
 
@@ -695,6 +741,7 @@ extension CocoaError {
     public static var userActivityHandoffUserInfoTooLarge:      CocoaError.Code { return CocoaError.Code.userActivityHandoffUserInfoTooLarge }
     public static var coderReadCorrupt:                         CocoaError.Code { return CocoaError.Code.coderReadCorrupt }
     public static var coderValueNotFound:                       CocoaError.Code { return CocoaError.Code.coderValueNotFound }
+    public static var coderInvalidValue:                        CocoaError.Code { return CocoaError.Code.coderInvalidValue }
 }
 
 extension CocoaError {

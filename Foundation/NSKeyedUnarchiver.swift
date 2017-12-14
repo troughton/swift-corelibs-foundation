@@ -387,7 +387,7 @@ open class NSKeyedUnarchiver : NSCoder {
         }
         
         // check replacement cache
-        object = self._replacementMap[_SwiftValue.store(decodedObject)]
+        object = self._replacementMap[_SwiftValue.store(decodedObject!)]
         if object != nil {
             return object
         }
@@ -454,7 +454,7 @@ open class NSKeyedUnarchiver : NSCoder {
 
                 guard let classReference = innerDecodingContext.dict["$class"] as? _NSKeyedArchiverUID else {
                     throw _decodingError(CocoaError.coderReadCorrupt,
-                                         withDescription: "Invalid class reference \(innerDecodingContext.dict["$class"]). The data may be corrupt.")
+                                         withDescription: "Invalid class reference \(String(describing: innerDecodingContext.dict["$class"])). The data may be corrupt.")
                 }
 
                 var classToConstruct : AnyClass? = try _validateAndMapClassReference(classReference,
@@ -683,10 +683,10 @@ open class NSKeyedUnarchiver : NSCoder {
     }
     
     open override func decodeBool(forKey key: String) -> Bool {
-        guard let result : NSNumber = _decodeValue(forKey: key) else {
+        guard let result : Bool = _decodeValue(forKey: key) else {
             return false
         }
-        return result.boolValue
+        return result
     }
     
     open override func decodeInt32(forKey key: String) -> Int32 {
@@ -813,7 +813,7 @@ open class NSKeyedUnarchiver : NSCoder {
             scanner.scanLocation = 1
             
             var count : Int = 0
-            guard scanner.scanInteger(&count) && count > 0 else {
+            guard scanner.scanInt(&count) && count > 0 else {
                 fatalError("NSKeyedUnarchiver.decodeValueOfObjCType: array count is missing or zero")
             }
             

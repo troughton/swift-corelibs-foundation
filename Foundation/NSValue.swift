@@ -98,7 +98,7 @@ open class NSValue : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
     
     public convenience required init(bytes value: UnsafeRawPointer, objCType type: UnsafePointer<Int8>) {
-        if type(of: self) == NSValue.self {
+        if Swift.type(of: self) == NSValue.self {
             self.init()
             if NSValue._isSpecialObjCType(type) {
                 self._concreteValue = NSSpecialValue(bytes: value.assumingMemoryBound(to: UInt8.self), objCType: type)
@@ -154,3 +154,14 @@ open class NSValue : NSObject, NSCopying, NSSecureCoding, NSCoding {
     }
 }
 
+extension NSValue : _Factory {}
+
+internal protocol _Factory {
+    init(factory: () -> Self)
+}
+
+extension _Factory {
+    init(factory: () -> Self) {
+        self = factory()
+    }
+}

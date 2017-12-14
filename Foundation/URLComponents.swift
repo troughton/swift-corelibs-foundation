@@ -37,21 +37,21 @@ public struct URLComponents : ReferenceConvertible, Hashable, Equatable, _Mutabl
         _handle = _MutableHandle(adoptingReference: result)
     }
     
-    /// Returns a URL created from the NSURLComponents.
+    /// Returns a URL created from the URLComponents.
     ///
-    /// If the NSURLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the NSURLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
     public var url: URL? {
         return _handle.map { $0.url }
     }
     
-    // Returns a URL created from the NSURLComponents relative to a base URL.
+    /// Returns a URL created from the URLComponents relative to a base URL.
     ///
-    /// If the NSURLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the NSURLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
     public func url(relativeTo base: URL?) -> URL? {
         return _handle.map { $0.url(relativeTo: base) }
     }
     
-    // Returns a URL string created from the NSURLComponents. If the NSURLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the NSURLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    // Returns a URL string created from the URLComponents. If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
     public var string: String? {
         return _handle.map { $0.string }
     }
@@ -188,8 +188,8 @@ public struct URLComponents : ReferenceConvertible, Hashable, Equatable, _Mutabl
     private func _toStringRange(_ r : NSRange) -> Range<String.Index>? {
         guard r.location != NSNotFound else { return nil }
         
-        let utf16Start = String.UTF16View.Index(_offset: r.location)
-        let utf16End = String.UTF16View.Index(_offset: r.location + r.length)
+        let utf16Start = String.UTF16View.Index(encodedOffset: r.location)
+        let utf16End = String.UTF16View.Index(encodedOffset: r.location + r.length)
         
         guard let s = self.string else { return nil }
         guard let start = String.Index(utf16Start, within: s) else { return nil }

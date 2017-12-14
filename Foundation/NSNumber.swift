@@ -32,158 +32,523 @@ internal let kCFNumberSInt128Type = CFNumberType(rawValue: 17)!
 internal let kCFNumberSInt128Type: CFNumberType = 17
 #endif
 
+extension Int8 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.int8Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.int8Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.int8Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Int8?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Int8?) -> Bool {
+        guard let value = Int8(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Int8 {
+        var result: Int8?
+        guard let src = source else { return Int8(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Int8(0) }
+        return result!
+    }
+}
+
+extension UInt8 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.uint8Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.uint8Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.uint8Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt8?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt8?) -> Bool {
+        guard let value = UInt8(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> UInt8 {
+        var result: UInt8?
+        guard let src = source else { return UInt8(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return UInt8(0) }
+        return result!
+    }
+}
+
+extension Int16 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.int16Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.int16Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.int16Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Int16?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Int16?) -> Bool {
+        guard let value = Int16(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Int16 {
+        var result: Int16?
+        guard let src = source else { return Int16(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Int16(0) }
+        return result!
+    }
+}
+
+extension UInt16 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.uint16Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.uint16Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.uint16Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt16?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt16?) -> Bool {
+        guard let value = UInt16(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> UInt16 {
+        var result: UInt16?
+        guard let src = source else { return UInt16(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return UInt16(0) }
+        return result!
+    }
+}
+
+extension Int32 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.int32Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.int32Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.int32Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Int32?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Int32?) -> Bool {
+        guard let value = Int32(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Int32 {
+        var result: Int32?
+        guard let src = source else { return Int32(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Int32(0) }
+        return result!
+    }
+}
+
+extension UInt32 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.uint32Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.uint32Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.uint32Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt32?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt32?) -> Bool {
+        guard let value = UInt32(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> UInt32 {
+        var result: UInt32?
+        guard let src = source else { return UInt32(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return UInt32(0) }
+        return result!
+    }
+}
+
+extension Int64 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.int64Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.int64Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.int64Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Int64?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Int64?) -> Bool {
+        guard let value = Int64(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Int64 {
+        var result: Int64?
+        guard let src = source else { return Int64(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Int64(0) }
+        return result!
+    }
+}
+
+extension UInt64 : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
+    public init(_ number: NSNumber) {
+        self = number.uint64Value
+    }
+
+    public init(truncating number: NSNumber) {
+        self = number.uint64Value
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.uint64Value
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
+        return NSNumber(value: self)
+    }
+
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt64?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
+    }
+
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt64?) -> Bool {
+        guard let value = UInt64(exactly: x) else { return false }
+        result = value
+        return true
+    }
+
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> UInt64 {
+        var result: UInt64?
+        guard let src = source else { return UInt64(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return UInt64(0) }
+        return result!
+    }
+}
+
 extension Int : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
     public init(_ number: NSNumber) {
         self = number.intValue
     }
-    
-    public typealias _ObjectType = NSNumber
-    public func _bridgeToObjectiveC() -> _ObjectType {
+
+    public init(truncating number: NSNumber) {
+        self = number.intValue
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.intValue
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
         return NSNumber(value: self)
     }
     
-    static public func _forceBridgeFromObjectiveC(_ source: _ObjectType, result: inout Int?) {
-        result = _unconditionallyBridgeFromObjectiveC(source)
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Int?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
     }
     
-    @discardableResult
-    static public func _conditionallyBridgeFromObjectiveC(_ source: _ObjectType, result: inout Int?) -> Bool {
-        result = source.intValue
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Int?) -> Bool {
+        guard let value = Int(exactly: x) else { return false }
+        result = value
         return true
     }
     
-    static public func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> Int {
-        if let object = source {
-            var value: Int?
-            _conditionallyBridgeFromObjectiveC(object, result: &value)
-            return value!
-        } else {
-            return 0
-        }
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Int {
+        var result: Int?
+        guard let src = source else { return Int(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Int(0) }
+        return result!
     }
 }
 
 extension UInt : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
     public init(_ number: NSNumber) {
         self = number.uintValue
     }
 
-    public typealias _ObjectType = NSNumber
-    public func _bridgeToObjectiveC() -> _ObjectType {
+    public init(truncating number: NSNumber) {
+        self = number.uintValue
+    }
+
+    public init?(exactly number: NSNumber) {
+        let value = number.uintValue
+        guard NSNumber(value: value) == number else { return nil }
+        self = value
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
         return NSNumber(value: self)
     }
     
-    static public func _forceBridgeFromObjectiveC(_ source: _ObjectType, result: inout UInt?) {
-        result = _unconditionallyBridgeFromObjectiveC(source)
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
     }
     
-    @discardableResult
-    static public func _conditionallyBridgeFromObjectiveC(_ source: _ObjectType, result: inout UInt?) -> Bool {
-        result = source.uintValue
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout UInt?) -> Bool {
+        guard let value = UInt(exactly: x) else { return false }
+        result = value
         return true
     }
     
-    static public func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> UInt {
-        if let object = source {
-            var value: UInt?
-            _conditionallyBridgeFromObjectiveC(object, result: &value)
-            return value!
-        } else {
-            return 0
-        }
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> UInt {
+        var result: UInt?
+        guard let src = source else { return UInt(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return UInt(0) }
+        return result!
     }
 }
 
 extension Float : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
     public init(_ number: NSNumber) {
         self = number.floatValue
     }
-    
-    public typealias _ObjectType = NSNumber
-    public func _bridgeToObjectiveC() -> _ObjectType {
+
+    public init(truncating number: NSNumber) {
+        self = number.floatValue
+    }
+
+    public init?(exactly number: NSNumber) {
+        guard let value = Double(exactly: number) else { return nil }
+        guard let result = Float(exactly: value) else { return nil }
+        self = result
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
         return NSNumber(value: self)
     }
     
-    static public func _forceBridgeFromObjectiveC(_ source: _ObjectType, result: inout Float?) {
-        result = _unconditionallyBridgeFromObjectiveC(source)
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Float?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
     }
     
-    @discardableResult
-    static public func _conditionallyBridgeFromObjectiveC(_ source: _ObjectType, result: inout Float?) -> Bool {
-        result = source.floatValue
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Float?) -> Bool {
+        guard let value = Double(exactly: x) else { return false }
+        guard !value.isNaN else {
+            result = Float.nan
+            return true
+        }
+        guard !value.isInfinite else {
+            if value.sign == .minus {
+                result = -Float.infinity
+            } else {
+                result = Float.infinity
+            }
+            return true
+        }
+        guard Swift.abs(value) <= Double(Float.greatestFiniteMagnitude) else {
+            return false
+        }
+
+        result = Float(value)
         return true
     }
     
-    static public func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> Float {
-        if let object = source {
-            var value: Float?
-            _conditionallyBridgeFromObjectiveC(object, result: &value)
-            return value!
-        } else {
-            return 0.0
-        }
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Float {
+        var result: Float?
+        guard let src = source else { return Float(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Float(0) }
+        return result!
     }
 }
 
 extension Double : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
     public init(_ number: NSNumber) {
         self = number.doubleValue
     }
-    
-    public typealias _ObjectType = NSNumber
-    public func _bridgeToObjectiveC() -> _ObjectType {
+
+    public init(truncating number: NSNumber) {
+        self = number.doubleValue
+    }
+
+    public init?(exactly number: NSNumber) {
+        let type = number.objCType.pointee
+        if type == 0x51 {
+            guard let result = Double(exactly: number.uint64Value) else { return nil }
+            self = result
+        } else if type == 0x71 {
+            guard let result = Double(exactly: number.int64Value) else  { return nil }
+            self = result
+        } else {
+            self = number.doubleValue
+        }
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
         return NSNumber(value: self)
     }
     
-    static public func _forceBridgeFromObjectiveC(_ source: _ObjectType, result: inout Double?) {
-        result = _unconditionallyBridgeFromObjectiveC(source)
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Double?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
     }
     
-    @discardableResult
-    static public func _conditionallyBridgeFromObjectiveC(_ source: _ObjectType, result: inout Double?) -> Bool {
-        result = source.doubleValue
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Double?) -> Bool {
+        guard let value = Double(exactly: x) else { return false }
+        result = value
         return true
     }
     
-    static public func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> Double {
-        if let object = source {
-            var value: Double?
-            _conditionallyBridgeFromObjectiveC(object, result: &value)
-            return value!
-        } else {
-            return 0.0
-        }
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Double {
+        var result: Double?
+        guard let src = source else { return Double(0) }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return Double(0) }
+        return result!
     }
 }
 
 extension Bool : _ObjectTypeBridgeable {
+    @available(swift, deprecated: 4, renamed: "init(truncating:)")
     public init(_ number: NSNumber) {
         self = number.boolValue
     }
-    
-    public typealias _ObjectType = NSNumber
-    public func _bridgeToObjectiveC() -> _ObjectType {
+
+    public init(truncating number: NSNumber) {
+        self = number.boolValue
+    }
+
+    public init?(exactly number: NSNumber) {
+        if number === kCFBooleanTrue || NSNumber(value: 1) == number {
+            self = true
+        } else if number === kCFBooleanFalse || NSNumber(value: 0) == number {
+            self = false
+        } else {
+            return nil
+        }
+    }
+
+    public func _bridgeToObjectiveC() -> NSNumber {
         return unsafeBitCast(self ? kCFBooleanTrue : kCFBooleanFalse, to: NSNumber.self)
     }
     
-    static public func _forceBridgeFromObjectiveC(_ source: _ObjectType, result: inout Bool?) {
-        result = _unconditionallyBridgeFromObjectiveC(source)
+    public static func _forceBridgeFromObjectiveC(_ x: NSNumber, result: inout Bool?) {
+        result = _unconditionallyBridgeFromObjectiveC(x)
     }
     
-    @discardableResult
-    static public func _conditionallyBridgeFromObjectiveC(_ source: _ObjectType, result: inout Bool?) -> Bool {
-        result = source.boolValue
+    public static func _conditionallyBridgeFromObjectiveC(_ x: NSNumber, result: inout Bool?) -> Bool {
+        result = x.boolValue
         return true
     }
     
-    static public func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectType?) -> Bool {
-        if let object = source {
-            var value: Bool?
-            _conditionallyBridgeFromObjectiveC(object, result: &value)
-            return value!
-        } else {
-            return false
-        }
+    public static func _unconditionallyBridgeFromObjectiveC(_ source: NSNumber?) -> Bool {
+        var result: Bool?
+        guard let src = source else { return false }
+        guard _conditionallyBridgeFromObjectiveC(src, result: &result) else { return false }
+        return result!
     }
 }
 
@@ -198,13 +563,16 @@ extension NSNumber : ExpressibleByFloatLiteral, ExpressibleByIntegerLiteral, Exp
 
 }
 
+private struct CFSInt128Struct {
+    var high: Int64
+    var low: UInt64
+}
+
 open class NSNumber : NSValue {
     typealias CFType = CFNumber
     // This layout MUST be the same as CFNumber so that they are bridgeable
     private var _base = _CFInfo(typeID: CFNumberGetTypeID())
     private var _pad: UInt64 = 0
-
-    internal let _objCType: _NSSimpleObjCType
 
     internal var _cfObject: CFType {
         return unsafeBitCast(self, to: CFType.self)
@@ -223,108 +591,130 @@ open class NSNumber : NSValue {
         case let other as Bool:
             return boolValue == other
         case let other as NSNumber:
-            return CFEqual(_cfObject, other._cfObject)
+            return compare(other) == .orderedSame
         default:
             return false
         }
     }
 
     open override var objCType: UnsafePointer<Int8> {
-        return UnsafePointer<Int8>(bitPattern: UInt(_objCType.rawValue.value))!
+        func _objCType(_ staticString: StaticString) -> UnsafePointer<Int8> {
+            return UnsafeRawPointer(staticString.utf8Start).assumingMemoryBound(to: Int8.self)
+        }
+        let numberType = _CFNumberGetType2(_cfObject)
+        switch numberType {
+        case kCFNumberSInt8Type:
+            return _objCType("c")
+        case kCFNumberSInt16Type:
+            return _objCType("s")
+        case kCFNumberSInt32Type:
+            return _objCType("i")
+        case kCFNumberSInt64Type:
+            return _objCType("q")
+        case kCFNumberFloat32Type:
+            return _objCType("f")
+        case kCFNumberFloat64Type:
+            return _objCType("d")
+        case kCFNumberSInt128Type:
+            return _objCType("Q")
+        default:
+            fatalError("unsupported CFNumberType: '\(numberType)'")
+        }
     }
-    
+
     deinit {
         _CFDeinit(self)
     }
     
-    public init(value: Int8) {
-        _objCType = .Char
-        super.init()
-        _CFNumberInitInt8(_cfObject, value)
+    private convenience init(bytes: UnsafeRawPointer, numberType: CFNumberType) {
+        let cfnumber = CFNumberCreate(nil, numberType, bytes)
+        self.init(factory: { unsafeBitCast(cfnumber, to: NSNumber.self) })
     }
     
-    public init(value: UInt8) {
-        _objCType = .UChar
-        super.init()
-        _CFNumberInitUInt8(_cfObject, value)
+    public convenience init(value: Int8) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberSInt8Type)
     }
     
-    public init(value: Int16) {
-        _objCType = .Short
-        super.init()
-        _CFNumberInitInt16(_cfObject, value)
+    public convenience init(value: UInt8) {
+        var value = Int16(value)
+        self.init(bytes: &value, numberType: kCFNumberSInt16Type)
     }
     
-    public init(value: UInt16) {
-        _objCType = .UShort
-        super.init()
-        _CFNumberInitUInt16(_cfObject, value)
+    public convenience init(value: Int16) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberSInt16Type)
     }
     
-    public init(value: Int32) {
-        _objCType = .Long
-        super.init()
-        _CFNumberInitInt32(_cfObject, value)
+    public convenience init(value: UInt16) {
+        var value = Int32(value)
+        self.init(bytes: &value, numberType: kCFNumberSInt32Type)
     }
     
-    public init(value: UInt32) {
-        _objCType = .ULong
-        super.init()
-        _CFNumberInitUInt32(_cfObject, value)
+    public convenience init(value: Int32) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberSInt32Type)
     }
     
-    public init(value: Int) {
-        _objCType = .Int
-        super.init()
-        _CFNumberInitInt(_cfObject, value)
+    public convenience init(value: UInt32) {
+        var value = Int64(value)
+        self.init(bytes: &value, numberType: kCFNumberSInt64Type)
     }
     
-    public init(value: UInt) {
-        _objCType = .UInt
-        super.init()
-        _CFNumberInitUInt(_cfObject, value)
+    public convenience init(value: Int) {
+        var value = value
+        #if arch(x86_64) || arch(arm64) || arch(s390x) || arch(powerpc64) || arch(powerpc64le)
+            self.init(bytes: &value, numberType: kCFNumberSInt64Type)
+        #elseif arch(i386) || arch(arm)
+            self.init(bytes: &value, numberType: kCFNumberSInt32Type)
+        #endif
     }
     
-    public init(value: Int64) {
-        _objCType = .LongLong
-        super.init()
-#if CAN_IMPORT_MINGWCRT
-        _CFNumberInitInt64(_cfObject, Int(value))
-#else
-        _CFNumberInitInt64(_cfObject, value)
-#endif
+    public convenience init(value: UInt) {
+    #if arch(x86_64) || arch(arm64) || arch(s390x) || arch(powerpc64) || arch(powerpc64le)
+        if value > UInt64(Int64.max) {
+            var value = CFSInt128Struct(high: 0, low: UInt64(value))
+            self.init(bytes: &value, numberType: kCFNumberSInt128Type)
+        } else {
+            var value = Int64(value)
+            self.init(bytes: &value, numberType: kCFNumberSInt64Type)
+        }
+    #elseif arch(i386) || arch(arm)
+        var value = Int64(value)
+        self.init(bytes: &value, numberType: kCFNumberSInt64Type)
+    #endif
     }
     
-    public init(value: UInt64) {
-        _objCType = .ULongLong
-        super.init()
-#if CAN_IMPORT_MINGWCRT
-        _CFNumberInitUInt64(_cfObject, UInt(value))
-#else
-        _CFNumberInitUInt64(_cfObject, value)
-#endif
+    public convenience init(value: Int64) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberSInt64Type)
     }
     
-    public init(value: Float) {
-        _objCType = .Float
-        super.init()
-        _CFNumberInitFloat(_cfObject, value)
+    public convenience init(value: UInt64) {
+        if value > UInt64(Int64.max) {
+            var value = CFSInt128Struct(high: 0, low: UInt64(value))
+            self.init(bytes: &value, numberType: kCFNumberSInt128Type)
+        } else {
+            var value = Int64(value)
+            self.init(bytes: &value, numberType: kCFNumberSInt64Type)
+        }
     }
     
-    public init(value: Double) {
-        _objCType = .Double
-        super.init()
-        _CFNumberInitDouble(_cfObject, value)
+    public convenience init(value: Float) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberFloatType)
     }
     
-    public init(value: Bool) {
-        _objCType = .Bool
-        super.init()
-        _CFNumberInitBool(_cfObject, value)
+    public convenience init(value: Double) {
+        var value = value
+        self.init(bytes: &value, numberType: kCFNumberDoubleType)
+    }
+
+    public convenience init(value: Bool) {
+        self.init(factory: value._bridgeToObjectiveC)
     }
 
     override internal init() {
-        _objCType = .Undef
         super.init()
     }
 
@@ -389,89 +779,78 @@ open class NSNumber : NSValue {
     }
 
     open var int8Value: Int8 {
-        var val: Int8 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Int8>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberCharType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
 
     open var uint8Value: UInt8 {
-        var val: UInt8 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<UInt8>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberCharType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var int16Value: Int16 {
-        var val: Int16 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Int16>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberShortType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var uint16Value: UInt16 {
-        var val: UInt16 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<UInt16>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberShortType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var int32Value: Int32 {
-        var val: Int32 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Int32>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberIntType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var uint32Value: UInt32 {
-        var val: UInt32 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<UInt32>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberIntType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var int64Value: Int64 {
-        var val: Int64 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Int64>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberLongLongType, value)
-        }
-        return val
+        var value: Int64 = 0
+        CFNumberGetValue(_cfObject, kCFNumberSInt64Type, &value)
+        return .init(truncatingIfNeeded: value)
     }
     
     open var uint64Value: UInt64 {
-        var val: UInt64 = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<UInt64>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberLongLongType, value)
-        }
-        return val
+        var value = CFSInt128Struct(high: 0, low: 0)
+        CFNumberGetValue(_cfObject, kCFNumberSInt128Type, &value)
+        return .init(truncatingIfNeeded: value.low)
+    }
+
+    private var int128Value: CFSInt128Struct {
+        var value = CFSInt128Struct(high: 0, low: 0)
+        CFNumberGetValue(_cfObject, kCFNumberSInt128Type, &value)
+        return value
     }
     
     open var floatValue: Float {
-        var val: Float = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Float>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberFloatType, value)
-        }
-        return val
+        var value: Float = 0
+        CFNumberGetValue(_cfObject, kCFNumberFloatType, &value)
+        return value
     }
     
     open var doubleValue: Double {
-        var val: Double = 0
-        withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Double>) -> Void in
-            CFNumberGetValue(_cfObject, kCFNumberDoubleType, value)
-        }
-        return val
+        var value: Double = 0
+        CFNumberGetValue(_cfObject, kCFNumberDoubleType, &value)
+        return value
     }
     
     open var boolValue: Bool {
-        return int64Value != 0
+        // Darwin Foundation NSNumber appears to have a bug and return false for NSNumber(value: Int64.min).boolValue,
+        // even though the documentation says:
+        // "A 0 value always means false, and any nonzero value is interpreted as true."
+        return (int64Value != 0) && (int64Value != Int64.min)
     }
-    
+
     open var intValue: Int {
         var val: Int = 0
         withUnsafeMutablePointer(to: &val) { (value: UnsafeMutablePointer<Int>) -> Void in
@@ -508,16 +887,49 @@ open class NSNumber : NSValue {
     }
 
     open func compare(_ otherNumber: NSNumber) -> ComparisonResult {
-        return ._fromCF(CFNumberCompare(_cfObject, otherNumber._cfObject, nil))
+        switch (_cfNumberType(), otherNumber._cfNumberType()) {
+        case (kCFNumberFloatType, _), (_, kCFNumberFloatType): fallthrough
+        case (kCFNumberDoubleType, _), (_, kCFNumberDoubleType):
+            let (lhs, rhs) = (doubleValue, otherNumber.doubleValue)
+            // Apply special handling for NaN as <, >, == always return false
+            // when comparing with NaN
+            if lhs.isNaN && rhs.isNaN { return .orderedSame }
+            if lhs.isNaN { return .orderedAscending }
+            if rhs.isNaN { return .orderedDescending }
+
+            if lhs < rhs { return .orderedAscending }
+            if lhs > rhs { return .orderedDescending }
+            return .orderedSame
+
+        default: // For signed and unsigned integers expand upto S128Int
+            let (lhs, rhs) = (int128Value, otherNumber.int128Value)
+            if lhs.high < rhs.high { return .orderedAscending }
+            if lhs.high > rhs.high { return .orderedDescending }
+            if lhs.low < rhs.low { return .orderedAscending }
+            if lhs.low > rhs.low { return .orderedDescending }
+            return .orderedSame
+        }
     }
 
+    private static let _numberFormatterForNilLocale: CFNumberFormatter = {
+        let formatter: CFNumberFormatter
+        formatter = CFNumberFormatterCreate(nil, CFLocaleCopyCurrent(), kCFNumberFormatterNoStyle)
+        CFNumberFormatterSetProperty(formatter, kCFNumberFormatterMaxFractionDigits, 15._bridgeToObjectiveC())
+        return formatter
+    }()
+
     open func description(withLocale locale: Locale?) -> String {
+        // CFNumberFormatterCreateStringWithNumber() does not like numbers of type
+        // SInt128Type, as it loses the type when looking it up and treats it as
+        // an SInt64Type, so special case them.
+        if _CFNumberGetType2(_cfObject) == kCFNumberSInt128Type {
+            return String(format: "%@", unsafeBitCast(_cfObject, to: UnsafePointer<CFNumber>.self))
+        }
+
         let aLocale = locale
         let formatter: CFNumberFormatter
         if (aLocale == nil) {
-            formatter = CFNumberFormatterCreate(nil, CFLocaleCopyCurrent(), kCFNumberFormatterNoStyle)
-            CFNumberFormatterSetProperty(formatter, kCFNumberFormatterMaxFractionDigits, 15._bridgeToObjectiveC())
-
+            formatter = NSNumber._numberFormatterForNilLocale
         } else {
             formatter = CFNumberFormatterCreate(nil, aLocale?._cfObject, kCFNumberFormatterDecimalStyle)
         }
@@ -584,40 +996,39 @@ open class NSNumber : NSValue {
     }
     
     open override func encode(with aCoder: NSCoder) {
-        if !aCoder.allowsKeyedCoding {
-            NSUnimplemented()
+        guard aCoder.allowsKeyedCoding else {
+            preconditionFailure("Unkeyed coding is unsupported.")
+        }
+        if let keyedCoder = aCoder as? NSKeyedArchiver {
+            keyedCoder._encodePropertyList(self)
         } else {
-            if let keyedCoder = aCoder as? NSKeyedArchiver {
-                keyedCoder._encodePropertyList(self)
+            if CFGetTypeID(self) == CFBooleanGetTypeID() {
+                aCoder.encode(boolValue, forKey: "NS.boolval")
             } else {
-                if CFGetTypeID(self) == CFBooleanGetTypeID() {
+                switch objCType.pointee {
+                case 0x42:
                     aCoder.encode(boolValue, forKey: "NS.boolval")
-                } else {
-                    switch objCType.pointee {
-                    case 0x42:
-                        aCoder.encode(boolValue, forKey: "NS.boolval")
-                        break
-                    case 0x63: fallthrough
-                    case 0x43: fallthrough
-                    case 0x73: fallthrough
-                    case 0x53: fallthrough
-                    case 0x69: fallthrough
-                    case 0x49: fallthrough
-                    case 0x6C: fallthrough
-                    case 0x4C: fallthrough
-                    case 0x71: fallthrough
-                    case 0x51:
-                        aCoder.encode(int64Value, forKey: "NS.intval")
-                    case 0x66: fallthrough
-                    case 0x64:
-                        aCoder.encode(doubleValue, forKey: "NS.dblval")
-                    default: break
-                    }
+                    break
+                case 0x63: fallthrough
+                case 0x43: fallthrough
+                case 0x73: fallthrough
+                case 0x53: fallthrough
+                case 0x69: fallthrough
+                case 0x49: fallthrough
+                case 0x6C: fallthrough
+                case 0x4C: fallthrough
+                case 0x71: fallthrough
+                case 0x51:
+                    aCoder.encode(int64Value, forKey: "NS.intval")
+                case 0x66: fallthrough
+                case 0x64:
+                    aCoder.encode(doubleValue, forKey: "NS.dblval")
+                default: break
                 }
             }
         }
     }
-    
+
     open override var classForCoder: AnyClass { return NSNumber.self }
 }
 

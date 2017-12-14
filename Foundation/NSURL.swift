@@ -68,7 +68,7 @@ internal func _pathComponents(_ path: String?) -> [String]? {
     return nil
 }
 
-public struct URLResourceKey : RawRepresentable, Equatable, Hashable, Comparable {
+public struct URLResourceKey : RawRepresentable, Equatable, Hashable {
     public private(set) var rawValue: String
     public init(rawValue: String) {
         self.rawValue = rawValue
@@ -84,10 +84,6 @@ public struct URLResourceKey : RawRepresentable, Equatable, Hashable, Comparable
 
     public static func ==(lhs: URLResourceKey, rhs: URLResourceKey) -> Bool {
         return lhs.rawValue == rhs.rawValue
-    }
-
-    public static func <(lhs: URLResourceKey, rhs: URLResourceKey) -> Bool {
-        return lhs.rawValue < rhs.rawValue
     }
 }
 
@@ -194,7 +190,7 @@ extension URLResourceKey {
 }
 
 
-public struct URLFileResourceType : RawRepresentable, Equatable, Hashable, Comparable {
+public struct URLFileResourceType : RawRepresentable, Equatable, Hashable {
     public private(set) var rawValue: String
     public init(rawValue: String) {
         self.rawValue = rawValue
@@ -210,10 +206,6 @@ public struct URLFileResourceType : RawRepresentable, Equatable, Hashable, Compa
 
     public static func ==(lhs: URLFileResourceType, rhs: URLFileResourceType) -> Bool {
         return lhs.rawValue == rhs.rawValue
-    }
-
-    public static func <(lhs: URLFileResourceType, rhs: URLFileResourceType) -> Bool {
-        return lhs.rawValue < rhs.rawValue
     }
 }
 
@@ -417,7 +409,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
         let buffer = malloc(bytesNeeded)!.bindMemory(to: UInt8.self, capacity: bytesNeeded)
         let bytesFilled = CFURLGetBytes(_cfObject, buffer, bytesNeeded)
         if bytesFilled == bytesNeeded {
-            return Data(bytesNoCopy: buffer, count: bytesNeeded, deallocator: .none)
+            return Data(bytesNoCopy: buffer, count: bytesNeeded, deallocator: .free)
         } else {
             fatalError()
         }
@@ -590,7 +582,7 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
                    "use getFileSystemRepresentation to handle this case")
     }
     
-    // Whether the scheme is file:; if [myURL isFileURL] is YES, then [myURL path] is suitable for input into NSFileManager or NSPathUtilities.
+    // Whether the scheme is file:; if myURL.isFileURL is true, then myURL.path is suitable for input into FileManager or NSPathUtilities.
     open var isFileURL: Bool {
         return _CFURLIsFileURL(_cfObject)
     }

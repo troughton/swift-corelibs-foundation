@@ -271,7 +271,10 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
     }
     
     public convenience init?(cString nullTerminatedCString: UnsafePointer<Int8>, encoding: UInt) {
-        self.init(string: CFStringCreateWithCString(kCFAllocatorSystemDefault, nullTerminatedCString, CFStringConvertNSStringEncodingToEncoding(encoding))._swiftObject)
+        guard let str = CFStringCreateWithCString(kCFAllocatorSystemDefault, nullTerminatedCString, CFStringConvertNSStringEncodingToEncoding(encoding)) else {
+            return nil
+        }
+        self.init(string: str._swiftObject)
     }
     
     internal func _fastCStringContents(_ nullTerminated: Bool) -> UnsafePointer<Int8>? {
@@ -286,7 +289,7 @@ open class NSString : NSObject, NSCopying, NSMutableCopying, NSSecureCoding, NSC
     internal var _fastContents: UnsafePointer<UniChar>? {
         if type(of: self) == NSString.self || type(of: self) == NSMutableString.self {
             if !_storage._core.isASCII {
-                return unsafeBitCast(_storage._core.startUTF16, to: UnsafePointer<UniChar>.self)
+                return UnsafePointer<UniChar>(_storage._core.startUTF16)
             }
         }
         return nil
@@ -346,49 +349,7 @@ extension NSString {
             let start = _storage.utf16.startIndex
             let min = start.advanced(by: range.location)
             let max = start.advanced(by: range.location + range.length)
-            if let substr = String(_storage.utf16[min..<max]) {
-                return substr
-            }
-            //If we come here, then the range has created unpaired surrogates on either end.
-            //An unpaired surrogate is replaced by OXFFFD - the Unicode Replacement Character.
-            //The CRLF ("\r\n") sequence is also treated like a surrogate pair, but its constinuent
-            //characters "\r" and "\n" can exist outside the pair!
-
-            let replacementCharacter = String(describing: UnicodeScalar(0xFFFD)!)
-            let CR: UInt16 = 13  //carriage return
-            let LF: UInt16 = 10  //new line
-
-            //make sure the range is of non-zero length
-            guard range.length > 0 else { return "" }
-
-            //if the range is pointing to a single unpaired surrogate
-            if range.length == 1 {
-                switch _storage.utf16[min] {
-                case CR: return "\r"
-                case LF: return "\n"
-                default: return replacementCharacter
-                }
-            }
-
-            //set the prefix and suffix characters
-            let prefix = _storage.utf16[min] == LF ? "\n" : replacementCharacter
-            let suffix = _storage.utf16[max.advanced(by: -1)] == CR ? "\r" : replacementCharacter
-
-            //if the range breaks a surrogate pair at the beginning of the string
-            if let substrSuffix = String(_storage.utf16[min.advanced(by: 1)..<max]) {
-                return prefix + substrSuffix
-            }
-
-            //if the range breaks a surrogate pair at the end of the string
-            if let substrPrefix = String(_storage.utf16[min..<max.advanced(by: -1)]) {
-                return substrPrefix + suffix
-            }
-
-            //the range probably breaks surrogate pairs at both the ends
-            guard min.advanced(by: 1) <= max.advanced(by: -1) else { return prefix + suffix }
-
-            let substr =  String(_storage.utf16[min.advanced(by: 1)..<max.advanced(by: -1)])!
-            return prefix + substr + suffix
+            return String(decoding: _storage.utf16[min..<max], as: UTF16.self)
         } else {
             let buff = UnsafeMutablePointer<unichar>.allocate(capacity: range.length)
             getCharacters(buff, range: range)
@@ -530,7 +491,7 @@ extension NSString {
     internal func _rangeOfRegularExpressionPattern(regex pattern: String, options mask: CompareOptions, range searchRange: NSRange, locale: Locale?) -> NSRange {
         var matchedRange = NSMakeRange(NSNotFound, 0)
         let regexOptions: NSRegularExpression.Options = mask.contains(.caseInsensitive) ? .caseInsensitive : []
-        let matchingOptions: NSMatchingOptions = mask.contains(.anchored) ? .anchored : []
+        let matchingOptions: NSRegularExpression.MatchingOptions = mask.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             matchedRange = regex.rangeOfFirstMatch(in: _swiftObject, options: matchingOptions, range: searchRange)
         }
@@ -639,18 +600,18 @@ extension NSString {
     }
 
     public var intValue: Int32 {
-        return Scanner(string: _swiftObject).scanInt() ?? 0
+        return Scanner(string: _swiftObject).scanInt32() ?? 0
     }
 
     public var integerValue: Int {
         let scanner = Scanner(string: _swiftObject)
         var value: Int = 0
-        let _ = scanner.scanInteger(&value)
+        let _ = scanner.scanInt(&value)
         return value
     }
 
     public var longLongValue: Int64 {
-        return Scanner(string: _swiftObject).scanLongLong() ?? 0
+        return Scanner(string: _swiftObject).scanInt64() ?? 0
     }
 
     public var boolValue: Bool {
@@ -658,8 +619,8 @@ extension NSString {
         // skip initial whitespace if present
         let _ = scanner.scanCharactersFromSet(.whitespaces)
         // scan a single optional '+' or '-' character, followed by zeroes
-        if scanner.scanString(string: "+") == nil {
-            let _ = scanner.scanString(string: "-")
+        if scanner.scanString("+") == nil {
+            let _ = scanner.scanString("-")
         }
         // scan any following zeroes
         let _ = scanner.scanCharactersFromSet(CharacterSet(charactersIn: "0"))
@@ -882,8 +843,10 @@ extension NSString {
         if type(of: self) == NSString.self || type(of: self) == NSMutableString.self {
             if _storage._core.isASCII {
                 used = min(self.length, maxBufferCount - 1)
-                buffer.moveAssign(from: unsafeBitCast(_storage._core.startASCII, to: UnsafeMutablePointer<Int8>.self)
-                    , count: used)
+                _storage._core.startASCII.withMemoryRebound(to: Int8.self,
+                                                            capacity: used) {
+                    buffer.moveAssign(from: $0, count: used)
+                }
                 buffer.advanced(by: used).initialize(to: 0)
                 return true
             }
@@ -1101,7 +1064,7 @@ extension NSString {
     
     internal func _stringByReplacingOccurrencesOfRegularExpressionPattern(_ pattern: String, withTemplate replacement: String, options: CompareOptions, range: NSRange) -> String {
         let regexOptions: NSRegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
-        let matchingOptions: NSMatchingOptions = options.contains(.anchored) ? .anchored : []
+        let matchingOptions: NSRegularExpression.MatchingOptions = options.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             return regex.stringByReplacingMatches(in: _swiftObject, options: matchingOptions, range: range, withTemplate: replacement)
         }
@@ -1300,19 +1263,33 @@ extension NSString {
     public convenience init(contentsOf url: URL, usedEncoding enc: UnsafeMutablePointer<UInt>?) throws {
         let readResult = try NSData(contentsOf: url, options:[])
 
+        var offset = 0
         let bytePtr = readResult.bytes.bindMemory(to: UInt8.self, capacity:readResult.length)
-        if readResult.length >= 2 && bytePtr[0] == 254 && bytePtr[1] == 255 {
-          enc?.pointee = String.Encoding.utf16BigEndian.rawValue
+        if readResult.length >= 4 && bytePtr[0] == 0xFF && bytePtr[1] == 0xFE && bytePtr[2] == 0x00 && bytePtr[3] == 0x00 {
+            enc?.pointee = String.Encoding.utf32LittleEndian.rawValue
+            offset = 4
         }
-        else if readResult.length >= 2 && bytePtr[0] == 255 && bytePtr[1] == 254 {
-          enc?.pointee = String.Encoding.utf16LittleEndian.rawValue
+        else if readResult.length >= 2 && bytePtr[0] == 0xFE && bytePtr[1] == 0xFF {
+            enc?.pointee = String.Encoding.utf16BigEndian.rawValue
+            offset = 2
+        }
+        else if readResult.length >= 2 && bytePtr[0] == 0xFF && bytePtr[1] == 0xFE {
+            enc?.pointee = String.Encoding.utf16LittleEndian.rawValue
+            offset = 2
+        }
+        else if readResult.length >= 4 && bytePtr[0] == 0x00 && bytePtr[1] == 0x00 && bytePtr[2] == 0xFE && bytePtr[3] == 0xFF {
+            enc?.pointee = String.Encoding.utf32BigEndian.rawValue
+            offset = 4
         }
         else {
-          //Need to work on more conditions. This should be the default
-          enc?.pointee = String.Encoding.utf8.rawValue
+            //Need to work on more conditions. This should be the default
+            enc?.pointee = String.Encoding.utf8.rawValue
         }
 
-        guard let enc = enc, let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr, readResult.length, CFStringConvertNSStringEncodingToEncoding(enc.pointee), true) else {
+        // Since the encoding being passed includes the byte order the BOM wont be checked or skipped, so pass offset to
+        // manually skip the BOM header.
+        guard let enc = enc, let cf = CFStringCreateWithBytes(kCFAllocatorDefault, bytePtr + offset, readResult.length - offset,
+                                                              CFStringConvertNSStringEncodingToEncoding(enc.pointee), true) else {
             throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadInapplicableStringEncoding.rawValue, userInfo: [
                 "NSDebugDescription" : "Unable to create a string using the specified encoding."
                 ])
@@ -1417,7 +1394,7 @@ extension NSMutableString {
     
     internal func _replaceOccurrencesOfRegularExpressionPattern(_ pattern: String, withTemplate replacement: String, options: CompareOptions, range searchRange: NSRange) -> Int {
         let regexOptions: NSRegularExpression.Options = options.contains(.caseInsensitive) ? .caseInsensitive : []
-        let matchingOptions: NSMatchingOptions = options.contains(.anchored) ? .anchored : []
+        let matchingOptions: NSRegularExpression.MatchingOptions = options.contains(.anchored) ? .anchored : []
         if let regex = _createRegexForPattern(pattern, regexOptions) {
             return regex.replaceMatches(in: self, options: matchingOptions, range: searchRange, withTemplate: replacement)
         }

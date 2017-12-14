@@ -97,11 +97,11 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
     }
     
     static internal func +(lhs: _ProgressFraction, rhs: _ProgressFraction) -> _ProgressFraction {
-        return _math(lhs: lhs, rhs: rhs, whichOperator: +, whichOverflow: Int64.addWithOverflow)
+        return _math(lhs: lhs, rhs: rhs, whichOperator: +, whichOverflow: { $0.addingReportingOverflow($1) })
     }
     
     static internal func -(lhs: _ProgressFraction, rhs: _ProgressFraction) -> _ProgressFraction {
-        return _math(lhs: lhs, rhs: rhs, whichOperator: -, whichOverflow: Int64.subtractWithOverflow)
+        return _math(lhs: lhs, rhs: rhs, whichOperator: -, whichOverflow: { $0.subtractingReportingOverflow($1) })
     }
     
     static internal func *(lhs: _ProgressFraction, rhs: _ProgressFraction) -> _ProgressFraction {
@@ -110,16 +110,16 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
             return _ProgressFraction(double: rhs.fractionCompleted * rhs.fractionCompleted, overflow: true)
         }
 
-        let newCompleted = Int64.multiplyWithOverflow(lhs.completed, rhs.completed)
-        let newTotal = Int64.multiplyWithOverflow(lhs.total, rhs.total)
+        let newCompleted = lhs.completed.multipliedReportingOverflow(by: rhs.completed)
+        let newTotal = lhs.total.multipliedReportingOverflow(by: rhs.total)
         
         if newCompleted.overflow || newTotal.overflow {
             // Try simplifying, then do it again
             let lhsSimplified = lhs.simplified()
             let rhsSimplified = rhs.simplified()
             
-            let newCompletedSimplified = Int64.multiplyWithOverflow(lhsSimplified.completed, rhsSimplified.completed)
-            let newTotalSimplified = Int64.multiplyWithOverflow(lhsSimplified.total, rhsSimplified.total)
+            let newCompletedSimplified = lhsSimplified.completed.multipliedReportingOverflow(by: rhsSimplified.completed)
+            let newTotalSimplified = lhsSimplified.total.multipliedReportingOverflow(by: rhsSimplified.total)
             
             if newCompletedSimplified.overflow || newTotalSimplified.overflow {
                 // Still overflow
@@ -138,12 +138,12 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
             return _ProgressFraction(double: lhs.fractionCompleted / Double(rhs), overflow: true)
         }
         
-        let newTotal = Int64.multiplyWithOverflow(lhs.total, rhs)
+        let newTotal = lhs.total.multipliedReportingOverflow(by: rhs)
         
         if newTotal.overflow {
             let simplified = lhs.simplified()
             
-            let newTotalSimplified = Int64.multiplyWithOverflow(simplified.total, rhs)
+            let newTotalSimplified = simplified.total.multipliedReportingOverflow(by: rhs)
             
             if newTotalSimplified.overflow {
                 // Still overflow
@@ -175,8 +175,8 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
             return false
         } else {
             // Cross-multiply
-            let left = Int64.multiplyWithOverflow(lhs.completed, rhs.total)
-            let right = Int64.multiplyWithOverflow(lhs.total, rhs.completed)
+            let left = lhs.completed.multipliedReportingOverflow(by: rhs.total)
+            let right = lhs.total.multipliedReportingOverflow(by: rhs.completed)
             
             if !left.overflow && !right.overflow {
                 if left.0 == right.0 {
@@ -187,8 +187,8 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
                 let lhsSimplified = lhs.simplified()
                 let rhsSimplified = rhs.simplified()
                 
-                let leftSimplified = Int64.multiplyWithOverflow(lhsSimplified.completed, rhsSimplified.total)
-                let rightSimplified = Int64.multiplyWithOverflow(lhsSimplified.total, rhsSimplified.completed)
+                let leftSimplified = lhsSimplified.completed.multipliedReportingOverflow(by: rhsSimplified.total)
+                let rightSimplified = lhsSimplified.total.multipliedReportingOverflow(by: rhsSimplified.completed)
 
                 if !leftSimplified.overflow && !rightSimplified.overflow {
                     if leftSimplified.0 == rightSimplified.0 {
@@ -260,7 +260,7 @@ internal struct _ProgressFraction : Equatable, CustomDebugStringConvertible {
     private static func _leastCommonMultiple(_ a : Int64, _ b : Int64) -> Int64? {
         // This division always results in an integer value because gcd(a,b) is a divisor of a.
         // lcm(a,b) == (|a|/gcd(a,b))*b == (|b|/gcd(a,b))*a
-        let result = Int64.multiplyWithOverflow((a / _greatestCommonDivisor(a, b)), b)
+        let result = (a / _greatestCommonDivisor(a, b)).multipliedReportingOverflow(by: b)
         if result.overflow {
             return nil
         } else {

@@ -808,11 +808,11 @@ CFAllocatorRef CFGetAllocator(CFTypeRef cf) {
 }
 
 
-extern CFTypeID CFBinaryHeapGetTypeID();
-extern CFTypeID CFBitVectorGetTypeID();
-extern CFTypeID CFTreeGetTypeID();
-extern CFTypeID CFPlugInInstanceGetTypeID();
-extern CFTypeID CFStringTokenizerGetTypeID();
+extern CFTypeID CFBinaryHeapGetTypeID(void);
+extern CFTypeID CFBitVectorGetTypeID(void);
+extern CFTypeID CFTreeGetTypeID(void);
+extern CFTypeID CFPlugInInstanceGetTypeID(void);
+extern CFTypeID CFStringTokenizerGetTypeID(void);
 extern CFTypeID CFStorageGetTypeID(void);
 extern void __CFAllocatorInitialize(void);
 extern void __CFStringInitialize(void);
@@ -821,7 +821,7 @@ extern void __CFCharacterSetInitialize(void);
 extern void __CFPFactoryInitialize(void);
 extern void __CFPlugInInitialize(void);
 #if (DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX) && DEPLOYMENT_RUNTIME_SWIFT
-CF_PRIVATE void __CFTSDInitialize();
+CF_PRIVATE void __CFTSDInitialize(void);
 #endif
 #if DEPLOYMENT_TARGET_WINDOWS
 // From CFPlatform.c
@@ -907,6 +907,15 @@ static struct {
     {"CFNumberDisableCache", NULL},
     {"__CFPREFERENCES_AVOID_DAEMON", NULL},
     {"APPLE_FRAMEWORKS_ROOT", NULL},
+#if DEPLOYMENT_RUNTIME_SWIFT
+    {"HOME", NULL},
+    {"XDG_DATA_HOME", NULL},
+    {"XDG_CONFIG_HOME", NULL},
+    {"XDG_DATA_DIRS", NULL},
+    {"XDG_CONFIG_DIRS", NULL},
+    {"XDG_CACHE_HOME", NULL},
+    {"XDG_RUNTIME_DIR", NULL},
+#endif
     {NULL, NULL}, // the last one is for optional "COMMAND_MODE" "legacy", do not use this slot, insert before
 };
 
@@ -1004,7 +1013,7 @@ void __CFInitialize(void) {
 #define __CFSwiftGetBaseClass _T015SwiftFoundation21__CFSwiftGetBaseClasss9AnyObject_pXpyF
 #endif
 #endif
-        extern uintptr_t __CFSwiftGetBaseClass();
+        extern uintptr_t __CFSwiftGetBaseClass(void);
         
         uintptr_t NSCFType = __CFSwiftGetBaseClass();
         for (CFIndex idx = 1; idx < __CFRuntimeClassTableSize; idx++) {
@@ -1113,7 +1122,7 @@ void __CFInitialize(void) {
 #define __CFInitializeSwift _T015SwiftFoundation014__CFInitializeA0yyF
 #endif
 #endif
-        extern void __CFInitializeSwift();
+        extern void __CFInitializeSwift(void);
         __CFInitializeSwift();
         __CFNumberInitialize(); /* needs to happen after Swift bridge is initialized */
 #endif
@@ -1284,6 +1293,7 @@ static bool (*CAS32)(int32_t, int32_t, volatile int32_t *) = OSAtomicCompareAndS
 
 #if DEPLOYMENT_RUNTIME_SWIFT
 extern void swift_retain(void *);
+extern void swift_release(void *);
 #endif
 
 // For "tryR==true", a return of NULL means "failed".
@@ -1399,7 +1409,6 @@ Boolean _CFIsDeallocating(CFTypeRef cf) {
 static void _CFRelease(CFTypeRef CF_RELEASES_ARGUMENT cf) {
 #if DEPLOYMENT_RUNTIME_SWIFT
     // We always call through to swift_release, since all CFTypeRefs are at least _NSCFType objects
-    extern void swift_release(void *);
     swift_release((void *)cf);
 #else
 
@@ -1705,15 +1714,6 @@ const char *_NSPrintForDebugger(void *cf) {
     }
 }
 
-// For CF functions with 'Get' semantics, the compiler currently assumes that the result is autoreleased and must be retained. It does so on all platforms by emitting a call to objc_retainAutoreleasedReturnValue. On Darwin, this is implemented by the ObjC runtime. On Linux, there is no runtime, and therefore we have to stub it out here ourselves. The compiler will eventually call swift_release to balance the retain below. This is a workaround until the compiler no longer emits this callout on Linux.
-void * objc_retainAutoreleasedReturnValue(void *obj) {
-    if (obj) {
-        swift_retain(obj);
-        return obj;
-    }
-    else return NULL;
-}
-        
 CFHashCode __CFHashDouble(double d) {
     return _CFHashDouble(d);
 }

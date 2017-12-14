@@ -28,7 +28,7 @@ open class NSLocale: NSObject, NSCopying, NSSecureCoding {
     }
     
     open func object(forKey key: NSLocale.Key) -> Any? {
-        return CFLocaleGetValue(_cfObject, key.rawValue._cfObject)
+        return _SwiftValue.fetch(CFLocaleGetValue(_cfObject, key.rawValue._cfObject))
     }
     
     open func displayName(forKey key: Key, value: String) -> String? {
@@ -84,20 +84,20 @@ extension NSLocale {
         return CFLocaleCopyCurrent()._swiftObject
     }
     
-    open class func systemLocale() -> Locale {
+    open class var system: Locale {
         return CFLocaleGetSystem()._swiftObject
     }
 }
 
 extension NSLocale {
     public var localeIdentifier: String {
-        return (object(forKey: .identifier) as! NSString)._swiftObject
+        return object(forKey: .identifier) as! String
     }
     
     open class var availableLocaleIdentifiers: [String] {
         var identifiers = Array<String>()
         for obj in CFLocaleCopyAvailableLocaleIdentifiers()._nsObject {
-            identifiers.append((obj as! NSString)._swiftObject)
+            identifiers.append(obj as! String)
         }
         return identifiers
     }
@@ -194,7 +194,7 @@ extension NSLocale {
 
 extension NSLocale {
 
-    public struct Key : RawRepresentable, Equatable, Hashable, Comparable {
+    public struct Key : RawRepresentable, Equatable, Hashable {
         public private(set) var rawValue: String
         public init(rawValue: String) {
             self.rawValue = rawValue
@@ -239,10 +239,6 @@ extension NSLocale {
 extension NSLocale.Key {
     public static func ==(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
         return lhs.rawValue == rhs.rawValue
-    }
-
-    public static func <(_ lhs: NSLocale.Key, _ rhs: NSLocale.Key) -> Bool {
-        return lhs.rawValue < rhs.rawValue
     }
 }
 

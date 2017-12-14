@@ -157,7 +157,7 @@ CF_EXPORT void _CFMachPortInstallNotifyPort(CFRunLoopRef rl, CFStringRef mode);
 
 CF_PRIVATE os_log_t _CFOSLog(void);
 
-CF_PRIVATE CFIndex __CFActiveProcessorCount();
+CF_PRIVATE CFIndex __CFActiveProcessorCount(void);
 
 #ifndef CLANG_ANALYZER_NORETURN
 #if __has_feature(attribute_analyzer_noreturn)
@@ -325,7 +325,7 @@ extern Boolean __CFStringScanHex(CFStringInlineBuffer *buf, SInt32 *indexPtr, un
 extern const char *__CFgetenv(const char *n);
 extern const char *__CFgetenvIfNotRestricted(const char *n);    // Returns NULL in a restricted process
 
-CF_PRIVATE Boolean __CFProcessIsRestricted();
+CF_PRIVATE Boolean __CFProcessIsRestricted(void);
 
 // This is really about the availability of C99. We don't have that on Windows, but we should everywhere else.
 #if DEPLOYMENT_TARGET_WINDOWS
@@ -335,11 +335,23 @@ CF_PRIVATE Boolean __CFProcessIsRestricted();
 #endif
 
 
-CF_EXPORT void * __CFConstantStringClassReferencePtr;
 
 #if DEPLOYMENT_RUNTIME_SWIFT
 
+#if TARGET_OS_MAC
+#define __CFConstantStringClassReference _T015SwiftFoundation19_NSCFConstantStringCN
+#else
+#define __CFConstantStringClassReference _T010Foundation19_NSCFConstantStringCN
+#endif
+
+CF_EXPORT void * __CFConstantStringClassReferencePtr;
 CF_EXPORT void *__CFConstantStringClassReference[];
+
+#if __CF_BIG_ENDIAN__
+#define CF_CONST_STRING_INFO {0x00, 0x00, 0x07, 0xc8}
+#elif __CF_LITTLE_ENDIAN__
+#define CF_CONST_STRING_INFO {0xc8, 0x07, 0x00, 0x00}
+#endif
 
 #if DEPLOYMENT_TARGET_LINUX
 #define CONST_STRING_SECTION __attribute__((section(".cfstr.data")))
@@ -348,11 +360,11 @@ CF_EXPORT void *__CFConstantStringClassReference[];
 #endif
 
 #define CONST_STRING_DECL(S, V) \
-const struct __CFConstStr __##S CONST_STRING_SECTION = {{(uintptr_t)&__CFConstantStringClassReference, _CF_CONSTANT_OBJECT_STRONG_RC, 0, {0xc8, 0x07, 0x00, 0x00}}, (uint8_t *)(V), sizeof(V) - 1}; \
+const struct __CFConstStr __##S CONST_STRING_SECTION = {{(uintptr_t)&__CFConstantStringClassReference, _CF_CONSTANT_OBJECT_STRONG_RC, 0, CF_CONST_STRING_INFO}, (uint8_t *)(V), sizeof(V) - 1}; \
 const CFStringRef S = (CFStringRef)&__##S;
 
 #define PE_CONST_STRING_DECL(S, V) \
-const static struct __CFConstStr __##S CONST_STRING_SECTION = {{(uintptr_t)&__CFConstantStringClassReference, _CF_CONSTANT_OBJECT_STRONG_RC, 0, {0xc8, 0x07, 0x00, 0x00}}, (uint8_t *)(V), sizeof(V) - 1}; \
+const static struct __CFConstStr __##S CONST_STRING_SECTION = {{(uintptr_t)&__CFConstantStringClassReference, _CF_CONSTANT_OBJECT_STRONG_RC, 0, CF_CONST_STRING_INFO}, (uint8_t *)(V), sizeof(V) - 1}; \
 CF_PRIVATE const CFStringRef S = (CFStringRef)&__##S;
 
 
@@ -366,32 +378,23 @@ CF_PRIVATE const CFStringRef S = (CFStringRef)&__##S;
 struct CF_CONST_STRING {
     CFRuntimeBase _base;
     uint8_t *_ptr;
-    uint32_t _length;
+#if defined(__LP64__) && defined(__BIG_ENDIAN__)
+	uint64_t _length;
+#else
+	uint32_t _length;
+#endif
 };
 
 CF_EXPORT int __CFConstantStringClassReference[];
 
 /* CFNetwork also has a copy of the CONST_STRING_DECL macro (for use on platforms without constant string support in cc); please warn cfnetwork-core@group.apple.com of any necessary changes to this macro. -- REW, 1/28/2002 */
 
-#if __CF_BIG_ENDIAN__
-
 #define CONST_STRING_DECL(S, V)			\
-static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, {0x00, 0x00, 0x07, 0xc8}}, (uint8_t *)V, sizeof(V) - 1}; \
+static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, CF_CONST_STRING_INFO}, (uint8_t *)V, sizeof(V) - 1}; \
 const CFStringRef S = (CFStringRef) & __ ## S ## __;
 #define PE_CONST_STRING_DECL(S, V)			\
-static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, {0x00, 0x00, 0x07, 0xc8}}, (uint8_t *)V, sizeof(V) - 1}; \
+static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, CF_CONST_STRING_INFO}, (uint8_t *)V, sizeof(V) - 1}; \
 CF_PRIVATE const CFStringRef S = (CFStringRef) & __ ## S ## __;
-
-#elif __CF_LITTLE_ENDIAN__
-
-#define CONST_STRING_DECL(S, V)			\
-static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, {0xc8, 0x07, 0x00, 0x00}}, (uint8_t *)(V), sizeof(V) - 1}; \
-const CFStringRef S = (CFStringRef) & __ ## S ## __;
-#define PE_CONST_STRING_DECL(S, V)			\
-static struct CF_CONST_STRING __ ## S ## __ = {{(uintptr_t)&__CFConstantStringClassReference, {0xc8, 0x07, 0x00, 0x00}}, (uint8_t *)(V), sizeof(V) - 1}; \
-CF_PRIVATE const CFStringRef S = (CFStringRef) & __ ## S ## __;
-
-#endif
 
 #endif // __CONSTANT_CFSTRINGS__
 
@@ -584,8 +587,8 @@ CF_PRIVATE SInt32 _CFGetFileProperties(CFAllocatorRef alloc, CFURLRef pathURL, B
 
 /* ==================== Simple path manipulation ==================== */
 
-CF_EXPORT UniChar _CFGetSlash();
-CF_PRIVATE CFStringRef _CFGetSlashStr();
+CF_EXPORT UniChar _CFGetSlash(void);
+CF_PRIVATE CFStringRef _CFGetSlashStr(void);
 CF_EXPORT Boolean _CFIsAbsolutePath(UniChar *unichars, CFIndex length);
 CF_PRIVATE void _CFAppendTrailingPathSlash2(CFMutableStringRef path);
 CF_PRIVATE void _CFAppendConditionalTrailingPathSlash2(CFMutableStringRef path);
@@ -602,6 +605,7 @@ CF_PRIVATE CFIndex _CFLengthAfterDeletingPathExtension2(CFStringRef path);
 CF_EXPORT CFIndex _CFStartOfPathExtension(UniChar *unichars, CFIndex length);
 CF_PRIVATE CFIndex _CFStartOfPathExtension2(CFStringRef path);
 CF_EXPORT CFIndex _CFLengthAfterDeletingPathExtension(UniChar *unichars, CFIndex length);
+CF_PRIVATE CFArrayRef _CFCreateCFArrayByTokenizingString(const char *values, char delimiter);
 
 #if __BLOCKS__
 #if DEPLOYMENT_TARGET_WINDOWS
@@ -729,7 +733,7 @@ extern void *__CFLookupCoreServicesInternalFunction(const char *name);
 CF_PRIVATE CFComparisonResult _CFCompareStringsWithLocale(CFStringInlineBuffer *str1, CFRange str1Range, CFStringInlineBuffer *str2, CFRange str2Range, CFOptionFlags options, const void *compareLocale);
 
 
-CF_PRIVATE CFArrayRef _CFBundleCopyUserLanguages();
+CF_PRIVATE CFArrayRef _CFBundleCopyUserLanguages(void);
 
 
 // This should only be used in CF types, not toll-free bridged objects!
