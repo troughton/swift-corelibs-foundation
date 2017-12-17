@@ -173,6 +173,9 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         if url.isFileURL {
             try self.init(contentsOfFile: url.path, options: readOptionsMask)
         } else {
+#if CAN_IMPORT_MINGWCRT
+            NSUnimplemented()
+#else
             let session = URLSession(configuration: URLSessionConfiguration.default)
             let cond = NSCondition()
             var resError: Error?
@@ -188,6 +191,7 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
                 throw resError!
             }
             self.init(data: data)
+#endif
         }
     }
     
@@ -385,9 +389,15 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
         }
         
         let length = Int(info.st_size)
+#if CAN_IMPORT_MINGWCRT
+        if length == 0 && (Int32(info.st_mode) & S_IFMT == S_IFREG) {
+            return try readZeroSizeFile(fd)
+        }
+#else
         if length == 0 && (info.st_mode & S_IFMT == S_IFREG) {
             return try readZeroSizeFile(fd)
         }
+#endif
 
         if options.contains(.alwaysMapped) {
 #if CAN_IMPORT_MINGWCRT
@@ -437,7 +447,11 @@ open class NSData : NSObject, NSCopying, NSMutableCopying, NSSecureCoding {
 
         repeat {
             data = realloc(data, bytesRead + blockSize)
+#if CAN_IMPORT_MINGWCRT
+            amt = Int(read(fd, data!.advanced(by: bytesRead), UInt32(blockSize)))
+#else
             amt = read(fd, data!.advanced(by: bytesRead), blockSize)
+#endif
 
             // Dont continue on EINTR or EAGAIN as the file position may not
             // have changed, see read(2).

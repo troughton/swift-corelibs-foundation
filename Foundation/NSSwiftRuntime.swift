@@ -69,7 +69,11 @@ internal func _CFSwiftCopyWithZone(_ cf: CFTypeRef, _ zone: CFTypeRef?) -> Unman
 
 
 internal func _CFSwiftGetHash(_ cf: AnyObject) -> CFHashCode {
+#if CAN_IMPORT_MINGWCRT && arch(x86_64)
+    return CFHashCode(bitPattern: Int64((cf as! NSObject).hash))
+#else
     return CFHashCode(bitPattern: (cf as! NSObject).hash)
+#endif
 }
 
 

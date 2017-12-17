@@ -136,10 +136,10 @@ else:
 		'-lcurl ',
 		'-lxml2 ',
 	])
-	swift_cflags += ''.join([
-		'-I${SYSROOT}/usr/include/curl ',
-		'-I${SYSROOT}/usr/include/libxml2 ',
-	])
+	swift_cflags += [
+		'-I${SYSROOT}/usr/include/curl',
+		'-I${SYSROOT}/usr/include/libxml2',
+	]
 
 triple = Configuration.current.target.triple
 if triple == "armv7-none-linux-androideabi":
@@ -267,7 +267,14 @@ project = [
 
 foundation.add_phase(headers)
 
-sources = CompileSources([
+# This code is already in libdispatch so is only needed if libdispatch is
+# NOT being used
+if "LIBDISPATCH_SOURCE_DIR" not in Configuration.current.variables:
+    comp_sources = (['closure/data.c', 'closure/runtime.c'])
+else:
+    comp_sources = []
+
+sources = CompileSources(comp_sources + [
     'uuid/uuid.c',
 	# 'CoreFoundation/AppServices.subproj/CFUserNotification.c',
 	'CoreFoundation/Base.subproj/CFBase.c',
@@ -356,14 +363,13 @@ sources = CompileSources([
 	'CoreFoundation/URL.subproj/CFURLSessionInterface.c',
 ])
 
-# This code is already in libdispatch so is only needed if libdispatch is
-# NOT being used
-if "LIBDISPATCH_SOURCE_DIR" not in Configuration.current.variables:
-    sources += (['closure/data.c', 'closure/runtime.c'])
-
 sources.add_dependency(headers)
 foundation.add_phase(sources)
 
+# FIXME: MinGW
+#   Some sources are commented, because the Dispatch module is not implemented.
+#   '##' : uses Dispatch module (5 files)
+#   '# ' : uses the class/function which is defined in '##' (9 files)
 swift_sources = CompileSwiftSources([
 	'Foundation/NSObject.swift',
 	'Foundation/AffineTransform.swift',
@@ -402,7 +408,7 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSGeometry.swift',
 	'Foundation/Host.swift',
 	'Foundation/HTTPCookie.swift',
-	'Foundation/HTTPCookieStorage.swift',
+	# 'Foundation/HTTPCookieStorage.swift',
 	'Foundation/NSIndexPath.swift',
 	'Foundation/NSIndexSet.swift',
 	'Foundation/ISO8601DateFormatter.swift',
@@ -453,27 +459,27 @@ swift_sources = CompileSwiftSources([
 	'Foundation/NSTimeZone.swift',
 	'Foundation/NSURL.swift',
 	'Foundation/URLAuthenticationChallenge.swift',
-	'Foundation/URLCache.swift',
+	# 'Foundation/URLCache.swift',
 	'Foundation/URLCredential.swift',
-	'Foundation/URLCredentialStorage.swift',
+	# 'Foundation/URLCredentialStorage.swift',
 	'Foundation/NSURLError.swift',
 	'Foundation/URLProtectionSpace.swift',
-	'Foundation/URLProtocol.swift',
+	# 'Foundation/URLProtocol.swift',
 	'Foundation/NSURLRequest.swift',
 	'Foundation/URLResponse.swift',
-	'Foundation/URLSession/Configuration.swift',
-	'Foundation/URLSession/http/EasyHandle.swift',
-	'Foundation/URLSession/http/HTTPBodySource.swift',
-	'Foundation/URLSession/http/HTTPMessage.swift',
-	'Foundation/URLSession/http/MultiHandle.swift',
-	'Foundation/URLSession/URLSession.swift',
-	'Foundation/URLSession/URLSessionConfiguration.swift',
-	'Foundation/URLSession/URLSessionDelegate.swift',
-	'Foundation/URLSession/URLSessionTask.swift',
-	'Foundation/URLSession/TaskRegistry.swift',
-	'Foundation/URLSession/http/TransferState.swift',
-	'Foundation/URLSession/http/libcurlHelpers.swift',
-    'Foundation/URLSession/http/HTTPURLProtocol.swift',
+	# 'Foundation/URLSession/Configuration.swift',
+	# 'Foundation/URLSession/http/EasyHandle.swift',
+	## 'Foundation/URLSession/http/HTTPBodySource.swift',
+	# 'Foundation/URLSession/http/HTTPMessage.swift',
+	## 'Foundation/URLSession/http/MultiHandle.swift',
+	## 'Foundation/URLSession/URLSession.swift',
+	# 'Foundation/URLSession/URLSessionConfiguration.swift',
+	# 'Foundation/URLSession/URLSessionDelegate.swift',
+	## 'Foundation/URLSession/URLSessionTask.swift',
+	# 'Foundation/URLSession/TaskRegistry.swift',
+	# 'Foundation/URLSession/http/TransferState.swift',
+	# 'Foundation/URLSession/http/libcurlHelpers.swift',
+    ## 'Foundation/URLSession/http/HTTPURLProtocol.swift',
 	'Foundation/UserDefaults.swift',
 	'Foundation/NSUUID.swift',
 	'Foundation/NSValue.swift',

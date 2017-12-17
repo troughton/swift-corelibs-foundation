@@ -94,7 +94,9 @@ extension NSString {
         internal func _cfValue(_ fixLiteral: Bool = false) -> CFStringCompareFlags {
 #if os(OSX) || os(iOS)
             return contains(.literal) || !fixLiteral ? CFStringCompareFlags(rawValue: rawValue) : CFStringCompareFlags(rawValue: rawValue).union(.compareNonliteral)
-#else
+#elseif CAN_IMPORT_MINGWCRT && arch(x86_64)
+            return contains(.literal) || !fixLiteral ? CFStringCompareFlags(rawValue) : CFStringCompareFlags(rawValue) | UInt64(kCFCompareNonliteral)
+#else	    
             return contains(.literal) || !fixLiteral ? CFStringCompareFlags(rawValue) : CFStringCompareFlags(rawValue) | UInt(kCFCompareNonliteral)
 #endif
         }
@@ -913,7 +915,7 @@ extension NSString {
                 
                 numEncodings -= 1
                 while numEncodings >= 0 {
-                    theEncodingList.advanced(by: numEncodings).pointee = CFStringConvertEncodingToNSStringEncoding(cfEncodings.advanced(by: numEncodings).pointee)
+                    theEncodingList.advanced(by: numEncodings).pointee = UInt(CFStringConvertEncodingToNSStringEncoding(cfEncodings.advanced(by: numEncodings).pointee))
                     numEncodings -= 1
                 }
                 
@@ -933,7 +935,7 @@ extension NSString {
     }
     
     open class var defaultCStringEncoding: UInt {
-        return CFStringConvertEncodingToNSStringEncoding(CFStringGetSystemEncoding())
+        return UInt(CFStringConvertEncodingToNSStringEncoding(CFStringGetSystemEncoding()))
     }
     
     open var decomposedStringWithCanonicalMapping: String {
@@ -1507,3 +1509,9 @@ extension NSString : _StructTypeBridgeable {
         return _StructType._unconditionallyBridgeFromObjectiveC(self)
     }
 }
+
+#if CAN_IMPORT_MINGWCRT && arch(x86_64)
+func CFStringConvertNSStringEncodingToEncoding(_ enc: UInt) -> UInt32 {
+    return CFStringConvertNSStringEncodingToEncoding(UInt64(enc))
+}
+#endif

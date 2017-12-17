@@ -93,13 +93,21 @@ open class Thread : NSObject {
         var ti = end_at - start_at
         let end_ut = start_ut + ti
         while (0.0 < ti) {
+#if CAN_IMPORT_MINGWCRT
+            var __ts__ = timespec(tv_sec: Int64.max, tv_nsec: 0)
+#else
             var __ts__ = timespec(tv_sec: Int.max, tv_nsec: 0)
+#endif
             if ti < Double(Int.max) {
                 var integ = 0.0
                 let frac: Double = withUnsafeMutablePointer(to: &integ) { integp in
                     return modf(ti, integp)
                 }
+#if CAN_IMPORT_MINGWCRT
+                __ts__.tv_sec = Int64(integ)
+#else
                 __ts__.tv_sec = Int(integ)
+#endif
                 __ts__.tv_nsec = CLong(frac * 1000000000.0)
             }
             let _ = withUnsafePointer(to: &__ts__) { ts in
@@ -114,13 +122,21 @@ open class Thread : NSObject {
         let start_ut = CFGetSystemUptime()
         let end_ut = start_ut + ti
         while 0.0 < ti {
+#if CAN_IMPORT_MINGWCRT
+            var __ts__ = timespec(tv_sec: Int64.max, tv_nsec: 0)
+#else
             var __ts__ = timespec(tv_sec: Int.max, tv_nsec: 0)
+#endif
             if ti < Double(Int.max) {
                 var integ = 0.0
                 let frac: Double = withUnsafeMutablePointer(to: &integ) { integp in
                     return modf(ti, integp)
                 }
+#if CAN_IMPORT_MINGWCRT
+                __ts__.tv_sec = Int64(integ)
+#else
                 __ts__.tv_sec = Int(integ)
+#endif
                 __ts__.tv_nsec = CLong(frac * 1000000000.0)
             }
             let _ = withUnsafePointer(to: &__ts__) { ts in
@@ -134,7 +150,11 @@ open class Thread : NSObject {
         pthread_exit(nil)
     }
     
+#if CAN_IMPORT_MINGWCRT
+    internal var _main: () -> Void = {}
+#else
     internal var _main: (Void) -> Void = {}
+#endif
 #if os(OSX) || os(iOS) || os(Cygwin) || CAN_IMPORT_MINGWCRT
     private var _thread: pthread_t? = nil
 #elseif os(Linux) || os(Android)

@@ -233,12 +233,20 @@ open class NSCondition: NSObject, NSLocking {
             return false
         }
         var ts = timespec()
+#if CAN_IMPORT_MINGWCRT
+        ts.tv_sec = Int64(floor(ti))
+#else
         ts.tv_sec = Int(floor(ti))
+#endif
         ts.tv_nsec = CLong((ti - Double(ts.tv_sec)) * 1000000000.0)
         var tv = timeval()
         withUnsafeMutablePointer(to: &tv) { t in
             gettimeofday(t, nil)
+#if CAN_IMPORT_MINGWCRT
+            ts.tv_sec += Int64(t.pointee.tv_sec)
+#else
             ts.tv_sec += Int(t.pointee.tv_sec)
+#endif
             ts.tv_nsec += CLong((t.pointee.tv_usec * 1000000) / 1000000000)
         }
         let retVal: Int32 = withUnsafePointer(to: &ts) { t in
