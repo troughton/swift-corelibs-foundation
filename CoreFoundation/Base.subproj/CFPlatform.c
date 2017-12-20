@@ -170,6 +170,13 @@ Boolean _CFIsMainThread(void) {
 #endif
 #endif
 
+#if DEPLOYMENT_TARGET_WINDOWS
+Boolean _CFIsMainThread(void) {
+    // FIXME: Not implemented for MinGW.
+    return 1;
+}
+#endif
+
 #if DEPLOYMENT_TARGET_LINUX
 const char *_CFProcessPath(void) {
     if (__CFProcessPath) return __CFProcessPath;

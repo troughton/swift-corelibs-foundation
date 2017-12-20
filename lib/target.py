@@ -419,8 +419,12 @@ class Target:
             return "linux"
         elif self.sdk == OSType.FreeBSD:
             return "freebsd"
+        elif self.sdk == OSType.Win32 and self.environ == EnvironmentType.Cygnus:
+           return "cygwin"
+        elif self.sdk == OSType.Win32 and self.environ == EnvironmentType.GNU:
+           return "mingw"
         elif self.sdk == OSType.Win32:
-            return "cygwin"
+           return "windows"
         else:
             print("unknown sdk for swift")
             return None

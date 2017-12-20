@@ -1005,14 +1005,6 @@ void __CFInitialize(void) {
         memset(__CFRuntimeObjCClassTable, 0, sizeof(__CFRuntimeObjCClassTable));
 
 #if DEPLOYMENT_RUNTIME_SWIFT
-        
-#ifndef __CFSwiftGetBaseClass
-#if TARGET_OS_LINUX || TARGET_OS_WINDOWS
-#define __CFSwiftGetBaseClass _T010Foundation21__CFSwiftGetBaseClasss9AnyObject_pXpyF
-#elif TARGET_OS_MAC
-#define __CFSwiftGetBaseClass _T015SwiftFoundation21__CFSwiftGetBaseClasss9AnyObject_pXpyF
-#endif
-#endif
         extern uintptr_t __CFSwiftGetBaseClass(void);
         
         uintptr_t NSCFType = __CFSwiftGetBaseClass();
@@ -1713,6 +1705,19 @@ const char *_NSPrintForDebugger(void *cf) {
         return result;
     }
 }
+
+#if defined(__MINGW32__)
+// FIXME: This fucntion was removed at https://github.com/apple/swift-corelibs-foundation/pull/1090 
+//        Until libdispatch is ported and replace this, we need this function.
+// For CF functions with 'Get' semantics, the compiler currently assumes that the result is autoreleased and must be retained. It does so on all platforms by emitting a call to objc_retainAutoreleasedReturnValue. On Darwin, this is implemented by the ObjC runtime. On Linux, there is no runtime, and therefore we have to stub it out here ourselves. The compiler will eventually call swift_release to balance the retain below. This is a workaround until the compiler no longer emits this callout on Linux.
+void * objc_retainAutoreleasedReturnValue(void *obj) {
+    if (obj) {
+        swift_retain(obj);
+        return obj;
+    }
+    else return NULL;
+}
+#endif    
 
 CFHashCode __CFHashDouble(double d) {
     return _CFHashDouble(d);

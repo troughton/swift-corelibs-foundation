@@ -144,6 +144,8 @@ else:
 triple = Configuration.current.target.triple
 if triple == "armv7-none-linux-androideabi":
 	foundation.LDFLAGS += '-llog '
+elif triple == "x86_64-windows-gnu":
+	foundation.LDFLAGS += '-lws2_32 -lrpcrt4 -lpthread -Xlinker -export-all-symbols '
 else:
 	foundation.LDFLAGS += '-lpthread '
 
@@ -369,7 +371,7 @@ foundation.add_phase(sources)
 # FIXME: MinGW
 #   Some sources are commented, because the Dispatch module is not implemented.
 #   '##' : uses Dispatch module (5 files)
-#   '# ' : uses the class/function which is defined in '##' (9 files)
+#   '# ' : uses the class/function which is defined in '##' (12 files)
 swift_sources = CompileSwiftSources([
 	'Foundation/NSObject.swift',
 	'Foundation/AffineTransform.swift',
