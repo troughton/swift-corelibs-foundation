@@ -168,7 +168,7 @@ struct __CFConstStr {
 #endif
 };
 
-#if DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS
 #define CONST_STRING_LITERAL_SECTION __attribute__((section(".cfstrlit.data")))
 #else
 #define CONST_STRING_LITERAL_SECTION

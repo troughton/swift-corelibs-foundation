@@ -353,7 +353,7 @@ CF_EXPORT void *__CFConstantStringClassReference[];
 #define CF_CONST_STRING_INFO {0xc8, 0x07, 0x00, 0x00}
 #endif
 
-#if DEPLOYMENT_TARGET_LINUX
+#if DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_WINDOWS
 #define CONST_STRING_SECTION __attribute__((section(".cfstr.data")))
 #else
 #define CONST_STRING_SECTION
