@@ -161,7 +161,7 @@ struct __CFConstStr {
         uint8_t _pad[4];
     } _base;
     uint8_t *_ptr;
-#if defined(__LP64__) && defined(__BIG_ENDIAN__)
+#if (defined(__LP64__) || defined(__LLP64__)) && defined(__BIG_ENDIAN__)
     uint64_t _length;
 #else
     uint32_t _length;

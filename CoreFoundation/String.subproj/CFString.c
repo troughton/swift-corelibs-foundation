@@ -227,7 +227,7 @@ CF_INLINE Boolean __CFStrIsConstant(CFStringRef str) {
 #if DEPLOYMENT_RUNTIME_SWIFT
     return str->base._swift_strong_rc & _CF_SWIFT_RC_PINNED_FLAG;
 #else
-#if __LP64__
+#if __LP64__ || __LLP64__
     return str->base._rc == 0;
 #else
     return (str->base._cfinfo[CF_RC_BITS]) == 0;
@@ -519,7 +519,7 @@ CFStringEncoding __CFStringComputeEightBitStringEncoding(void) {
 /* Returns whether the provided bytes can be stored in ASCII
 */
 CF_INLINE Boolean __CFBytesInASCII(const uint8_t *bytes, CFIndex len) {
-#if __LP64__
+#if __LP64__ || __LLP64__
     /* A bit of unrolling; go by 32s, 16s, and 8s first */
     while (len >= 32) {
         uint64_t val = *(const uint64_t *)bytes;
@@ -607,7 +607,7 @@ Additional complications are applied in the following order:
 */
 #define SHRINKFACTOR(c) (c / 2)
 
-#if __LP64__
+#if __LP64__ || __LLP64__
 #define GROWFACTOR(c) ((c * 3 + 1) / 2)
 #else
 #define GROWFACTOR(c) (((c) >= (ULONG_MAX / 3UL)) ? __CFMax(LONG_MAX - 4095, (c)) : (((unsigned long)c * 3 + 1) / 2))
@@ -1810,7 +1810,7 @@ CFStringRef __CFStringMakeConstantString(const char *cStr) {
                 if (CFDictionaryGetCount(constantStringTable) == count) { // add did nothing, someone already put it there
                     result = (CFStringRef)CFDictionaryGetValue(constantStringTable, key);
                 } else if (!isTaggedPointerString) {
-#if __LP64__
+#if __LP64__ || __LLP64__
                     ((struct __CFString *)result)->base._rc = 0;
 #else
                     ((struct __CFString *)result)->base._cfinfo[CF_RC_BITS] = 0;
@@ -5759,6 +5759,9 @@ enum {
     CFFormatSize16 = 5,
 #if __LP64__
     CFFormatSizeLong = CFFormatSize8,
+    CFFormatSizePointer = CFFormatSize8
+#elif __LLP64__
+    CFFormatSizeLong = CFFormatSize4,
     CFFormatSizePointer = CFFormatSize8
 #else
     CFFormatSizeLong = CFFormatSize4,
