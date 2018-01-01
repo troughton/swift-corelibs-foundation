@@ -577,11 +577,11 @@ CF_PRIVATE void __CFFinalizeWindowsThreadData() {
 
 #else
 static pthread_key_t __CFTSDIndexKey;
-#endif
 
 CF_PRIVATE void __CFTSDInitialize() {
     (void)pthread_key_create(&__CFTSDIndexKey, __CFTSDFinalize);
 }
+#endif
 
 static void __CFTSDSetSpecific(void *arg) {
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
@@ -656,7 +656,9 @@ static __CFTSDTable *__CFTSDGetTable(const Boolean create) {
         // This memory is freed in the finalize function
         table = (__CFTSDTable *)calloc(1, sizeof(__CFTSDTable));
         // Windows and Linux have created the table already, we need to initialize it here for other platforms. On Windows, the cleanup function is called by DllMain when a thread exits. On Linux the destructor is set at init time.
+#if (DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_MACOSX) && DEPLOYMENT_RUNTIME_SWIFT
         __CFTSDInitialize();
+#endif
         __CFTSDSetSpecific(table);
     }
     
