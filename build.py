@@ -63,7 +63,6 @@ elif Configuration.current.target.sdk == OSType.Win32 and Configuration.current.
 		'-I/mingw64/include/libxml2',
 		'-I/mingw64/include/curl'
 	]
-	Configuration.current.swift_sdk = '/c/Work/swift_msvc/build/NinjaMinGW/swift'
 
 if Configuration.current.build_mode == Configuration.Debug:
         foundation.LDFLAGS += ' -lswiftSwiftOnoneSupport '
