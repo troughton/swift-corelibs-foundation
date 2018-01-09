@@ -117,7 +117,7 @@ void _CFGetFrameworkPath(wchar_t *path, int maxLength) {
 
 CFStringRef _CFGetWindowsAppleSystemLibraryDirectory(void) {
     // TODO: Detecting Swift runtime environment and the system directory
-    return "C:\\Swift";
+    return CFSTR("C:\\Swift");
 }
 
 void timeradd(struct timeval *a, struct timeval *b,

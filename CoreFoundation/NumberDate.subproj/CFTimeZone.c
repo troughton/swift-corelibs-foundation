@@ -55,6 +55,9 @@ struct tzhead {
     char	tzh_typecnt[4];		/* coded number of local time types */
     char	tzh_charcnt[4];		/* coded number of abbr. chars */
 };
+#elif DEPLOYMENT_TARGET_WINDOWS
+#include <tchar.h>
+#define TZZONEINFO "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Time Zones"
 #endif
 
 #include <time.h>
@@ -104,7 +107,7 @@ CF_INLINE void __CFTimeZoneUnlockCompatibilityMapping(void) {
     __CFUnlock(&__CFTimeZoneCompatibilityMappingLock);
 }
 
-#if DEPLOYMENT_TARGET_WINDOWS && defined(_MSC_VER_)
+#if DEPLOYMENT_TARGET_WINDOWS 
 /* This function should be used for WIN32 instead of
  * __CFCopyRecursiveDirectoryList function.
  * It takes TimeZone names from the registry
@@ -140,7 +143,7 @@ static CFMutableArrayRef __CFCopyWindowsTimeZoneList() {
     RegCloseKey(hkResult);
     return result;
 }
-#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
 static CFMutableArrayRef __CFCopyRecursiveDirectoryList() {
     CFMutableArrayRef result = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
     if (!__tzDir) __InitTZStrings();
@@ -896,7 +899,11 @@ CFArrayRef CFTimeZoneCopyKnownNames(void) {
 /* TimeZone information locate in the registry for Win32
  * (Aleksey Dukhnyakov)
  */
+#if !defined(__WIN32__)
         list = __CFCopyRecursiveDirectoryList();
+#else
+        list = __CFCopyWindowsTimeZoneList();
+#endif
 	// Remove undesirable ancient cruft
 	CFDictionaryRef dict = __CFTimeZoneCopyCompatibilityDictionary();
 	CFIndex idx;
