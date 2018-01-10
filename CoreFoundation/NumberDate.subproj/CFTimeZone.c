@@ -107,7 +107,7 @@ CF_INLINE void __CFTimeZoneUnlockCompatibilityMapping(void) {
     __CFUnlock(&__CFTimeZoneCompatibilityMappingLock);
 }
 
-#if DEPLOYMENT_TARGET_WINDOWS 
+#if 0 
 /* This function should be used for WIN32 instead of
  * __CFCopyRecursiveDirectoryList function.
  * It takes TimeZone names from the registry
@@ -143,7 +143,7 @@ static CFMutableArrayRef __CFCopyWindowsTimeZoneList() {
     RegCloseKey(hkResult);
     return result;
 }
-#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
 static CFMutableArrayRef __CFCopyRecursiveDirectoryList() {
     CFMutableArrayRef result = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
     if (!__tzDir) __InitTZStrings();
@@ -899,11 +899,7 @@ CFArrayRef CFTimeZoneCopyKnownNames(void) {
 /* TimeZone information locate in the registry for Win32
  * (Aleksey Dukhnyakov)
  */
-#if !defined(__WIN32__)
         list = __CFCopyRecursiveDirectoryList();
-#else
-        list = __CFCopyWindowsTimeZoneList();
-#endif
 	// Remove undesirable ancient cruft
 	CFDictionaryRef dict = __CFTimeZoneCopyCompatibilityDictionary();
 	CFIndex idx;
