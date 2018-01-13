@@ -143,7 +143,37 @@ static CFMutableArrayRef __CFCopyWindowsTimeZoneList() {
     RegCloseKey(hkResult);
     return result;
 }
-#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_WINDOWS || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
+#elif DEPLOYMENT_TARGET_WINDOWS
+static CFMutableArrayRef __CFCopyRecursiveDirectoryList() {
+    CFMutableArrayRef result = NULL;
+
+    UErrorCode status = U_ZERO_ERROR;
+    UEnumeration *time_zone_ids = ucal_openTimeZoneIDEnumeration(UCAL_ZONE_TYPE_CANONICAL_LOCATION, NULL, NULL, &status);
+    if (status != U_ZERO_ERROR)
+        return NULL;
+    
+    result = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
+
+    int len = 0;
+    status = U_ZERO_ERROR;
+    const char *zoneId = uenum_next(time_zone_ids, &len, &status);
+
+    while (zoneId != NULL && status == U_ZERO_ERROR) {
+        CFStringRef string = CFStringCreateWithBytes(kCFAllocatorSystemDefault, zoneId, len, CFStringGetSystemEncoding(), false);
+        CFArrayAppendValue(result, string);
+        CFRelease(string);
+        zoneId = uenum_next(time_zone_ids, &len, &status);
+    }
+
+    uenum_close(time_zone_ids);
+    if (status != U_ZERO_ERROR) {
+        CFRelease(result);
+        return NULL;
+    }
+
+    return result;
+}
+#elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_LINUX || DEPLOYMENT_TARGET_FREEBSD
 static CFMutableArrayRef __CFCopyRecursiveDirectoryList() {
     CFMutableArrayRef result = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
     if (!__tzDir) __InitTZStrings();
