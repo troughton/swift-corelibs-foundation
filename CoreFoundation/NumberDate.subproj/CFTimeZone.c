@@ -785,7 +785,7 @@ static CFTimeZoneRef __CFTimeZoneCreateSystem(void) {
     
     CFStringRef name = NULL;
     
-#if DEPLOYMENT_TARGET_WINDOWS
+#if 0
     TIME_ZONE_INFORMATION tzi = { 0 };
     DWORD rval = GetTimeZoneInformation(&tzi);
     if (rval != TIME_ZONE_ID_INVALID) {
@@ -803,6 +803,12 @@ static CFTimeZoneRef __CFTimeZoneCreateSystem(void) {
     } else {
         CFLog(kCFLogLevelError, CFSTR("Couldn't get time zone information error %d"), GetLastError());
     }
+#elif DEPLOYMENT_TARGET_WINDOWS
+    UChar default_tz[64];
+    UErrorCode status = U_ZERO_ERROR;
+    int len = ucal_getDefaultTimeZone(default_tz, 64, &status);
+
+    name = CFStringCreateWithBytes(kCFAllocatorSystemDefault, (UInt8 *)default_tz, len*sizeof(UChar), kCFStringEncodingUTF16LE, false);
 #else
     const char *tzenv;
     int ret;
