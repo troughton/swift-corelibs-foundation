@@ -1042,6 +1042,7 @@ static const char *__CFTimeZoneAbbreviationDefaults =
 "    <key>PHT</key>  <string>Asia/Manila</string>"
 "    <key>PKT</key>  <string>Asia/Karachi</string>"
 "    <key>PST</key>  <string>America/Los_Angeles</string>"
+"    <key>ROK</key>  <string>Asia/Seoul</string>"
 "    <key>SGT</key>  <string>Asia/Singapore</string>"
 "    <key>UTC</key>  <string>UTC</string>"
 "    <key>WAT</key>  <string>Africa/Lagos</string>"
