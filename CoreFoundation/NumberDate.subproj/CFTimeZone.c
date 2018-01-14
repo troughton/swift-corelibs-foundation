@@ -159,7 +159,7 @@ static CFMutableArrayRef __CFCopyRecursiveDirectoryList() {
     const char *zoneId = uenum_next(time_zone_ids, &len, &status);
 
     while (zoneId != NULL && status == U_ZERO_ERROR) {
-        CFStringRef string = CFStringCreateWithBytes(kCFAllocatorSystemDefault, zoneId, len, CFStringGetSystemEncoding(), false);
+        CFStringRef string = CFStringCreateWithBytes(kCFAllocatorSystemDefault, (const unsigned char *)zoneId, len, CFStringGetSystemEncoding(), false);
         CFArrayAppendValue(result, string);
         CFRelease(string);
         zoneId = uenum_next(time_zone_ids, &len, &status);
@@ -804,6 +804,10 @@ static CFTimeZoneRef __CFTimeZoneCreateSystem(void) {
         CFLog(kCFLogLevelError, CFSTR("Couldn't get time zone information error %d"), GetLastError());
     }
 #elif DEPLOYMENT_TARGET_WINDOWS
+    // The Win32 API GetTimeZoneInformation() returns the time zone name in the locale unicode string.
+    // Some localization of the Windows have the time zone names of non-Engliash characters.
+    // In that case, the name cann't be used as a key of the dictionary of the CFTimeZoneCopyWinToOlsonDictionary().
+    // Instead, let the ICU library do this with its own database.
     UChar default_tz[64];
     UErrorCode status = U_ZERO_ERROR;
     int len = ucal_getDefaultTimeZone(default_tz, 64, &status);

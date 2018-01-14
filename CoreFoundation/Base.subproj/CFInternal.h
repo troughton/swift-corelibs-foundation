@@ -810,7 +810,9 @@ CF_PRIVATE const wchar_t *_CFDLLPath(void);
 #define CFMaxPathLength ((CFIndex)260)
 #define PATH_SEP '\\'
 #define PATH_SEP_STR CFSTR("\\")
+#ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
+#endif //PATH_MAX
 #else
 #define CFMaxPathSize ((CFIndex)1026)
 #define CFMaxPathLength ((CFIndex)1024)

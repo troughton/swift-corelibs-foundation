@@ -489,7 +489,7 @@ CF_EXPORT int _NS_mkstemp(char *name, int bufSize);
 
 #if TARGET_OS_WINDOWS
 CF_EXPORT int fsync(int fd);
-CF_EXPORT int pipe(int pipefd[2]);
+CF_EXPORT int pipe(int * _Nonnull pipefd); // pipefd[2]
 CF_EXPORT int fchmod(int fd, mode_t mode);
 #endif
 

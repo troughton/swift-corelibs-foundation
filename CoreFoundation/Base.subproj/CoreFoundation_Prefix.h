@@ -383,10 +383,12 @@ CF_INLINE uint64_t mach_absolute_time() {
     return (uint64_t)count.QuadPart;
 }
 
+#if !defined(__MINGW32__)
 CF_INLINE long long llabs(long long v) {
     if (v < 0) return -v;
     return v;
 }
+#endif
 
 #define strtod_l(a,b,locale) strtod(a,b)
 #define strtoul_l(a,b,c,locale) strtoul(a,b,c)
