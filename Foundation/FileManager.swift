@@ -137,10 +137,9 @@ open class FileManager : NSObject {
                     let modeT = number.uint32Value
                 #endif
 #if CAN_IMPORT_MINGWCRT
-                var wcpath = [UInt16](path.utf16)
-                wcpath.append(UInt16(0))
-
-                if _wchmod(wcpath, Int32(mode_t(modeT))) != 0 {
+                if path.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                        return _wchmod(pointer, Int32(mode_t(modeT))) != 0
+                    }) {
                     fatalError("errno \(errno)")
                 }
 #else
@@ -159,10 +158,6 @@ open class FileManager : NSObject {
         This method replaces createDirectoryAtPath:attributes:
      */
     open func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = [:]) throws {
-#if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
-#endif
         if createIntermediates {
             var isDir: ObjCBool = false
             if !fileExists(atPath: path, isDirectory: &isDir) {
@@ -171,7 +166,9 @@ open class FileManager : NSObject {
                     try createDirectory(atPath: parent, withIntermediateDirectories: true, attributes: attributes)
                 }
 #if CAN_IMPORT_MINGWCRT
-                let mkdir_failed = _wmkdir(wcpath) != 0
+                let mkdir_failed = path.withCString(encodedAs:UTF16.self, {pointer in 
+                        return _wmkdir(pointer) != 0
+                    })
 #else
                 let mkdir_failed = mkdir(pathh, S_IRWXU | S_IRWXG | S_IRWXO) != 0
 #endif
@@ -187,7 +184,9 @@ open class FileManager : NSObject {
             }
         } else {
 #if CAN_IMPORT_MINGWCRT
-            let mkdir_failed = _wmkdir(wcpath) != 0
+            let mkdir_failed = path.withCString(encodedAs:UTF16.self, {pointer in 
+                        return _wmkdir(pointer) != 0
+                    })
 #else
             let mkdir_failed = mkdir(pathh, S_IRWXU | S_IRWXG | S_IRWXO) != 0
 #endif
@@ -215,10 +214,9 @@ open class FileManager : NSObject {
     open func contentsOfDirectory(atPath path: String) throws -> [String] {
         var contents : [String] = [String]()
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
-
-        let dir = _wopendir(wcpath)
+        let dir = path.withCString(encodedAs:UTF16.self, {pointer in 
+                return _wopendir(pointer)
+            })
 #else
         let dir = opendir(path)
 #endif
@@ -280,10 +278,10 @@ open class FileManager : NSObject {
     open func subpathsOfDirectory(atPath path: String) throws -> [String] {
          var contents : [String] = [String]()
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
 
-        let dir = _wopendir(wcpath)
+        let dir = path.withCString(encodedAs:UTF16.self, {pointer in 
+                return _wopendir(pointer)
+            })
 #else
         
         let dir = opendir(path)
@@ -328,13 +326,22 @@ open class FileManager : NSObject {
                 contents.append(entryName)
                 
 #if CAN_IMPORT_MINGWCRT
-                let subPath: String = path + "/" + entryName
-                var isDir = false
+                do {
 
-                if fileExists(atPath:subPath, isDirectory:&isDir) && isDir {
-                    print("\(subPath) isDir")
-                    let entries =  try subpathsOfDirectory(atPath: subPath)
-                    contents.append(contentsOf: entries.map({file in "\(entryName)/\(file)"}))
+                    let subPath: String = path + "/" + entryName
+                    let isDir:Bool = subPath.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                            var s = _stat64()
+                            guard _wstat64(pointer, &s) >= 0 else {
+                                return false
+                            }
+
+                            return (Int32(s.st_mode) & S_IFMT) == S_IFDIR
+                        })
+    
+                    if isDir {
+                        let entries =  try subpathsOfDirectory(atPath: subPath)
+                        contents.append(contentsOf: entries.map({file in "\(entryName)/\(file)"}))
+                    }
                 }
 #else
                 let entryType = withUnsafePointer(to: &entry!.pointee.d_type) { (ptr) -> Int32 in
@@ -370,11 +377,11 @@ open class FileManager : NSObject {
      */
     open func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
-
         var s = _stat64()
-        guard _wstat64(wcpath, &s) == 0 else {
+
+        guard path.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                return _wstat64(pointer, &s) == 0
+            }) else {
             throw _NSErrorWithErrno(errno, reading: true, path: path)
         }
 #else
@@ -520,12 +527,12 @@ open class FileManager : NSObject {
             throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteFileExists.rawValue, userInfo: [NSFilePathErrorKey : NSString(dstPath)])
         }
 #if CAN_IMPORT_MINGWCRT
-        var wcSrcPath = [UInt16](srcPath.utf16)
-        wcSrcPath.append(UInt16(0))
-        var wcDstPath = [UInt16](dstPath.utf16)
-        wcDstPath.append(UInt16(0))
 
-        if _wrename(wcSrcPath, wcDstPath) != 0 {
+        if !srcPath.withCString(encodedAs:UTF16.self, {(srcPointer) -> Bool in 
+                return dstPath.withCString(encodedAs:UTF16.self, {(dstPointer) -> Bool in 
+                        return _wrename(srcPointer, dstPointer) != 0
+                    })
+            }) {
             throw _NSErrorWithErrno(errno, reading: false, path: srcPath)
         }
 #else
@@ -561,28 +568,29 @@ open class FileManager : NSObject {
 
     open func removeItem(atPath path: String) throws {
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
-
         var s = _stat64()
-        guard _wstat64(wcpath, &s) == 0 else {
+
+        guard try path.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                guard _wstat64(pointer, &s) >= 0 else {
+                    return false
+                }
+
+                    if (Int32(s.st_mode) & S_IFMT) == S_IFDIR {
+                        let subpaths = try subpathsOfDirectory(atPath: path)
+                        for subpath in subpaths {
+                            try removeItem(atPath: path + "/" + subpath)
+                        }
+
+                        return _wrmdir(pointer) == 0
+
+                    } else {
+
+                        return _wunlink(pointer) == 0
+                    }
+
+            }) else {
+
             throw _NSErrorWithErrno(errno, reading: true, path: path)
-        }
-
-        if (Int32(s.st_mode) & S_IFMT) == S_IFDIR {
-            let subpaths = try subpathsOfDirectory(atPath: path)
-            for subpath in subpaths {
-                try removeItem(atPath: path + "/" + subpath)
-            }
-
-            if _wrmdir(wcpath) != 0 {
-                throw _NSErrorWithErrno(errno, reading: false, path: path)
-            }
-
-        } else {
-            if _wunlink(wcpath) != 0 {
-                throw _NSErrorWithErrno(errno, reading: false, path: path)
-            }
         }
 #else
         if rmdir(path) == 0 {
@@ -696,10 +704,9 @@ open class FileManager : NSObject {
     @discardableResult
     open func changeCurrentDirectoryPath(_ path: String) -> Bool {
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
-
-        return _wchdir(wcpath) == 0
+        return path.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                return _wchdir(pointer) == 0
+            })
 #else
         return chdir(path) == 0
 #endif
@@ -713,14 +720,17 @@ open class FileManager : NSObject {
     
     open func fileExists(atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>?) -> Bool {
 #if CAN_IMPORT_MINGWCRT
-        var wcpath = [UInt16](path.utf16)
-        wcpath.append(UInt16(0))
         var s = _stat64()
-        if _wstat64(wcpath, &s) >= 0 {
+        if path.withCString(encodedAs:UTF16.self, {(pointer) -> Bool in 
+                return _wstat64(pointer, &s) >= 0
+            }) {
+
             if let isDirectory = isDirectory {
-                 isDirectory.pointee = (Int32(s.st_mode) & S_IFMT) == S_IFDIR
+                isDirectory.pointee = (Int32(s.st_mode) & S_IFMT) == S_IFDIR
             }
+
         } else {
+
             return false
         }
 
