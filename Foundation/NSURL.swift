@@ -522,7 +522,11 @@ open class NSURL : NSObject, NSSecureCoding, NSCopying {
     
     open var path: String? {
         let absURL = CFURLCopyAbsoluteURL(_cfObject)
+#if os(Windows)
+        return CFURLCopyFileSystemPath(absURL, kCFURLWindowsPathStyle)?._swiftObject
+#else
         return CFURLCopyFileSystemPath(absURL, kCFURLPOSIXPathStyle)?._swiftObject
+#endif
     }
     
     open var fragment: String? {
