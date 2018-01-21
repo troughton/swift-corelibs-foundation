@@ -32,6 +32,10 @@ open class Host: NSObject {
     internal var _names = [String]()
     internal var _addresses = [String]()
     
+#if os(Android)
+    static internal let NI_MAXHOST = 1025
+#endif
+    
     static internal let _current = Host(currentHostName(), .current)
     
     internal init(_ info: String?, _ type: ResolveType) {
@@ -73,7 +77,7 @@ open class Host: NSObject {
     }
     
     internal func _resolveCurrent() {
-#if CAN_IMPORT_MINGWCRT
+#if os(Android) || CAN_IMPORT_MINGWCRT
         return
 #else
         var ifaddr: UnsafeMutablePointer<ifaddrs>? = nil
@@ -99,10 +103,14 @@ open class Host: NSObject {
             }
             ifa = ifaValue.ifa_next
         }
+        _resolved = true
 #endif
     }
     
     internal func _resolve() {
+#if os(Android)
+        return
+#else
         if _resolved {
             return
         }
@@ -161,8 +169,9 @@ open class Host: NSObject {
                 lookupInfo(&_names, NI_NOFQDN|NI_NAMEREQD)
                 res = info.ai_next
             }
+            _resolved = true
         }
-#endif
+#endif   
     }
     
     open var name: String? {

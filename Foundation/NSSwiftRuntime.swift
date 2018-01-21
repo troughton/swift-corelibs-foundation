@@ -14,13 +14,13 @@ import CoreFoundation
 // This mimics the behavior of the swift sdk overlay on Darwin
 #if os(OSX) || os(iOS)
 @_exported import Darwin
-#elseif os(Linux) || os(Android)
+#elseif os(Linux) || os(Android) || os(Cygwin)
 @_exported import Glibc
-#elseif os(Cygwin)
-@_exported import Newlib
 #elseif CAN_IMPORT_MINGWCRT
 @_exported import MinGWCrt
 #endif
+
+@_exported import Dispatch
 
 #if os(Android) || CAN_IMPORT_MINGWCRT // shim required for bzero
 @_transparent func bzero(_ ptr: UnsafeMutableRawPointer, _ size: size_t) {
@@ -28,7 +28,65 @@ import CoreFoundation
 }
 #endif
 
-public typealias ObjCBool = Bool
+#if !_runtime(_ObjC)
+/// The Objective-C BOOL type.
+///
+/// On 64-bit iOS, the Objective-C BOOL type is a typedef of C/C++
+/// bool. Elsewhere, it is "signed char". The Clang importer imports it as
+/// ObjCBool.
+@_fixed_layout
+public struct ObjCBool : ExpressibleByBooleanLiteral {
+    #if os(OSX) || (os(iOS) && (arch(i386) || arch(arm)))
+    // On OS X and 32-bit iOS, Objective-C's BOOL type is a "signed char".
+    var _value: Int8
+
+    init(_ value: Int8) {
+        self._value = value
+    }
+
+    public init(_ value: Bool) {
+        self._value = value ? 1 : 0
+    }
+
+    #else
+    // Everywhere else it is C/C++'s "Bool"
+    var _value: Bool
+
+    public init(_ value: Bool) {
+        self._value = value
+    }
+    #endif
+
+    /// The value of `self`, expressed as a `Bool`.
+    public var boolValue: Bool {
+        #if os(OSX) || (os(iOS) && (arch(i386) || arch(arm)))
+        return _value != 0
+        #else
+        return _value
+        #endif
+    }
+
+    /// Create an instance initialized to `value`.
+    @_transparent
+    public init(booleanLiteral value: Bool) {
+        self.init(value)
+    }
+}
+
+extension ObjCBool : CustomReflectable {
+    /// Returns a mirror that reflects `self`.
+    public var customMirror: Mirror {
+        return Mirror(reflecting: boolValue)
+    }
+}
+
+extension ObjCBool : CustomStringConvertible {
+    /// A textual representation of `self`.
+    public var description: String {
+        return self.boolValue.description
+    }
+}
+#endif
 
 internal class __NSCFType : NSObject {
     private var _cfinfo : Int32
@@ -88,11 +146,13 @@ internal func _CFZeroUnsafeIvars<T>(_ arg: inout T) {
     }
 }
 
+@_versioned
 @_cdecl("__CFSwiftGetBaseClass")
 internal func __CFSwiftGetBaseClass() -> UnsafeRawPointer {
     return unsafeBitCast(__NSCFType.self, to:UnsafeRawPointer.self)
 }
 
+@_versioned
 @_cdecl("__CFInitializeSwift")
 internal func __CFInitializeSwift() {
     

@@ -10,7 +10,7 @@
 import CoreFoundation
 import Dispatch
 
-internal class _HTTPURLProtocol: URLProtocol {
+internal class _HTTPURLProtocol: _NativeProtocol {
 
     fileprivate var easyHandle: _EasyHandle!
     fileprivate lazy var tempFileURL: URL = {
@@ -93,7 +93,7 @@ fileprivate extension _HTTPURLProtocol {
     fileprivate func configureEasyHandle(for request: URLRequest) {
         // At this point we will call the equivalent of curl_easy_setopt()
         // to configure everything on the handle. Since we might be re-using
-        // a handle, we must be sure to set everything and not rely on defaul
+        // a handle, we must be sure to set everything and not rely on default
         // values.
 
         //TODO: We could add a strong reference from the easy handle back to
@@ -134,7 +134,9 @@ fileprivate extension _HTTPURLProtocol {
             //     NSURLErrorNoPermissionsToReadFile
             //     NSURLErrorFileDoesNotExist
             self.internalState = .transferFailed
-            failWith(errorCode: errorCode(fileSystemError: e), request: request)
+            let error = NSError(domain: NSURLErrorDomain, code: errorCode(fileSystemError: e),
+                                userInfo: [NSLocalizedDescriptionKey: "File system error"])
+            failWith(error: error, request: request)
             return
         }
 
@@ -210,8 +212,7 @@ fileprivate extension _HTTPURLProtocol {
     func curlHeaders(for httpHeaders: [AnyHashable : Any]?) -> [String] {
         var result: [String] = []
         var names = Set<String>()
-        if httpHeaders != nil {
-            let hh = httpHeaders as! [String:String]
+        if let hh = httpHeaders as? [String : String] {
             hh.forEach {
                 let name = $0.0.lowercased()
                 guard !names.contains(name) else { return }
@@ -328,17 +329,19 @@ internal extension _HTTPURLProtocol {
         case stream(InputStream)
     }
 
-    func failWith(errorCode: Int, request: URLRequest) {
+    func failWith(error: NSError, request: URLRequest) {
         //TODO: Error handling
         let userInfo: [String : Any]? = request.url.map {
             [
+                NSUnderlyingErrorKey: error,
                 NSURLErrorFailingURLErrorKey: $0,
                 NSURLErrorFailingURLStringErrorKey: $0.absoluteString,
+                NSLocalizedDescriptionKey: NSLocalizedString(error.localizedDescription, comment: "N/A")
                 ]
         }
-        let error = URLError(_nsError: NSError(domain: NSURLErrorDomain, code: errorCode, userInfo: userInfo))
-        completeTask(withError: error)
-        self.client?.urlProtocol(self, didFailWithError: error)
+        let urlError = URLError(_nsError: NSError(domain: NSURLErrorDomain, code: error.code, userInfo: userInfo))
+        completeTask(withError: urlError)
+        self.client?.urlProtocol(self, didFailWithError: urlError)
     }
 }
 
@@ -413,21 +416,21 @@ internal extension _HTTPURLProtocol {
 extension _HTTPURLProtocol {
 
     /// Creates a new transfer state with the given behaviour:
-    func createTransferState(url: URL, workQueue: DispatchQueue) -> _HTTPTransferState {
+    func createTransferState(url: URL, workQueue: DispatchQueue) -> _TransferState {
         let drain = createTransferBodyDataDrain()
         guard let t = task else { fatalError("Cannot create transfer state") }
         switch t.body {
         case .none:
-            return _HTTPTransferState(url: url, bodyDataDrain: drain)
+            return _TransferState(url: url, bodyDataDrain: drain)
         case .data(let data):
-            let source = _HTTPBodyDataSource(data: data)
-            return _HTTPTransferState(url: url, bodyDataDrain: drain, bodySource: source)
+            let source = _BodyDataSource(data: data)
+            return _TransferState(url: url, bodyDataDrain: drain, bodySource: source)
         case .file(let fileURL):
-            let source = _HTTPBodyFileSource(fileURL: fileURL, workQueue: workQueue, dataAvailableHandler: { [weak self] in
+            let source = _BodyFileSource(fileURL: fileURL, workQueue: workQueue, dataAvailableHandler: { [weak self] in
                 // Unpause the easy handle
                 self?.easyHandle.unpauseSend()
             })
-            return _HTTPTransferState(url: url, bodyDataDrain: drain, bodySource: source)
+            return _TransferState(url: url, bodyDataDrain: drain, bodySource: source)
         case .stream:
             NSUnimplemented()
         }
@@ -528,16 +531,16 @@ extension _HTTPURLProtocol: _EasyHandleDelegate {
         }
     }
 
-    func transferCompleted(withErrorCode errorCode: Int?) {
+    func transferCompleted(withError error: NSError?) {
         // At this point the transfer is complete and we can decide what to do.
         // If everything went well, we will simply forward the resulting data
         // to the delegate. But in case of redirects etc. we might send another
         // request.
         guard case .transferInProgress(let ts) = internalState else { fatalError("Transfer completed, but it wasn't in progress.") }
         guard let request = task?.currentRequest else { fatalError("Transfer completed, but there's no current request.") }
-        guard errorCode == nil else {
+        guard error == nil else {
             internalState = .transferFailed
-            failWith(errorCode: errorCode!, request: request)
+            failWith(error: error!, request: request)
             return
         }
 
@@ -555,14 +558,16 @@ extension _HTTPURLProtocol: _EasyHandleDelegate {
             completeTask()
         case .failWithError(let errorCode):
             internalState = .transferFailed
-            failWith(errorCode: errorCode, request: request)
+            let error = NSError(domain: NSURLErrorDomain, code: errorCode,
+                                userInfo: [NSLocalizedDescriptionKey: "Completion failure"])
+            failWith(error: error, request: request)
         case .redirectWithRequest(let newRequest):
             redirectFor(request: newRequest)
         }
     }
 
     func seekInputStream(to position: UInt64) throws {
-        // We will reset the body sourse and seek forward.
+        // We will reset the body source and seek forward.
         NSUnimplemented()
     }
  
@@ -580,9 +585,9 @@ extension _HTTPURLProtocol {
         case initial
         /// The easy handle has been fully configured. But it is not added to
         /// the multi handle.
-        case transferReady(_HTTPTransferState)
+        case transferReady(_TransferState)
         /// The easy handle is currently added to the multi handle
-        case transferInProgress(_HTTPTransferState)
+        case transferInProgress(_TransferState)
         /// The transfer completed.
         ///
         /// The easy handle has been removed from the multi handle. This does
@@ -605,7 +610,7 @@ extension _HTTPURLProtocol {
         /// we received a complete header), we need to wait for the delegate to
         /// let us know what action to take. In this state the easy handle is
         /// paused in order to suspend delegate callbacks.
-        case waitingForResponseCompletionHandler(_HTTPTransferState)
+        case waitingForResponseCompletionHandler(_TransferState)
         /// The task is completed
         ///
         /// Contrast this with `.transferCompleted`.
@@ -774,7 +779,7 @@ internal extension _HTTPURLProtocol {
     func didReceiveResponse() {
         guard let _ = task as? URLSessionDataTask else { return }
         guard case .transferInProgress(let ts) = self.internalState else { fatalError("Transfer not in progress.") }
-        guard let response = ts.response else { fatalError("Header complete, but not URL response.") }
+        guard let response = ts.response as? HTTPURLResponse else { fatalError("Header complete, but not URL response.") }
         guard let session = task?.session as? URLSession else { fatalError() }
         switch session.behaviour(for: self.task!) {
         case .noDelegate:
@@ -852,9 +857,12 @@ internal extension _HTTPURLProtocol {
     }
 
     /// What action to take
-    func completionAction(forCompletedRequest request: URLRequest, response: HTTPURLResponse) -> _CompletionAction {
+    func completionAction(forCompletedRequest request: URLRequest, response: URLResponse) -> _CompletionAction {
+        guard let httpURLResponse = response as? HTTPURLResponse else {
+            fatalError("Reponse was not HTTPURLResponse")
+        }
         // Redirect:
-        if let request = redirectRequest(for: response, fromRequest: request) {
+        if let request = redirectRequest(for: httpURLResponse, fromRequest: request) {
             return .redirectWithRequest(request)
         }
         return .completeTask

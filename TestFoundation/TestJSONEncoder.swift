@@ -105,19 +105,27 @@ class TestJSONEncoder : XCTestCase {
     }
 
     func test_encodingOutputFormattingSortedKeys() {
+        let expectedJSON = "{\"email\":\"appleseed@apple.com\",\"name\":\"Johnny Appleseed\"}".data(using: .utf8)!
+        let person = Person.testValue
+#if os(OSX) || DARWIN_COMPATIBILITY_TESTS
         if #available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *) {
-            let expectedJSON = "{\"email\":\"appleseed@apple.com\",\"name\":\"Johnny Appleseed\"}".data(using: .utf8)!
-            let person = Person.testValue
             _testRoundTrip(of: person, expectedJSON: expectedJSON, outputFormatting: [.sortedKeys])
         }
+#else
+        _testRoundTrip(of: person, expectedJSON: expectedJSON, outputFormatting: [.sortedKeys])
+#endif
     }
 
     func test_encodingOutputFormattingPrettyPrintedSortedKeys() {
+        let expectedJSON = "{\n  \"email\" : \"appleseed@apple.com\",\n  \"name\" : \"Johnny Appleseed\"\n}".data(using: .utf8)!
+        let person = Person.testValue
+#if os(OSX) || DARWIN_COMPATIBILITY_TESTS
         if #available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *) {
-            let expectedJSON = "{\n  \"email\" : \"appleseed@apple.com\",\n  \"name\" : \"Johnny Appleseed\"\n}".data(using: .utf8)!
-            let person = Person.testValue
             _testRoundTrip(of: person, expectedJSON: expectedJSON, outputFormatting: [.prettyPrinted, .sortedKeys])
         }
+#else
+        _testRoundTrip(of: person, expectedJSON: expectedJSON, outputFormatting: [.prettyPrinted, .sortedKeys])
+#endif
     }
 
     // MARK: - Date Strategy Tests
@@ -151,19 +159,18 @@ class TestJSONEncoder : XCTestCase {
     }
 
     func test_encodingDateISO8601() {
-        if #available(OSX 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = .withInternetDateTime
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = .withInternetDateTime
 
-            let timestamp = Date(timeIntervalSince1970: 1000)
-            let expectedJSON = "[\"\(formatter.string(from: timestamp))\"]".data(using: .utf8)!
+        let timestamp = Date(timeIntervalSince1970: 1000)
+        let expectedJSON = "[\"\(formatter.string(from: timestamp))\"]".data(using: .utf8)!
 
-            // We can't encode a top-level Date, so it'll be wrapped in an array.
-            _testRoundTrip(of: TopLevelArrayWrapper(timestamp),
-                           expectedJSON: expectedJSON,
-                           dateEncodingStrategy: .iso8601,
-                           dateDecodingStrategy: .iso8601)
-        }
+        // We can't encode a top-level Date, so it'll be wrapped in an array.
+        _testRoundTrip(of: TopLevelArrayWrapper(timestamp),
+                       expectedJSON: expectedJSON,
+                       dateEncodingStrategy: .iso8601,
+                       dateDecodingStrategy: .iso8601)
+
     }
 
     func test_encodingDateFormatted() {
@@ -354,11 +361,15 @@ class TestJSONEncoder : XCTestCase {
     }
 
     func test_codingOfInt64() {
+#if !arch(arm)
         test_codingOf(value: Int64(-9000000000000000042), toAndFrom: "-9000000000000000042")
+#endif
     }
 
     func test_codingOfUInt64() {
+#if !arch(arm)
         test_codingOf(value: UInt64(9000000000000000042), toAndFrom: "9000000000000000042")
+#endif
     }
 
     func test_codingOfInt() {
@@ -367,7 +378,11 @@ class TestJSONEncoder : XCTestCase {
         case 4: // 32-bit
             test_codingOf(value: Int(-2000000042), toAndFrom: "-2000000042")
         case 8: // 64-bit
+#if arch(arm)
+            break
+#else
             test_codingOf(value: Int(-9000000000000000042), toAndFrom: "-9000000000000000042")
+#endif
         default:
             XCTFail("Unexpected UInt size: \(intSize)")
         }
@@ -379,7 +394,11 @@ class TestJSONEncoder : XCTestCase {
         case 4: // 32-bit
             test_codingOf(value: UInt(2000000042), toAndFrom: "2000000042")
         case 8: // 64-bit
+#if arch(arm)
+            break
+#else
             test_codingOf(value: UInt(9000000000000000042), toAndFrom: "9000000000000000042")
+#endif
         default:
             XCTFail("Unexpected UInt size: \(uintSize)")
         }

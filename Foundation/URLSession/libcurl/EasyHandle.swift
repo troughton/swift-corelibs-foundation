@@ -43,8 +43,8 @@ import Dispatch
 /// needs to be configured for a specific transfer (e.g. the URL) will be
 /// configured on an easy handle.
 ///
-/// A single `URLSessionTask` may do multiple, sonecutive transfers, and
-/// as a result it will have to reconfigure it's easy handle between
+/// A single `URLSessionTask` may do multiple, consecutive transfers, and
+/// as a result it will have to reconfigure its easy handle between
 /// transfers. An easy handle can be re-used once its transfer has
 /// completed.
 ///
@@ -56,9 +56,7 @@ internal final class _EasyHandle {
     fileprivate var headerList: _CurlStringList?
     fileprivate var pauseState: _PauseState = []
     internal var timeoutTimer: _TimeoutSource!
-    #if os(Android)
-    static fileprivate var _CAInfoFile: UnsafeMutablePointer<Int8>?
-    #endif
+    internal lazy var errorBuffer = [UInt8](repeating: 0, count: Int(CFURLSessionEasyErrorSize))
 
     init(delegate: _EasyHandleDelegate) {
         self.delegate = delegate
@@ -89,8 +87,8 @@ extension _EasyHandle {
 }
 
 internal extension _EasyHandle {
-    func completedTransfer(withErrorCode errorCode: Int?) {
-        delegate?.transferCompleted(withErrorCode: errorCode)
+    func completedTransfer(withError error: NSError?) {
+        delegate?.transferCompleted(withError: error)
     }
 }
 internal protocol _EasyHandleDelegate: class {
@@ -107,7 +105,7 @@ internal protocol _EasyHandleDelegate: class {
     func fill(writeBuffer buffer: UnsafeMutableBufferPointer<Int8>) -> _EasyHandle._WriteBufferResult
     /// The transfer for this handle completed.
     /// - parameter errorCode: An NSURLError code, or `nil` if no error occured.
-    func transferCompleted(withErrorCode errorCode: Int?)
+    func transferCompleted(withError error: NSError?)
     /// Seek the input stream to the given position
     func seekInputStream(to position: UInt64) throws
     /// Gets called during the transfer to update progress.
@@ -146,7 +144,8 @@ extension _EasyHandle {
     /// Set error buffer for error messages
     /// - SeeAlso: https://curl.haxx.se/libcurl/c/CURLOPT_ERRORBUFFER.html
     func set(errorBuffer buffer: UnsafeMutableBufferPointer<UInt8>?) {
-        try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionERRORBUFFER, buffer?.baseAddress ?? nil).asError()
+        let buffer = buffer ?? errorBuffer.withUnsafeMutableBufferPointer { $0 }
+        try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionERRORBUFFER, buffer.baseAddress).asError()
     }
     /// Request failure on HTTP response >= 400
     func set(failOnHTTPErrorCode flag: Bool) {
@@ -170,20 +169,20 @@ extension _EasyHandle {
         let protocols = (CFURLSessionProtocolHTTP | CFURLSessionProtocolHTTPS)
         try! CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionPROTOCOLS, protocols).asError()
         try! CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionREDIR_PROTOCOLS, protocols).asError()
-        #if os(Android)
-            // See https://curl.haxx.se/docs/sslcerts.html
-            // For SSL to work you need "cacert.pem" to be accessable
-            // at the path pointed to by the URLSessionCAInfo env var.
-            // Downloadable here: https://curl.haxx.se/ca/cacert.pem
-            if let caInfo = _EasyHandle._CAInfoFile  {
-                if String(cString: caInfo) == "UNSAFE_SSL_NOVERIFY" {
-                    try! CFURLSession_easy_setopt_int(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError()
-                }
-                else {
-                    try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError()
-                }
+#if os(Android)
+        // See https://curl.haxx.se/docs/sslcerts.html
+        // For SSL on Android you need a "cacert.pem" to be
+        // accessible at the path pointed to by this env var.
+        // Downloadable here: https://curl.haxx.se/ca/cacert.pem
+        if let caInfo = getenv("URLSessionCertificateAuthorityInfoFile")  {
+            if String(cString: caInfo) == "INSECURE_SSL_NO_VERIFY" {
+                try! CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError()
             }
-        #endif
+            else {
+                try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError()
+            }
+        }
+#endif
         //TODO: Added in libcurl 7.45.0
         //TODO: Set default protocol for schemeless URLs
         //CURLOPT_DEFAULT_PROTOCOL available only in libcurl 7.45.0
@@ -629,19 +628,6 @@ extension _EasyHandle._CurlStringList {
         return rawList.map{ UnsafeMutableRawPointer($0) }
     }
 }
-
-#if os(Android)
-extension URLSession {
-
-    public static func setCAInfoFile(_ _CAInfoFile: String) {
-        free(_EasyHandle._CAInfoFile)
-        _CAInfoFile.withCString {
-            _EasyHandle._CAInfoFile = strdup($0)
-        }
-    }
-
-}
-#endif
 
 extension CFURLSessionEasyCode : Equatable {
     public static func ==(lhs: CFURLSessionEasyCode, rhs: CFURLSessionEasyCode) -> Bool {

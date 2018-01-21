@@ -405,7 +405,8 @@ private struct JSONWriter {
                     writer("\\\"") // U+0022 quotation mark
                 case "\\":
                     writer("\\\\") // U+005C reverse solidus
-                // U+002F solidus not escaped
+                case "/":
+                    writer("\\/") // U+002F solidus
                 case "\u{8}":
                     writer("\\b") // U+0008 backspace
                 case "\u{c}":
@@ -514,7 +515,7 @@ private struct JSONWriter {
             } else {
                 throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: ["NSDebugDescription" : "NSDictionary key must be NSString"])
             }
-            pretty ? writer(": ") : writer(":")
+            pretty ? writer(" : ") : writer(":")
             try serializeJSON(value)
         }
 
